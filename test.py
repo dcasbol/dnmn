@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import argparse
+from misc.util import cudalize
 
 parser = argparse.ArgumentParser(description='Train Find Module')
 parser.add_argument('--epochs', type=int, default=1,
