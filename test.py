@@ -46,7 +46,7 @@ for epoch in range(NUM_EPOCHS):
 		perc = epoch + (i*BATCH_SIZE)/len(findset)
 
 		features = cudalize(features)
-		labels = cudalize(labels)
+		label = cudalize(label)
 
 		batch_size = features.size(0)
 		hmap = find(features, label)
