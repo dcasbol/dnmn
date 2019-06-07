@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import MODULE_INDEX
 from misc.constants import *
+from misc.util import cudalize
 import numpy as np
+
 
 class FindModule(nn.Module):
 
@@ -64,8 +66,8 @@ class MLPFindModule(nn.Module):
 			nc.add(np.random.randint(M))
 		nc = list(nc)
 		c = [ nc.index(Ci) for Ci in c ]
-		nc = torch.tensor(nc)
-		c = torch.tensor(c)
+		nc = cudalize(torch.tensor(nc))
+		c = cudalize(torch.tensor(c))
 
 		proj = proj.unsqueeze(0) #[1,B,A,H,W]
 		wemb = self._wordemb[nc].view(N,1,A,1,1)

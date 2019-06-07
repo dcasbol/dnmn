@@ -4,3 +4,4 @@ cache
 envnmntorch
 *.npz
 *.jpg
+*.pt

@@ -1,3 +1,7 @@
+
+USE_CUDA = torch.cuda.is_available()
+cudalize = lambda x: x.cuda() if USE_CUDA else x
+
 class Struct:
     def __init__(self, **entries):
         rec_entries = {}
