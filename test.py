@@ -27,7 +27,7 @@ SET_NAME = 'train2014'
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = MLPFindModule()
+find = cudalize(MLPFindModule())
 loss_fn = nn.BCELoss()
 
 opt = torch.optim.Adam(find.parameters(), lr=1e-3)
