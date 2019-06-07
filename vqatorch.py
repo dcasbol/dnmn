@@ -197,8 +197,9 @@ class VQAFindDataset(VQADataset):
 
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
-		oh = np.zeros(len(MODULE_INDEX))
 		target = random.choice(datum['parses'])[-1]
 		target = MODULE_INDEX[target] or UNK_ID
-		oh[target] = 1.
-		return features, target, oh
+		
+		input_set, input_id = datum['input_set'], datum['input_id']
+		raw_input_path = RAW_IMAGE_FILE % (input_set, input_set, input_id)
+		return features, target, raw_input_path
