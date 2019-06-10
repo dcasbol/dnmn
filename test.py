@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import argparse
 from misc.util import cudalize
+import json
 
 parser = argparse.ArgumentParser(description='Train Find Module')
 parser.add_argument('--epochs', type=int, default=1,
@@ -16,6 +17,7 @@ parser.add_argument('--epochs', type=int, default=1,
 parser.add_argument('--batchsize', type=int, default=16)
 parser.add_argument('--visualize', action='store_true',
 		help='Visualize masks and images')
+parser.add_argument('--restore', action='store_true')
 parser.add_argument('--save', action='store_true',
 		help='Save the module periodically')
 args = parser.parse_args()
@@ -27,7 +29,11 @@ SET_NAME = 'train2014'
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = cudalize(MLPFindModule())
+find = MLPFindModule()
+if args.restore:
+	find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
+find = cudalize(find)
+
 loss_fn = nn.BCELoss()
 
 opt = torch.optim.Adam(find.parameters(), lr=1e-3)
@@ -81,7 +87,7 @@ for epoch in range(NUM_EPOCHS):
 				plt.pause(0.001)
 
 	if args.save:
-		torch.save(find.state_dict(), 'find_module.pt')
+		torch.save(find.state_dict(), 'find_module-new.pt')
 		print('Module saved')
 
 print(loss_list)

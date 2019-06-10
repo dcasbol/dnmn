@@ -54,6 +54,9 @@ class MLPFindModule(nn.Module):
 
 	def forward(self, features, c):
 
+		if not self.training:
+			return self._eval_fwd(features, c)
+
 		proj = self._conv_proj(features)
 		B,A,H,W = proj.size()
 		M = len(MODULE_INDEX)
@@ -72,10 +75,19 @@ class MLPFindModule(nn.Module):
 		proj = proj.unsqueeze(0) #[1,B,A,H,W]
 		wemb = self._wordemb[nc].view(N,1,A,1,1)
 
-		attended = F.relu(proj+wemb) #[M,B,A,H,W]
+		attended = F.relu(proj+wemb) #[N,B,A,H,W]
 		attended = attended.view(-1,A,H,W)
 		mask = torch.sigmoid(self._conv_mask(attended)).view(N,B,1,H,W)
 
 		total = torch.sum(mask, 0) #[B,1,H,W]
+		total = torch.max(total, torch.ones_like(total))
 		mask = mask[c, torch.arange(B)] #[B,1,H,W]
-		return mask / (total + 1e-10)
+		return mask / total
+
+	def _eval_fwd(self, features, c):
+		proj = self._conv_proj(features) # [B,A,H,W]
+		B, A = proj.size()[:2]
+		wemb = self._wordemb[c].view(B,A,1,1)
+		attended = F.relu(proj+wemb)
+		mask = torch.sigmoid(self._conv_mask(attended))
+		return mask
