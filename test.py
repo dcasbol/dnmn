@@ -1,22 +1,22 @@
+import argparse
+import json
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset
-from modules import MLPFindModule
-from misc.indices import ANSWER_INDEX, MODULE_INDEX, UNK_ID
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import argparse
+from torch.utils.data import DataLoader
+from vqatorch import VQAFindDataset
+from modules import MLPFindModule
+from misc.indices import ANSWER_INDEX, FIND_INDEX, UNK_ID
 from misc.util import cudalize
-import json
 
 parser = argparse.ArgumentParser(description='Train Find Module')
 parser.add_argument('--epochs', type=int, default=1,
 	help='Max. training epochs')
 parser.add_argument('--batchsize', type=int, default=16)
-parser.add_argument('--visualize', action='store_true',
-	help='Visualize masks and images')
+parser.add_argument('--visualize', type=int, default=0,
+	help='Select every N steps to visualize. 0 is disabled.')
 parser.add_argument('--restore', action='store_true')
 parser.add_argument('--save', action='store_true',
 	help='Save the module periodically')
@@ -71,9 +71,9 @@ for epoch in range(NUM_EPOCHS):
 			print(perc, loss.item())
 			loss_list.append(loss.item())
 			n += 1
-			if args.visualize and n%5 == 0:
+			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
-				plt.suptitle(MODULE_INDEX.get(label[0].item()))
+				plt.suptitle(FIND_INDEX.get(label[0].item()))
 
 				plt.subplot(1,2,1)
 				img = hmap.detach()[0,0].cpu().numpy()

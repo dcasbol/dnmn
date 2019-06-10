@@ -20,17 +20,16 @@ def _prepare_indices():
 	MIN_COUNT = 10
 
 	QUESTION_INDEX = Index()
-	MODULE_INDEX = Index()
-	MODULE_TYPE_INDEX = Index()
+	DESC_INDEX = Index()
+	FIND_INDEX = Index()
 	ANSWER_INDEX = Index()
 
 	UNK_ID = QUESTION_INDEX.index(UNK)
-	MODULE_INDEX.index(UNK)
+	DESC_INDEX.index(UNK)
+	FIND_INDEX.index(UNK)
 	ANSWER_INDEX.index(UNK)
 
 	NULL_ID = QUESTION_INDEX.index(NULL)
-	#MODULE_INDEX.index(NULL)
-	#ANSWER_INDEX.index(NULL)
 
 	word_counts = defaultdict(lambda: 0)
 	with open(QUESTION_FILE % set_name) as question_f:
@@ -43,16 +42,26 @@ def _prepare_indices():
 		if count >= MIN_COUNT:
 			QUESTION_INDEX.index(word)
 
-	pred_counts = defaultdict(lambda: 0)
+	desc_counts = defaultdict(lambda: 0)
+	find_counts = defaultdict(lambda: 0)
 	with open(MULTI_PARSE_FILE % set_name) as parse_f:
-		table = str.maketrans({'(':'', ')':'', ';':' '})
+		table = str.maketrans({'(':'', ')':''})
 		for line in parse_f:
-			parts = line.strip().translate(table).split()
-			for part in parts:
-				pred_counts[part] += 1
-	for pred, count in pred_counts.items():
-		if count >= 10 * MIN_COUNT:
-			MODULE_INDEX.index(pred)
+			parses = line.strip().split(';')
+			for parse in parses:
+				parts = line.strip().translate(table).split()
+				desc_counts[parts[0]] += 1
+				for part in parts[1:]:
+					find_counts[part] += 1
+
+	threshold = 10*MIN_COUNT
+	for pred, count in desc_counts.items():
+		if count >= threshold:
+			DESC_INDEX.index(pred)
+
+	for pred, count in find_counts.items():
+		if count >= threshold:
+			FIND_INDEX.index(pred)
 
 	answer_counts = defaultdict(lambda: 0)
 	with open(ANN_FILE % set_name) as ann_f:
@@ -73,8 +82,8 @@ def _prepare_indices():
 
 	return {
 		'QUESTION' : QUESTION_INDEX,
-		'MODULE' : MODULE_INDEX,
-		'MODULE_TYPE' : MODULE_TYPE_INDEX,
+		'DESC' : DESC_INDEX,
+		'FIND' : FIND_INDEX,
 		'ANSWER' : ANSWER_INDEX,
 		'UNK_ID' : UNK_ID,
 		'NULL_ID' : NULL_ID
@@ -96,8 +105,8 @@ def _cached_load():
 _idx = _cached_load()
 
 QUESTION_INDEX = _idx['QUESTION']
-MODULE_INDEX = _idx['MODULE']
-MODULE_TYPE_INDEX = _idx['MODULE_TYPE']
+DESC_INDEX = _idx['DESC']
+FIND_INDEX = _idx['FIND']
 ANSWER_INDEX = _idx['ANSWER']
 UNK_ID = _idx['UNK_ID']
 NULL_ID = _idx['NULL_ID']

@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import MLPFindModule
-from misc.indices import MODULE_INDEX
+from misc.indices import FIND_INDEX
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -26,7 +26,7 @@ for features, label, paths in loader:
 	hmap = find(features, label)
 
 	plt.clf()
-	plt.suptitle(MODULE_INDEX.get(label[0].item()))
+	plt.suptitle(FIND_INDEX.get(label[0].item()))
 
 	plt.subplot(1,2,1)
 	img = hmap.detach()[0,0].cpu().numpy()

@@ -1,11 +1,11 @@
 import json
 import sexpdata
 import torch
-from misc.constants import *
-from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, UNK_ID
-from torch.utils.data import Dataset
-import numpy as np
 import random
+import numpy as np
+from misc.constants import *
+from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID
+from torch.utils.data import Dataset
 
 def _parse_tree(p):
 	if "'" in p:
@@ -45,12 +45,12 @@ def parse_to_layout(parse):
 	or measure modules depending on the domain.
 	"""
 	if isinstance(parse, str):
-		return "find", MODULE_INDEX[parse] or UNK_ID
+		return "find", FIND_INDEX[parse] or UNK_ID
 	head = parse[0]
 	below = [ parse_to_layout(c) for c in parse[1:] ]
 	modules_below, indices_below = _ziplist(*below)
 	module_head = 'and' if head == 'and' else 'describe'
-	index_head = MODULE_INDEX[head] or UNK_ID
+	index_head = DESC_INDEX[head] or UNK_ID
 	modules_here = [module_head] + modules_below
 	indices_here = [index_head] + indices_below
 	return modules_here, indices_here
@@ -190,7 +190,20 @@ class VQAFindDataset(VQADataset):
 
 	def __init__(self, *args):
 		superobj = super(VQAFindDataset, self).__init__(*args)
-		self._imap = [ i for i, qid in enumerate(self._id_list) if len(self._by_id[qid]['layouts_names']) == 2 ]
+		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
+		self._imap = list()
+		for i, qid in enumerate(self._id_list):
+			q = self._by_id[qid]
+			if len(q['layouts_names']) != 2:
+				continue
+			head = q['parses'][0][0]
+			if head in {'is', 'how_many'}:
+				ans = set()
+				for a in q['answers']:
+					ans.add(a)
+				if len(ans.intersection(neg_set)) > 0:
+					continue
+			self._imap.append(i)
 
 	def __len__(self):
 		return len(self._imap)
@@ -198,7 +211,7 @@ class VQAFindDataset(VQADataset):
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 		target = random.choice(datum['parses'])[-1]
-		target = MODULE_INDEX[target] or UNK_ID
+		target = FIND_INDEX[target] or UNK_ID
 		
 		input_set, input_id = datum['input_set'], datum['input_id']
 		raw_input_path = RAW_IMAGE_FILE % (input_set, input_set, input_id)

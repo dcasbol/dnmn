@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.indices import MODULE_INDEX
+from misc.indices import FIND_INDEX
 from misc.constants import *
 from misc.util import cudalize
 import numpy as np
@@ -12,7 +12,7 @@ class FindModule(nn.Module):
 	def __init__(self):
 		super(FindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
-		self._conv = nn.Conv2d(ATT_HIDDEN, len(MODULE_INDEX), 1)
+		self._conv = nn.Conv2d(ATT_HIDDEN, len(FIND_INDEX), 1)
 
 	def forward(self, features, c):
 		""" Conflict:
@@ -48,7 +48,7 @@ class MLPFindModule(nn.Module):
 	def __init__(self, softmax=False):
 		super(MLPFindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
-		self._wordemb = nn.Parameter(torch.rand(len(MODULE_INDEX), ATT_HIDDEN))
+		self._wordemb = nn.Parameter(torch.rand(len(FIND_INDEX), ATT_HIDDEN))
 		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1)
 		self._print = True
 		self._softmax=softmax
@@ -60,7 +60,7 @@ class MLPFindModule(nn.Module):
 
 		proj = self._conv_proj(features)
 		B,A,H,W = proj.size()
-		M = len(MODULE_INDEX)
+		M = len(FIND_INDEX)
 
 		# There should be at least N random non-class masks
 		c = c.detach().cpu().numpy()
