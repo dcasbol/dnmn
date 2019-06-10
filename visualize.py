@@ -1,3 +1,4 @@
+import argparse
 import torch
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
@@ -5,8 +6,17 @@ from modules import MLPFindModule
 from misc.indices import FIND_INDEX
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import time
+from PIL import Image
+
+parser = argparse.ArgumentParser(description='Visualize Find Module')
+parser.add_argument('--condition', type=str, default="",
+	help='Condition visualizations on class.')
+args = parser.parse_args()
+
+cond = -1
+if len(args.condition) > 0:
+	cond = FIND_INDEX[args.condition]
 
 SET_NAME = 'train2014'
 
@@ -23,6 +33,9 @@ plt.show()
 
 for features, label, paths in loader:
 
+	if cond > 0 and label[0].item() != cond:
+		continue
+
 	hmap = find(features, label)
 
 	plt.clf()
@@ -35,7 +48,8 @@ for features, label, paths in loader:
 
 	plt.subplot(1,2,2)
 	fn = paths[0]
-	plt.imshow(mpimg.imread(fn))
+	img = np.array(Image.open(fn).resize((300,300)))
+	plt.imshow(img)
 	plt.axis('off')
 
 	plt.draw()

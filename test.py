@@ -4,12 +4,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import MLPFindModule
 from misc.indices import ANSWER_INDEX, FIND_INDEX, UNK_ID
 from misc.util import cudalize
+from PIL import Image
 
 parser = argparse.ArgumentParser(description='Train Find Module')
 parser.add_argument('--epochs', type=int, default=1,
@@ -40,7 +40,7 @@ loss_fn = nn.BCELoss()
 
 opt = torch.optim.Adam(find.parameters(), lr=1e-3)
 
-if args.visualize:
+if args.visualize > 0:
 	plt.figure()
 	plt.ion()
 	plt.show()
@@ -82,7 +82,8 @@ for epoch in range(NUM_EPOCHS):
 
 				plt.subplot(1,2,2)
 				fn = paths[0]
-				plt.imshow(mpimg.imread(fn))
+				img = np.array(Image.open(fn).resize((300,300)))
+				plt.imshow(img)
 				plt.axis('off')
 
 				plt.draw()
