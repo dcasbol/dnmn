@@ -45,12 +45,13 @@ class FindModule(nn.Module):
 
 class MLPFindModule(nn.Module):
 
-	def __init__(self):
+	def __init__(self, softmax=False):
 		super(MLPFindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
 		self._wordemb = nn.Parameter(torch.rand(len(MODULE_INDEX), ATT_HIDDEN))
 		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1)
 		self._print = True
+		self._softmax=softmax
 
 	def forward(self, features, c):
 
@@ -78,6 +79,10 @@ class MLPFindModule(nn.Module):
 		attended = F.relu(proj+wemb) #[N,B,A,H,W]
 		attended = attended.view(-1,A,H,W)
 		mask = torch.sigmoid(self._conv_mask(attended)).view(N,B,1,H,W)
+
+		if self._softmax:
+			mask = torch.softmax(mask, dim=0)[c, torch.arange(B)]
+			return mask
 
 		total = torch.sum(mask, 0) #[B,1,H,W]
 		total = torch.max(total, torch.ones_like(total))

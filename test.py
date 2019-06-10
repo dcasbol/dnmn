@@ -13,13 +13,15 @@ import json
 
 parser = argparse.ArgumentParser(description='Train Find Module')
 parser.add_argument('--epochs', type=int, default=1,
-		help='Max. training epochs')
+	help='Max. training epochs')
 parser.add_argument('--batchsize', type=int, default=16)
 parser.add_argument('--visualize', action='store_true',
-		help='Visualize masks and images')
+	help='Visualize masks and images')
 parser.add_argument('--restore', action='store_true')
 parser.add_argument('--save', action='store_true',
-		help='Save the module periodically')
+	help='Save the module periodically')
+parser.add_argument('--softmax', action='store_true',
+	help='Use Softmax while training instead of sigmoid competition.')
 args = parser.parse_args()
 
 NUM_EPOCHS = args.epochs
@@ -29,7 +31,7 @@ SET_NAME = 'train2014'
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = MLPFindModule()
+find = MLPFindModule(args.softmax)
 if args.restore:
 	find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
 find = cudalize(find)
