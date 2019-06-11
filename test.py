@@ -59,7 +59,7 @@ for epoch in range(NUM_EPOCHS):
 		batch_size = features.size(0)
 		hmap = find(features, label)
 		avg_pool = hmap.view(batch_size, -1).mean(1)
-		ones = cudalize(torch.ones_like(avg_pool))
+		ones = cudalize(torch.full_like(avg_pool, 0.9, dtype=torch.float))
 		loss = loss_fn(avg_pool, ones)
 
 		opt.zero_grad()

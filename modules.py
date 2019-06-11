@@ -78,11 +78,13 @@ class MLPFindModule(nn.Module):
 
 		attended = F.relu(proj+wemb) #[N,B,A,H,W]
 		attended = attended.view(-1,A,H,W)
-		mask = torch.sigmoid(self._conv_mask(attended)).view(N,B,1,H,W)
+		mask = self._conv_mask(attended).view(N,B,1,H,W)
 
 		if self._softmax:
 			mask = torch.softmax(mask, dim=0)[c, torch.arange(B)]
 			return mask
+
+		mask = torch.sigmoid(mask)
 
 		total = torch.sum(mask, 0) #[B,1,H,W]
 		total = torch.max(total, torch.ones_like(total))
