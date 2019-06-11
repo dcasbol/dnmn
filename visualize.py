@@ -12,6 +12,9 @@ from PIL import Image
 parser = argparse.ArgumentParser(description='Visualize Find Module')
 parser.add_argument('--condition', type=str, default="",
 	help='Condition visualizations on class.')
+parser.add_argument('--softmax', action='store_true',
+	help='Module was trained with softmax')
+parser.add_argument('--wait', type=float, default=1.)
 args = parser.parse_args()
 
 cond = -1
@@ -23,7 +26,7 @@ SET_NAME = 'train2014'
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=1, shuffle=False)
 
-find = MLPFindModule()
+find = MLPFindModule(softmax=args.softmax)
 find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
 find.eval()
 
@@ -54,4 +57,4 @@ for features, label, paths in loader:
 
 	plt.draw()
 	plt.pause(0.001)
-	time.sleep(1.)
+	time.sleep(args.wait)

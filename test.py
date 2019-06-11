@@ -38,7 +38,7 @@ find = cudalize(find)
 
 loss_fn = nn.BCELoss()
 
-opt = torch.optim.Adam(find.parameters(), lr=1e-3)
+opt = torch.optim.Adam(find.parameters(), lr=1e-3, weight_decay=1e-5)
 
 if args.visualize > 0:
 	plt.figure()

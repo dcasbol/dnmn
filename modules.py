@@ -76,7 +76,7 @@ class MLPFindModule(nn.Module):
 		proj = proj.unsqueeze(0) #[1,B,A,H,W]
 		wemb = self._wordemb[nc].view(N,1,A,1,1)
 
-		attended = F.relu(proj+wemb) #[N,B,A,H,W]
+		attended = F.relu(proj*wemb) #[N,B,A,H,W]
 		attended = attended.view(-1,A,H,W)
 		mask = self._conv_mask(attended).view(N,B,1,H,W)
 
@@ -86,7 +86,7 @@ class MLPFindModule(nn.Module):
 			return mask
 
 		mask = torch.sigmoid(mask)
-		total = 0.8*torch.sum(mask, 0) #[B,1,H,W]
+		total = torch.sum(mask, 0) #[B,1,H,W]
 		total = torch.max(total, torch.ones([]))
 		mask = mask[c, torch.arange(B)] #[B,1,H,W]
 		return mask / total
@@ -95,8 +95,11 @@ class MLPFindModule(nn.Module):
 		proj = self._conv_proj(features) # [B,A,H,W]
 		B, A = proj.size()[:2]
 		wemb = self._wordemb[c].view(B,A,1,1)
-		attended = F.relu(proj+wemb)
+		attended = F.relu(proj*wemb)
 		mask = self._conv_mask(attended)
 		if self._softmax:
-			return torch.tanh(F.relu(mask))
+			mask = F.relu(mask)
+			mask -= mask.min()
+			mask /= mask.max() + 1e-10
+			return mask
 		return torch.sigmoid(mask)
