@@ -48,7 +48,7 @@ class MLPFindModule(nn.Module):
 	def __init__(self, softmax=False):
 		super(MLPFindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
-		self._wordemb = nn.Parameter(torch.rand(len(FIND_INDEX), ATT_HIDDEN))
+		self._wordemb = nn.Parameter(torch.ones(len(FIND_INDEX), ATT_HIDDEN))
 		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1)
 		self._print = True
 		self._softmax=softmax
