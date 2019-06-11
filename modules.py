@@ -87,7 +87,8 @@ class MLPFindModule(nn.Module):
 
 		mask = torch.sigmoid(mask)
 		total = torch.sum(mask, 0) #[B,1,H,W]
-		total = torch.max(total, torch.ones([]))
+		ones = cudalize(torch.ones([]))
+		total = torch.max(total, ones)
 		mask = mask[c, torch.arange(B)] #[B,1,H,W]
 		return mask / total
 
