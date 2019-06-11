@@ -22,18 +22,22 @@ parser.add_argument('--save', action='store_true',
 	help='Save the module periodically')
 parser.add_argument('--softmax', action='store_true',
 	help='Use Softmax while training instead of sigmoid competition.')
+parser.add_argument('--suffix', type=str, default='',
+	help='Add suffix to files. Useful when training others simultaneously.')
 args = parser.parse_args()
 
 NUM_EPOCHS = args.epochs
 BATCH_SIZE = args.batchsize
 SET_NAME = 'train2014'
+SUFFIX = '' if args.suffix == '' else '_' + args.suffix
 
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
 find = MLPFindModule(args.softmax)
 if args.restore:
-	find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
+	PT_FILENAME = 'find_module{}.pt'.format(SUFFIX)
+	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
 find = cudalize(find)
 
 loss_fn = nn.BCELoss()
@@ -90,9 +94,11 @@ for epoch in range(NUM_EPOCHS):
 				plt.pause(0.001)
 
 	if args.save:
-		torch.save(find.state_dict(), 'find_module-new.pt')
+		PT_FILENAME = 'find_module-new{}.pt'.format(SUFFIX)
+		torch.save(find.state_dict(), PT_FILENAME)
 		print('Module saved')
 
 print(loss_list)
-with open('training_log.json','w') as fd:
+LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
+with open(LOG_FILENAME,'w') as fd:
 	json.dump(loss_list, fd)
