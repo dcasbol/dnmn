@@ -49,9 +49,8 @@ class MLPFindModule(nn.Module):
 		super(MLPFindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
 		self._wordemb = nn.Parameter(torch.ones(len(FIND_INDEX), ATT_HIDDEN))
-		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1)
-		self._print = True
-		self._softmax=softmax
+		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1, bias=False)
+		self._softmax = softmax
 
 	def forward(self, features, c):
 
@@ -86,7 +85,7 @@ class MLPFindModule(nn.Module):
 			return mask
 
 		mask = torch.sigmoid(mask)
-		total = 0.2*torch.sum(mask, 0) #[B,1,H,W]
+		total = torch.sum(mask, 0) #[B,1,H,W]
 		ones = cudalize(torch.ones([]))
 		total = torch.max(total, ones)
 		mask = mask[c, torch.arange(B)] #[B,1,H,W]
