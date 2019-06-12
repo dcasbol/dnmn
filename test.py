@@ -24,6 +24,8 @@ parser.add_argument('--softmax', action='store_true',
 	help='Use Softmax while training instead of sigmoid competition.')
 parser.add_argument('--suffix', type=str, default='',
 	help='Add suffix to files. Useful when training others simultaneously.')
+parser.add_argument('--lr', type=float, default=1e-4,
+	help='Specify learning rate')
 args = parser.parse_args()
 
 NUM_EPOCHS = args.epochs
@@ -42,7 +44,7 @@ find = cudalize(find)
 
 loss_fn = nn.BCELoss()
 
-opt = torch.optim.Adam(find.parameters(), lr=1e-3)
+opt = torch.optim.Adam(find.parameters(), lr=1e-4)
 
 if args.visualize > 0:
 	plt.figure()
@@ -61,10 +63,9 @@ for epoch in range(NUM_EPOCHS):
 		label = cudalize(label)
 
 		batch_size = features.size(0)
-		hmap = find(features, label)
-		avg_pool = hmap.view(batch_size, -1).mean(1)
-		ones = cudalize(torch.full_like(avg_pool, 0.9, dtype=torch.float))
-		loss = loss_fn(avg_pool, ones)
+		ytrain, hmap = find(features, label)
+		ones = cudalize(torch.full_like(ytrain, 0.9, dtype=torch.float))
+		loss = loss_fn(ytrain, ones)
 
 		opt.zero_grad()
 		loss.backward()

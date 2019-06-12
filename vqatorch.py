@@ -201,7 +201,7 @@ class VQAFindDataset(VQADataset):
 				ans = set()
 				for a in q['answers']:
 					ans.add(a)
-				if len(ans) == 1 and ans.pop() in neg_set:
+				if len(ans.intersection(neg_set)) > 0:
 					continue
 			self._imap.append(i)
 

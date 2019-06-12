@@ -82,14 +82,17 @@ class MLPFindModule(nn.Module):
 		if self._softmax:
 			mask = F.relu(mask)
 			mask = torch.softmax(mask, dim=0)[c, torch.arange(B)]
-			return mask
+			mask_train = mask.view(B,-1).mean(1)
+			return mask_train, mask
 
 		mask = torch.sigmoid(mask)
 		total = torch.sum(mask, 0) #[B,1,H,W]
 		ones = cudalize(torch.ones([]))
 		total = torch.max(total, ones)
 		mask = mask[c, torch.arange(B)] #[B,1,H,W]
-		return mask / total
+
+		mask_train = (mask/total).view(B,-1).mean(1)
+		return mask_train, mask
 
 	def _eval_fwd(self, features, c):
 		proj = self._conv_proj(features) # [B,A,H,W]
