@@ -1,49 +1,37 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.indices import FIND_INDEX
+from misc.indices import FIND_INDEX, ANSWER_INDEX
 from misc.constants import *
 from misc.util import cudalize
 import numpy as np
 
 
 class FindModule(nn.Module):
+	"""This module corresponds to the original 'attend' in the NMN paper."""
 
 	def __init__(self):
 		super(FindModule, self).__init__()
-		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
-		self._conv = nn.Conv2d(ATT_HIDDEN, len(FIND_INDEX), 1)
+		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 
 	def forward(self, features, c):
-		""" Conflict:
-		NMN paper says <<convolves every position in the input
-		image with a weight vector (distinct for each c)
-		to produce a heatmap of unnormalized attention>>
-
-		THAT IS NOT WHAT I SEE IN CODE. They do several steps
-		and then use local normalization (sigmoid). """
-
-		# 1. 1x1 conv. in_depth --> hiddens
-		# 2. select word embedding
-		# 3. eltwise sum to projection + ReLU
-		# 4. 1x1 conv. hiddens --> 1
-		# 5. local (opt. global) normalization (sgm/softmax)
-		# 6. Power layer: y = (shift + scale * x)^power
 
 		if self.training:
-			x = F.relu(self._conv_proj(features))
-			x = torch.sigmoid(self._conv(x))
-			tot = torch.sum(x, 1, keepdim=True)
+			x = torch.sigmoid(self._conv(features))
+			total = x.sum(1, keepdim=True)
 			B = x.size(0)
 			x = x[torch.arange(B), c].unsqueeze(1)
-			x = x / (tot + 1e-10)
+			mask_train = x / (total + 1e-10)
+			mask_train = x.view(B,-1).mean(1)
+			return mask_train, x
 		else:
-			_, in_ch, height, width = self._conv.weight.size()
-			k = self._conv.weight[c].view(-1, in_ch, height, width)
+			k = self._conv.weight[c].unsqueeze(0)
 			x = torch.sigmoid(F.conv2d(features, k))
 		return x
 
+
 class MLPFindModule(nn.Module):
+	"""This is the version used in the DNMN paper."""
 
 	def __init__(self, softmax=False):
 		super(MLPFindModule, self).__init__()
@@ -106,3 +94,39 @@ class MLPFindModule(nn.Module):
 			mask /= mask.max() + 1e-10
 			return mask
 		return torch.sigmoid(mask)
+
+
+class ClassifyModule(nn.Module):
+
+	def __init__(self):
+		super(ClassifyModule, self).__init__()
+		self._linear = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+
+	def forward(self, mask, features):
+		B,C,H,W = features.size()
+		mask_total = mask.view(B,-1).sum(1, keepdim=True) + 1e-10
+		mask_normalized = mask / mask_total
+		attended = (mask_normalized*features).view(B,C,-1).sum(2)
+		return self._linear(attended)
+
+
+class MeasureModule(nn.Module):
+
+	def __init__(self):
+		super(MeasureModule, self).__init__()
+		self._layers = nn.Sequential(
+			nn.Linear(MASK_WIDTH**2, HIDDEN_UNITS),
+			nn.ReLU(),
+			nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+		)
+
+	def forward(self, mask):
+		B = mask.size(0)
+		return self._layers(mask.view(B,-1))
+
+
+class AndModule(nn.Module):
+
+	def forward(self, mask_a, mask_b):
+		#return torch.min(mask_a, mask_b)
+		return mask_a*mask_b

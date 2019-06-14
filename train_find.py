@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
-from modules import MLPFindModule
+from modules import FindModule
 from misc.indices import ANSWER_INDEX, FIND_INDEX, UNK_ID
 from misc.util import cudalize
 from PIL import Image
@@ -36,7 +36,7 @@ SUFFIX = '' if args.suffix == '' else '_' + args.suffix
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = MLPFindModule(args.softmax)
+find = FindModule()
 if args.restore:
 	PT_FILENAME = 'find_module{}.pt'.format(SUFFIX)
 	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))

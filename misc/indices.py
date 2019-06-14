@@ -34,6 +34,7 @@ def _prepare_indices():
 	word_counts = defaultdict(lambda: 0)
 	with open(QUESTION_FILE % set_name) as question_f:
 		questions = json.load(question_f)["questions"]
+
 		for question in questions:
 			words = _process_question(question["question"])
 			for word in words:

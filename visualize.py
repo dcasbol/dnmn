@@ -1,16 +1,18 @@
 import argparse
 import torch
+import time
+import numpy as np
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import MLPFindModule
 from misc.indices import FIND_INDEX
-import numpy as np
-import matplotlib.pyplot as plt
-import time
 from PIL import Image
 
 parser = argparse.ArgumentParser(description='Visualize Find Module')
-parser.add_argument('--condition', type=str, default="",
+parser.add_argument('ptfile', type=str,
+	help='Path to .pt file storing module weights')
+parser.add_argument('condition', type=str, nargs='?', default="",
 	help='Condition visualizations on class.')
 parser.add_argument('--softmax', action='store_true',
 	help='Module was trained with softmax')
