@@ -42,7 +42,7 @@ find = cudalize(find)
 
 loss_fn = nn.BCELoss()
 
-opt = torch.optim.Adam(find.parameters(), lr=args.lr)
+opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-4)
 
 if args.visualize > 0:
 	plt.figure()
@@ -62,7 +62,7 @@ for epoch in range(NUM_EPOCHS):
 
 		batch_size = features.size(0)
 		ytrain, hmap = find(features, label)
-		ones = cudalize(torch.full_like(ytrain, 0.9, dtype=torch.float))
+		ones = cudalize(torch.ones_like(ytrain, dtype=torch.float))
 		loss = loss_fn(ytrain, ones)
 
 		opt.zero_grad()

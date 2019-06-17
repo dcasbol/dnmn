@@ -75,7 +75,7 @@ class FindModule(nn.Module):
 			total = x.sum(1, keepdim=True)
 			B = x.size(0)
 			x = x[torch.arange(B), c].unsqueeze(1)
-			mask_train = x / (total + 1e-10)
+			mask_train = x / (1. + total - x)
 			mask_train = x.view(B,-1).mean(1)
 			return mask_train, x
 		else:
