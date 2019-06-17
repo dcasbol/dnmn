@@ -7,38 +7,14 @@ from misc.util import cudalize
 import numpy as np
 
 
-class FindModule(nn.Module):
-	"""This module corresponds to the original 'attend' in the NMN paper."""
-
-	def __init__(self):
-		super(FindModule, self).__init__()
-		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
-
-	def forward(self, features, c):
-
-		if self.training:
-			x = torch.sigmoid(self._conv(features))
-			total = x.sum(1, keepdim=True)
-			B = x.size(0)
-			x = x[torch.arange(B), c].unsqueeze(1)
-			mask_train = x / (total + 1e-10)
-			mask_train = x.view(B,-1).mean(1)
-			return mask_train, x
-		else:
-			k = self._conv.weight[c].unsqueeze(0)
-			x = torch.sigmoid(F.conv2d(features, k))
-		return x
-
-
 class MLPFindModule(nn.Module):
 	"""This is the version used in the DNMN paper."""
 
-	def __init__(self, softmax=False):
+	def __init__(self):
 		super(MLPFindModule, self).__init__()
 		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
 		self._wordemb = nn.Parameter(torch.ones(len(FIND_INDEX), ATT_HIDDEN))
 		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1, bias=False)
-		self._softmax = softmax
 
 	def forward(self, features, c):
 
@@ -67,12 +43,6 @@ class MLPFindModule(nn.Module):
 		attended = attended.view(-1,A,H,W)
 		mask = self._conv_mask(attended).view(N,B,1,H,W)
 
-		if self._softmax:
-			mask = F.relu(mask)
-			mask = torch.softmax(mask, dim=0)[c, torch.arange(B)]
-			mask_train = mask.view(B,-1).mean(1)
-			return mask_train, mask
-
 		mask = torch.sigmoid(mask)
 		total = torch.sum(mask, 0) #[B,1,H,W]
 		ones = cudalize(torch.ones([]))
@@ -88,12 +58,30 @@ class MLPFindModule(nn.Module):
 		wemb = self._wordemb[c].view(B,A,1,1)
 		attended = F.relu(proj*wemb)
 		mask = self._conv_mask(attended)
-		if self._softmax:
-			mask = F.relu(mask)
-			mask -= mask.min()
-			mask /= mask.max() + 1e-10
-			return mask
 		return torch.sigmoid(mask)
+
+
+class FindModule(nn.Module):
+	"""This module corresponds to the original 'attend' in the NMN paper."""
+
+	def __init__(self):
+		super(FindModule, self).__init__()
+		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
+
+	def forward(self, features, c):
+
+		if self.training:
+			x = torch.sigmoid(self._conv(features))
+			total = x.sum(1, keepdim=True)
+			B = x.size(0)
+			x = x[torch.arange(B), c].unsqueeze(1)
+			mask_train = x / (total + 1e-10)
+			mask_train = x.view(B,-1).mean(1)
+			return mask_train, x
+		else:
+			k = self._conv.weight[c].unsqueeze(0)
+			x = torch.sigmoid(F.conv2d(features, k))
+		return x
 
 
 class ClassifyModule(nn.Module):

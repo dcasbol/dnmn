@@ -188,31 +188,43 @@ class VQADataset(Dataset):
 
 class VQAFindDataset(VQADataset):
 
-	def __init__(self, *args):
-		superobj = super(VQAFindDataset, self).__init__(*args)
-		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
-		self._imap = list()
-		for i, qid in enumerate(self._id_list):
-			q = self._by_id[qid]
-			if len(q['layouts_names']) != 2:
-				continue
-			head = q['parses'][0][0]
-			if head in {'is', 'how_many'}:
-				ans = set()
-				for a in q['answers']:
-					ans.add(a)
-				if len(ans.intersection(neg_set)) > 0:
+	def __init__(self, *args, filter_data=True, metadata=False, **kwargs):
+		superobj = super(VQAFindDataset, self).__init__(*args, **kwargs)
+		self._metadata = metadata
+		self._imap = self._id_list
+		if filter_data:
+			neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
+			self._imap = list()
+			for i, qid in enumerate(self._id_list):
+				q = self._by_id[qid]
+				if len(q['layouts_names']) != 2:
 					continue
-			self._imap.append(i)
+				head = q['parses'][0][0]
+				if head in {'is', 'how_many'}:
+					ans = set()
+					for a in q['answers']:
+						ans.add(a)
+					if len(ans.intersection(neg_set)) > 0:
+						continue
+				self._imap.append(i)
 
 	def __len__(self):
 		return len(self._imap)
 
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
-		target = random.choice(datum['parses'])[-1]
-		target = FIND_INDEX[target] or UNK_ID
+		print(datum)
+		quit()
+
+		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
+		target_str = datum['parses'][-1]
+		target = FIND_INDEX[target_str] or UNK_ID
 		
 		input_set, input_id = datum['input_set'], datum['input_id']
 		raw_input_path = RAW_IMAGE_FILE % (input_set, input_set, input_id)
-		return features, target, raw_input_path
+		output = (features, target, raw_input_path)
+
+		if self._metadata:
+			output += (target_str, input_set, input_id)
+
+		return output

@@ -20,8 +20,6 @@ parser.add_argument('--visualize', type=int, default=0,
 parser.add_argument('--restore', action='store_true')
 parser.add_argument('--save', action='store_true',
 	help='Save the module periodically')
-parser.add_argument('--softmax', action='store_true',
-	help='Use Softmax while training instead of sigmoid competition.')
 parser.add_argument('--suffix', type=str, default='',
 	help='Add suffix to files. Useful when training others simultaneously.')
 parser.add_argument('--lr', type=float, default=1e-4,
@@ -103,3 +101,4 @@ print(loss_list)
 LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
 with open(LOG_FILENAME,'w') as fd:
 	json.dump(loss_list, fd)
+	

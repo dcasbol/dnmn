@@ -98,3 +98,9 @@ def tree_zip(*trees):
         zipped_children_rec = [tree_zip(*z) for z in zipped_children]
         return tuple(zipped_children_rec)
     return trees
+
+def max_divisor_batch_size(dataset_len, max_batch_size):
+    batch_size = max_batch_size
+    while dataset_len/float(batch_size) > dataset_len//batch_size:
+        batch_size -= 1
+    return batch_size

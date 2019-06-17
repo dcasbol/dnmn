@@ -1,6 +1,6 @@
 __pycache__
 data
-cache
+cache/*.dat
 envnmntorch
 *.npz
 *.jpg
