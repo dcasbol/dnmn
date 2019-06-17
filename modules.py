@@ -71,6 +71,14 @@ class FindModule(nn.Module):
 	def forward(self, features, c):
 
 		if self.training:
+			h = self._conv(features)
+			mean = h.mean(1, keepdim=True)
+			B = h.size(0)
+			h = h[torch.arange(B), c].unsqueeze(1)
+			mask_train = torch.sigmoid(h-mean).view(B,-1).mean()
+			mask = torch.sigmoid(h)
+			return mask_train, mask
+
 			x = torch.sigmoid(self._conv(features))
 			total = x.sum(1, keepdim=True)
 			B = x.size(0)
