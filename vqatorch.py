@@ -215,7 +215,7 @@ class VQAFindDataset(VQADataset):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
-		target_str = datum['parses'][-1]
+		target_str = datum['parses'][0][-1]
 		target = FIND_INDEX[target_str] or UNK_ID
 		
 		input_set, input_id = datum['input_set'], datum['input_id']

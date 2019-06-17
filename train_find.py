@@ -101,4 +101,3 @@ print(loss_list)
 LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
 with open(LOG_FILENAME,'w') as fd:
 	json.dump(loss_list, fd)
-	
