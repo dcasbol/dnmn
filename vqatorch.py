@@ -213,8 +213,6 @@ class VQAFindDataset(VQADataset):
 
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
-		print(datum)
-		quit()
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		target_str = datum['parses'][-1]
