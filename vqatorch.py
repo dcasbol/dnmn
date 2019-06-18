@@ -205,6 +205,7 @@ class VQAFindDataset(VQADataset):
 			self._imap = list(range(len(self._id_list)))
 		"""
 
+		# THINK WELL IF WE MOVE TO THIS OR KEEP THE ABOVE
 		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
 		self._imap = list()
 		self._tmap = list()
@@ -233,9 +234,9 @@ class VQAFindDataset(VQADataset):
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		if len(self._tmap) == 0:
-			target = q['layouts_indices'][-1]
+			target = datum['layouts_indices'][-1]
 		else:
-			target = self._tmap[i]
+			target = datum['layouts_indices'][self._tmap[i]]
 		target_str = FIND_INDEX.get(target)
 		
 		input_set, input_id = datum['input_set'], datum['input_id']
