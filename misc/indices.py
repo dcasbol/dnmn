@@ -46,7 +46,7 @@ def _prepare_indices():
 	desc_counts = defaultdict(lambda: 0)
 	find_counts = defaultdict(lambda: 0)
 	with open(MULTI_PARSE_FILE % set_name) as parse_f:
-		table = str.maketrans({'(':'', ')':''})
+		table = str.maketrans({'(':'', ')':'', ';':' '})
 		for line in parse_f:
 			parses = line.strip().split(';')
 			for parse in parses:
