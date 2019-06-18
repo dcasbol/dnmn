@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import FindModule
 from misc.indices import FIND_INDEX
+from misc.constants import *
 from PIL import Image
 
 parser = argparse.ArgumentParser(description='Visualize Find Module')
@@ -23,18 +24,18 @@ if len(args.condition) > 0:
 
 SET_NAME = 'train2014'
 
-findset = VQAFindDataset('./', SET_NAME)
+findset = VQAFindDataset('./', SET_NAME, metadata=True)
 loader = DataLoader(findset, batch_size=1, shuffle=False)
 
 find = FindModule()
-find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
+find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
 find.eval()
 
 plt.figure()
 plt.ion()
 plt.show()
 
-for features, label, paths in loader:
+for features, label, label_str, input_set, input_id in loader:
 
 	if cond > 0 and label[0].item() != cond:
 		continue
@@ -42,7 +43,7 @@ for features, label, paths in loader:
 	hmap = find(features, label)
 
 	plt.clf()
-	plt.suptitle(FIND_INDEX.get(label[0].item()))
+	plt.suptitle(label_str[0])
 
 	plt.subplot(1,2,1)
 	img = hmap.detach()[0,0].cpu().numpy()
@@ -50,7 +51,7 @@ for features, label, paths in loader:
 	plt.axis('off')
 
 	plt.subplot(1,2,2)
-	fn = paths[0]
+	fn = RAW_IMAGE_FILE % (input_set[0], input_set[0], input_id[0])
 	img = np.array(Image.open(fn).resize((300,300)))
 	plt.imshow(img)
 	plt.axis('off')

@@ -213,13 +213,11 @@ class VQAFindDataset(VQADataset):
 			q = self._by_id[qid]
 			lnames = q['layouts_names']
 			lindex = q['layouts_indices']
-			"""
 			head = q['parses'][0][0]
 			if filter_data and head in {'is', 'how_many'}:
 				ans = { a for a in q['answers'] }
 				if len(ans.intersection(neg_set)) > 0:
 					continue
-			"""
 			for j, (name, idx) in enumerate(zip(lnames, lindex)):
 				if name != 'find':
 					continue
@@ -233,17 +231,12 @@ class VQAFindDataset(VQADataset):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
-		if len(self._tmap) == 0:
-			target = datum['layouts_indices'][-1]
-		else:
-			target = datum['layouts_indices'][self._tmap[i]]
+		target = datum['layouts_indices']
+		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
 		target_str = FIND_INDEX.get(target)
 		
-		input_set, input_id = datum['input_set'], datum['input_id']
-		raw_input_path = RAW_IMAGE_FILE % (input_set, input_set, input_id)
-		output = (features, target, raw_input_path)
-
+		output = (features, target)
 		if self._metadata:
-			output += (target_str, input_set, input_id)
+			output += (target_str, datum['input_set'], datum['input_id'])
 
 		return output

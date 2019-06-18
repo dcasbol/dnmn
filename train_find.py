@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import FindModule
-from misc.indices import ANSWER_INDEX, FIND_INDEX, UNK_ID
+from misc.constants import *
 from misc.util import cudalize
 from PIL import Image
 
@@ -31,7 +31,7 @@ BATCH_SIZE = args.batchsize
 SET_NAME = 'train2014'
 SUFFIX = '' if args.suffix == '' else '-' + args.suffix
 
-findset = VQAFindDataset('./', SET_NAME)
+findset = VQAFindDataset('./', SET_NAME, metadata=True)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
 find = FindModule()
@@ -54,7 +54,7 @@ last_perc = -0.01
 loss_list = list()
 for epoch in range(NUM_EPOCHS):
 	print('Epoch ', epoch)
-	for i, (features, label, paths) in enumerate(loader):
+	for i, (features, label, label_str, input_set, input_id) in enumerate(loader):
 		perc = epoch + (i*BATCH_SIZE)/len(findset)
 
 		features = cudalize(features)
@@ -76,7 +76,7 @@ for epoch in range(NUM_EPOCHS):
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
-				plt.suptitle(FIND_INDEX.get(label[0].item()))
+				plt.suptitle(label_str[0])
 
 				plt.subplot(1,2,1)
 				img = hmap.detach()[0,0].cpu().numpy()
@@ -84,7 +84,7 @@ for epoch in range(NUM_EPOCHS):
 				plt.axis('off')
 
 				plt.subplot(1,2,2)
-				fn = paths[0]
+				fn = RAW_IMAGE_FILE % (input_set[0], input_set[0], input_id[0])
 				img = np.array(Image.open(fn).resize((300,300)))
 				plt.imshow(img)
 				plt.axis('off')
