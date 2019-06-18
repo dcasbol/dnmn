@@ -71,7 +71,7 @@ class Index:
         return iter(self.ordered_contents)
 
 def flatten(lol):
-    if isinstance(lol, tuple) or isinstance(lol, list):
+    if isinstance(lol, (tuple, list)):
         return sum([flatten(l) for l in lol], [])
     else:
         return [lol]

@@ -29,7 +29,7 @@ args = parser.parse_args()
 NUM_EPOCHS = args.epochs
 BATCH_SIZE = args.batchsize
 SET_NAME = 'train2014'
-SUFFIX = '' if args.suffix == '' else '_' + args.suffix
+SUFFIX = '' if args.suffix == '' else '-' + args.suffix
 
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)

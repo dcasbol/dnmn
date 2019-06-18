@@ -1,13 +1,16 @@
 import os
+import torch
 import numpy as np
+from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
+from modules import FindModule
 from misc.util import max_divisor_batch_size, cudalize
 
 SET_NAMES = 'train2014'
 PT_FILENAME = 'find_module.pt'
 OUT_FN_PATH = './intermediate/hmaps/{}-{}-{}.npy'
 
-dataset = VQAFindDataset('./', SET_NAMES, filter_data=False, metadata=True)
+dataset = VQAFindDataset('./', SET_NAMES, filter_data=True, metadata=True)
 batch_size = max_divisor_batch_size(len(dataset), 256)
 
 loader = DataLoader(dataset, batch_size=batch_size)
@@ -22,7 +25,7 @@ n_batches = len(dataset)//batch_size
 
 for i, (features, target, _, target_str, input_set, input_id) in enumerate(loader):
 
-	perc = (i*100)//batch_size
+	perc = (i*100)//n_batches
 	if perc != last_perc:
 		last_perc = perc
 		print('\rProcessing...', perc, '%   ', end='')

@@ -6,6 +6,7 @@ import numpy as np
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID
 from torch.utils.data import Dataset
+from misc.util import flatten
 
 def _parse_tree(p):
 	if "'" in p:
@@ -54,13 +55,6 @@ def parse_to_layout(parse):
 	modules_here = [module_head] + modules_below
 	indices_here = [index_head] + indices_below
 	return modules_here, indices_here
-
-def _flatten(list_tree):
-	if type(list_tree) not in (list, tuple):
-		return [list_tree]
-	elif len(list_tree) == 0:
-		return list_tree
-	return _flatten(list_tree[0]) + _flatten(list_tree[1:])
 
 def _create_one_hot(values, size):
 	freqs = { v:0 for v in set(values) }
@@ -157,8 +151,8 @@ class VQADataset(Dataset):
 
 			layouts = [ parse_to_layout(p) for p in parses ]
 			layouts_names, layouts_indices = _ziplist(*layouts)
-			layouts_names = _flatten(layouts_names)
-			layouts_indices = _flatten(layouts_indices)
+			layouts_names = flatten(layouts_names)
+			layouts_indices = flatten(layouts_indices)
 
 			image_set_name = "test2015" if set_name == "test-dev2015" else set_name
 			question_id = question['question_id']
@@ -191,7 +185,7 @@ class VQAFindDataset(VQADataset):
 	def __init__(self, *args, filter_data=True, metadata=False, **kwargs):
 		superobj = super(VQAFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
-		self._imap = self._id_list
+		"""
 		if filter_data:
 			neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
 			self._imap = list()
@@ -207,6 +201,29 @@ class VQAFindDataset(VQADataset):
 					if len(ans.intersection(neg_set)) > 0:
 						continue
 				self._imap.append(i)
+		else:
+			self._imap = list(range(len(self._id_list)))
+		"""
+
+		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
+		self._imap = list()
+		self._tmap = list()
+		for i, qid in enumerate(self._id_list):
+			q = self._by_id[qid]
+			lnames = q['layouts_names']
+			lindex = q['layouts_indices']
+			"""
+			head = q['parses'][0][0]
+			if filter_data and head in {'is', 'how_many'}:
+				ans = { a for a in q['answers'] }
+				if len(ans.intersection(neg_set)) > 0:
+					continue
+			"""
+			for j, (name, idx) in enumerate(zip(lnames, lindex)):
+				if name != 'find':
+					continue
+				self._imap.append(i)
+				self._tmap.append(j)
 
 	def __len__(self):
 		return len(self._imap)
@@ -215,8 +232,11 @@ class VQAFindDataset(VQADataset):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
-		target_str = datum['parses'][0][-1]
-		target = FIND_INDEX[target_str] or UNK_ID
+		if len(self._tmap) == 0:
+			target = q['layouts_indices'][-1]
+		else:
+			target = self._tmap[i]
+		target_str = FIND_INDEX.get(target)
 		
 		input_set, input_id = datum['input_set'], datum['input_id']
 		raw_input_path = RAW_IMAGE_FILE % (input_set, input_set, input_id)

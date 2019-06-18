@@ -87,7 +87,7 @@ class FindModule(nn.Module):
 			mask_train = x.view(B,-1).mean(1)
 			return mask_train, x
 		else:
-			k = self._conv.weight[c].unsqueeze(0)
+			k = self._conv.weight[c]
 			x = torch.sigmoid(F.conv2d(features, k))
 		return x
 

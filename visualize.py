@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
-from modules import MLPFindModule
+from modules import FindModule
 from misc.indices import FIND_INDEX
 from PIL import Image
 
@@ -14,8 +14,6 @@ parser.add_argument('ptfile', type=str,
 	help='Path to .pt file storing module weights')
 parser.add_argument('condition', type=str, nargs='?', default="",
 	help='Condition visualizations on class.')
-parser.add_argument('--softmax', action='store_true',
-	help='Module was trained with softmax')
 parser.add_argument('--wait', type=float, default=1.)
 args = parser.parse_args()
 
@@ -28,7 +26,7 @@ SET_NAME = 'train2014'
 findset = VQAFindDataset('./', SET_NAME)
 loader = DataLoader(findset, batch_size=1, shuffle=False)
 
-find = MLPFindModule(softmax=args.softmax)
+find = FindModule()
 find.load_state_dict(torch.load('find_module.pt', map_location='cpu'))
 find.eval()
 
