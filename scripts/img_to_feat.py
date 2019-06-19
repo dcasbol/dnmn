@@ -4,16 +4,15 @@ import numpy as np
 import os
 
 MAX_BATCH_SIZE = 256
+WIDTH = 448 # Sizes from 2nd article. They aren't in the NMN article.
 
 model = VGG16(include_top=False, weights='imagenet',
-	input_shape=(224, 224, 3))
+	input_shape=(WIDTH, WIDTH, 3))
 
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-print dir(datagen)
-quit()
 img_generator = datagen.flow_from_directory(
 	'data/vqa/Images', # This will go through dirs (it thinks they're classes)
-	target_size=(224, 224), # Sizes from VGG article. Not mentioned in NMN's article.
+	target_size=(WIDTH, WIDTH),
 	batch_size=BATCH_SIZE,
 	shuffle=False,
 	class_mode=None
@@ -35,9 +34,9 @@ last_idx = -1
 # Adjust batch size, so that keras doesn't skip any sample
 # Keras will skip last samples if final batch isn't the exact size.
 BATCH_SIZE = MAX_BATCH_SIZE
-while n_images/float(BATCH_SIZE) > n_images//BATCH_SIZE:
+while n_images/BATCH_SIZE > n_images//BATCH_SIZE:
 	BATCH_SIZE -= 1
-print 'Batch size set to', BATCH_SIZE
+print('Batch size set to', BATCH_SIZE)
 
 n_batches = n_images // BATCH_SIZE
 
@@ -50,10 +49,10 @@ for x_batch in img_generator:
 		np.savez_compressed(tgt_fn, features[i])
 	if dirname != curr_dir:
 		curr_dir = dirname
-		print 'processing', curr_dir
+		print('processing', curr_dir)
 	if idx//100 > last_idx:
 		last_idx = idx//100
-		print idx/float(n_images), '%'
+		print(idx/n_images, '%')
 	if img_generator.batch_index == 0:
 		break
 

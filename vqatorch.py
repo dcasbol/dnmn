@@ -1,5 +1,4 @@
 import json
-import sexpdata
 import torch
 import random
 import numpy as np
@@ -7,24 +6,8 @@ from misc.constants import *
 from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID
 from torch.utils.data import Dataset
 from misc.util import flatten
+from misc.parse import parse_tree
 
-def _parse_tree(p):
-	if "'" in p:
-		p = "none"
-	parsed = sexpdata.loads(p)
-	extracted = _extract_parse(parsed)
-	return extracted
-
-def _extract_parse(p):
-	if isinstance(p, sexpdata.Symbol):
-		return p.value()
-	elif isinstance(p, int):
-		return str(p)
-	elif isinstance(p, bool):
-		return str(p).lower()
-	elif isinstance(p, float):
-		return str(p).lower()
-	return tuple(_extract_parse(q) for q in p)
 
 def process_question(question):
 	qstr = question.lower().strip()
@@ -96,7 +79,7 @@ class VQADataset(Dataset):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		with np.load(input_path) as zdata:
-			features = list(zdata.values())[0].astype(np.float32)
+			features = list(zdata.values())[0]
 			features = (features - self._mean) / self._std
 		return datum, features.transpose([2,0,1])
 
@@ -133,7 +116,7 @@ class VQADataset(Dataset):
 			indexed_question = [ QUESTION_INDEX[w] or UNK_ID for w in question_str ]
 			
 			parse_strs = parse_group.split(';')
-			parses = [ _parse_tree(p) for p in parse_strs ]
+			parses = [ parse_tree(p) for p in parse_strs ]
 			parses = [ ('_what', '_thing') if p == 'none' else p for p in parses ]
 
 			# TODO What is this?
