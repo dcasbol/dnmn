@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX
 from misc.constants import *
-from misc.util import cudalize
+from misc.util import cudalize, to_numpy
 import numpy as np
 
 
@@ -26,7 +26,7 @@ class MLPFindModule(nn.Module):
 		M = len(FIND_INDEX)
 
 		# There should be at least N random non-class masks
-		c = c.detach().cpu().numpy()
+		c = to_numpy(c)
 		nc = set(c)
 		N = max(10, len(nc))
 		while len(nc) < N:
@@ -119,10 +119,3 @@ class MeasureModule(nn.Module):
 	def forward(self, mask):
 		B = mask.size(0)
 		return self._layers(mask.view(B,-1))
-
-
-class AndModule(nn.Module):
-
-	def forward(self, mask_a, mask_b):
-		#return torch.min(mask_a, mask_b)
-		return mask_a*mask_b

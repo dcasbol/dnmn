@@ -4,12 +4,12 @@ import numpy as np
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
 from modules import FindModule
-from misc.util import max_divisor_batch_size, cudalize
+from misc.util import max_divisor_batch_size, cudalize, to_numpy
 
 SET_NAMES = 'train2014'
 PT_FILENAME = 'find_module.pt'
 OUT_FN_DIR  = './intermediate/hmaps/{}/{}'
-OUT_FN_FILE = '{}-{}-{}.npy'
+OUT_FN_FILE = '{}-{}-{}.npz'
 
 dataset = VQAFindDataset('./', SET_NAMES, filter_data=False, metadata=True)
 batch_size = max_divisor_batch_size(len(dataset), 256)
@@ -31,7 +31,7 @@ for i, (features, target, target_str, input_set, input_id) in enumerate(loader):
 		last_perc = perc
 		print('\rProcessing...', perc, '%   ', end='')
 
-	att_maps = find(features, target).detach().cpu().numpy()
+	att_maps = to_numpy(find(features, target))
 	for att_map, set_name, img_id, map_c in zip(att_maps, input_set, input_id, target_str):
 
 		dirname = OUT_FN_DIR.format(set_name, map_c)
@@ -40,6 +40,6 @@ for i, (features, target, target_str, input_set, input_id) in enumerate(loader):
 		if not os.path.exists(dirname):
 			os.makedirs(dirname)
 		with open(fn, 'wb') as fd:
-			np.save(fd, att_map)
+			np.savez_compressed(fd, att_map)
 
 print('\nFinalized')

@@ -2,6 +2,7 @@ import torch
 
 USE_CUDA = torch.cuda.is_available()
 cudalize = lambda x: x.cuda() if USE_CUDA else x
+to_numpy = lambda x: x.detach().cpu().numpy()
 
 class Struct:
     def __init__(self, **entries):

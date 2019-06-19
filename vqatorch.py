@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import random
@@ -59,7 +60,7 @@ class VQADataset(Dataset):
 
 	def __init__(self, root_dir, set_names):
 		super(VQADataset, self).__init__()
-		self._root_dir = root_dir
+		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:
 			set_names = [set_names]
 
@@ -78,32 +79,32 @@ class VQADataset(Dataset):
 		datum = self._by_id[self._id_list[i]]
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
-		with np.load(input_path) as zdata:
-			features = list(zdata.values())[0]
-			features = (features - self._mean) / self._std
+		features = list(np.load(input_path).values())[0]
+		features = (features - self._mean) / self._std
 		return datum, features.transpose([2,0,1])
 
 	def _load_from_cache(self, set_names):
 		import os
 		import pickle
 		sets_str = '_'.join(set_names)
-		cache_filename = 'cache/{}_{}.dat'.format(sets_str, CHOOSER)
-		if os.path.exists(cache_filename):
-			print('Loading from cache file %s' % cache_filename)
-			with open(cache_filename, 'rb') as fd:
+		cache_fn = 'cache/{}_{}.dat'.format(sets_str, CHOOSER)
+		cache_fn = os.path.join(self._root_dir, cache_fn)
+		if os.path.exists(cache_fn):
+			print('Loading from cache file %s' % cache_fn)
+			with open(cache_fn, 'rb') as fd:
 				self._by_id = pickle.load(fd)
 		else:
 			self._by_id = dict()
 			for set_name in set_names:
 				self._load_questions(set_name)
-			print('Saving to cache file %s' % cache_filename)
-			with open(cache_filename, 'wb') as fd:
+			print('Saving to cache file %s' % cache_fn)
+			with open(cache_fn, 'wb') as fd:
 				pickle.dump(self._by_id, fd, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def _load_questions(self, set_name):
 		print('Loading questions from set %s' % set_name)
-		question_fn = QUESTION_FILE % set_name
-		parse_fn = MULTI_PARSE_FILE % set_name
+		question_fn = os.path.join(self._root_dir, QUESTION_FILE % set_name)
+		parse_fn = os.path.join(self._root_dir, MULTI_PARSE_FILE % set_name)
 		with open(question_fn) as question_f, open(parse_fn) as parse_f:
 			questions = json.load(question_f)['questions']
 			parse_groups = [ l.strip() for l in parse_f ]
@@ -139,6 +140,7 @@ class VQADataset(Dataset):
 
 			image_set_name = "test2015" if set_name == "test-dev2015" else set_name
 			question_id = question['question_id']
+			print(layouts_names)
 			datum = dict(
 				question_id = question_id,
 				question = indexed_question,
@@ -152,7 +154,8 @@ class VQADataset(Dataset):
 			self._by_id[question_id] = datum
 
 		if set_name not in ("test2015", "test-dev2015"):
-			with open(ANN_FILE % set_name) as ann_f:
+			ann_fn = os.path.join(self._root_dir, ANN_FILE % set_name)
+			with open(ann_fn) as ann_f:
 				annotations = json.load(ann_f)["annotations"]
 			for ann in annotations:
 				question_id = ann["question_id"]
@@ -166,29 +169,9 @@ class VQADataset(Dataset):
 class VQAFindDataset(VQADataset):
 
 	def __init__(self, *args, filter_data=True, metadata=False, **kwargs):
-		superobj = super(VQAFindDataset, self).__init__(*args, **kwargs)
+		super(VQAFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
-		"""
-		if filter_data:
-			neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
-			self._imap = list()
-			for i, qid in enumerate(self._id_list):
-				q = self._by_id[qid]
-				if len(q['layouts_names']) != 2:
-					continue
-				head = q['parses'][0][0]
-				if head in {'is', 'how_many'}:
-					ans = set()
-					for a in q['answers']:
-						ans.add(a)
-					if len(ans.intersection(neg_set)) > 0:
-						continue
-				self._imap.append(i)
-		else:
-			self._imap = list(range(len(self._id_list)))
-		"""
 
-		# THINK WELL IF WE MOVE TO THIS OR KEEP THE ABOVE
 		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
 		self._imap = list()
 		self._tmap = list()
@@ -223,3 +206,37 @@ class VQAFindDataset(VQADataset):
 			output += (target_str, datum['input_set'], datum['input_id'])
 
 		return output
+
+
+class VQADescribeDataset(VQADataset):
+
+	def __init__(self, *args, **kwargs):
+		super(VQADescribeDataset, self).__init__(*args, **kwargs)
+		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
+
+	def __getitem__(self, i):
+		datum = self._by_id[self._id_list[i]]
+		names, indices = [ datum['layouts_'+k] for k in ['names', 'indices'] ]
+
+		# Get hmaps
+		hmap_list = list()
+		for name, index in zip(names, indices):
+			if name != 'find':
+				continue
+			fn = self._interdir.format(
+				set = datum['input_set'],
+				cat = FIND_INDEX.get(index),
+				id  = datum['input_id']
+			)
+			hmap = list(np.load(fn).values())[0]
+			hmap_list.append(hmap)
+
+		# Compose them (reverse polish notation)
+		fifo = list()
+		composed = np.ones_like(hmap_list[-1])
+		for name in reversed(names):
+			if name == 'find':
+				fifo.append(hmap_list.pop(-1))
+			elif name == 'and':
+				fifo.append(fifo.pop(-1)*fifo.pop(-1))
+
