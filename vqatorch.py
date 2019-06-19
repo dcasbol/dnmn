@@ -140,7 +140,6 @@ class VQADataset(Dataset):
 
 			image_set_name = "test2015" if set_name == "test-dev2015" else set_name
 			question_id = question['question_id']
-			print(layouts_names)
 			datum = dict(
 				question_id = question_id,
 				question = indexed_question,
@@ -196,6 +195,8 @@ class VQAFindDataset(VQADataset):
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 
+		print(datum['answers'])
+		quit()
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		target = datum['layouts_indices']
 		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
@@ -233,10 +234,26 @@ class VQADescribeDataset(VQADataset):
 
 		# Compose them (reverse polish notation)
 		fifo = list()
-		composed = np.ones_like(hmap_list[-1])
 		for name in reversed(names):
 			if name == 'find':
 				fifo.append(hmap_list.pop(-1))
 			elif name == 'and':
 				fifo.append(fifo.pop(-1)*fifo.pop(-1))
+		assert len(fifo) == 1, "Bad constructed parse"
+		hmap = fifo[0]
 
+		# Soft labelling
+		labels = dict()
+		for a in datum['answers']:
+			try:
+				labels[a] += 1
+			except KeyError:
+				labels[a] = 1
+
+		total = sum(labels.values())
+		one_hot = np.zeros(len(ANSWER_INDEX), dtype=np.float32)
+		for l, n in labels.items():
+			one_hot[l] = n/total
+
+		return hmap, one_hot
+		
