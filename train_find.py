@@ -71,7 +71,7 @@ for epoch in range(NUM_EPOCHS):
 
 		if perc >= last_perc+0.01:
 			last_perc = last_perc+0.01
-			print('{: 6.2f}% - {}        '.format(perc, loss.item()), end='')
+			print('{: 6.2f}% - {}        '.format(perc, loss.item()))
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
