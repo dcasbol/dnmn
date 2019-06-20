@@ -29,7 +29,7 @@ for i, (features, target, target_str, input_set, input_id) in enumerate(loader):
 	perc = (i*100)//n_batches
 	if perc != last_perc:
 		last_perc = perc
-		print('\rProcessing...', perc, '%   ', end='')
+		print(f'\rProcessing... {perc}%    ', end='')
 
 	att_maps = to_numpy(find(features, target))
 	for att_map, set_name, img_id, map_c in zip(att_maps, input_set, input_id, target_str):
