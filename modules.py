@@ -71,14 +71,16 @@ class FindModule(nn.Module):
 	def forward(self, features, c):
 
 		if self.training:
-			h = self._conv(features)
-			mean = h.sum(1, keepdim=True)
-			B = h.size(0)
-			h = h[torch.arange(B), c].unsqueeze(1)
-			mask_train = torch.sigmoid(2*h-mean).mean()
+			# This first version uses pre-sigmoid competition (works better)
+			B = features.size(0)
+			h_all = self._conv(features)
+			h = h_all[torch.arange(B), c].unsqueeze(1)
+			mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
+			mask_train = torch.sigmoid(h-mean).mean()
 			mask = torch.sigmoid(h)
 			return mask_train, mask
 
+			# This another version uses post-sigmoid competition
 			x = torch.sigmoid(self._conv(features))
 			total = x.sum(1, keepdim=True)
 			B = x.size(0)
