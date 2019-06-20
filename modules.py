@@ -66,7 +66,7 @@ class FindModule(nn.Module):
 
 	def __init__(self):
 		super(FindModule, self).__init__()
-		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
+		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=True)
 
 	def forward(self, features, c):
 
@@ -75,7 +75,8 @@ class FindModule(nn.Module):
 			B = features.size(0)
 			h_all = self._conv(features)
 			h = h_all[torch.arange(B), c].unsqueeze(1)
-			mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
+			#mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
+			mean = h_all.sum(1, keepdim=True) - h
 			mask_train = torch.sigmoid(h-mean).mean()
 			mask = torch.sigmoid(h)
 			return mask_train, mask
