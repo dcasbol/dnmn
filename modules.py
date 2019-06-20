@@ -66,7 +66,7 @@ class FindModule(nn.Module):
 
 	def __init__(self):
 		super(FindModule, self).__init__()
-		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=True)
+		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 
 	def forward(self, features, c):
 

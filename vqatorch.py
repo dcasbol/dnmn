@@ -80,7 +80,8 @@ class VQADataset(Dataset):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		features = list(np.load(input_path).values())[0]
-		features = (features - self._mean) / self._std
+		#features = (features - self._mean) / self._std
+		features = features / self._std
 		return datum, features.transpose([2,0,1])
 
 	def _load_from_cache(self, set_names):
