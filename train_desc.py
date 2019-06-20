@@ -5,8 +5,8 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset
-from modules import FindModule
+from vqatorch import VQADescribeDataset
+from modules import DescribeModule
 from misc.constants import *
 from misc.util import cudalize
 from PIL import Image
@@ -29,23 +29,18 @@ BATCH_SIZE = args.batchsize
 SET_NAME = 'train2014'
 SUFFIX = '' if args.suffix == '' else '-' + args.suffix
 
-findset = VQAFindDataset('./', SET_NAME, metadata=True)
-loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
+descset = VQADescribeDataset('./', SET_NAME)
+loader = DataLoader(descset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = FindModule()
+desc = DescribeModule()
 if args.restore:
-	PT_FILENAME = 'find_module{}.pt'.format(SUFFIX)
+	PT_FILENAME = 'describe_module{}.pt'.format(SUFFIX)
 	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
-find = cudalize(find)
+desc = cudalize(desc)
 
 loss_fn = nn.BCELoss()
 
-opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-4)
-
-if args.visualize > 0:
-	plt.figure()
-	plt.ion()
-	plt.show()
+opt = torch.optim.Adam(desc.parameters(), lr=args.lr, weight_decay=1e-4)
 
 n = 0
 last_perc = -0.01

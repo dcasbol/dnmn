@@ -195,8 +195,6 @@ class VQAFindDataset(VQADataset):
 	def __getitem__(self, i):
 		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
 
-		print(datum['answers'])
-		quit()
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		target = datum['layouts_indices']
 		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
@@ -234,7 +232,7 @@ class VQADescribeDataset(VQADataset):
 
 		# Compose them (reverse polish notation)
 		fifo = list()
-		for name in reversed(names):
+		for name in reversed(names[1:]):
 			if name == 'find':
 				fifo.append(hmap_list.pop(-1))
 			elif name == 'and':
@@ -256,4 +254,3 @@ class VQADescribeDataset(VQADataset):
 			one_hot[l] = n/total
 
 		return hmap, one_hot
-		

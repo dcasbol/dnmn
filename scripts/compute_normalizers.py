@@ -28,12 +28,13 @@ def compute_normalizers(fn_pattern):
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Compute image normalizers')
-	parser.add_argument('datasetpath', type=str, default='~/DataSets/vqa',
-		help='Path to VQA dataset.')
+	parser.add_argument('datasetpath', type=str, nargs='?', default='~/DataSets/vqa',
+		help='Path to VQA dataset ("vqa" folder).')
 	args = parser.parse_args()
 
-	fn_pattern = os.path.join(args.datasetpath, 'Images/train2014/conv/*.jpg.npz')
-	fn_pattern = os.path.expanduser(fn_pattern)
+	vqa_path = os.path.expanduser(args.datasetpath)
+	fn_pattern = os.path.join(vqa_path, 'Images/train2014/conv/*.jpg.npz')
+	fn_save = os.path.join(vqa_path, 'Images/normalizers.npz')
 
 	mean, std = compute_normalizers(fn_pattern)
-	np.savez_compressed('normalizers.npz', mean=mean, std=std)
+	np.savez_compressed(fn_save, mean=mean, std=std)

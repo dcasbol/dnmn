@@ -72,10 +72,10 @@ class FindModule(nn.Module):
 
 		if self.training:
 			h = self._conv(features)
-			mean = h.mean(1, keepdim=True)
+			mean = h.sum(1, keepdim=True)
 			B = h.size(0)
 			h = h[torch.arange(B), c].unsqueeze(1)
-			mask_train = torch.sigmoid(h-mean).view(B,-1).mean()
+			mask_train = torch.sigmoid(2*h-mean).mean()
 			mask = torch.sigmoid(h)
 			return mask_train, mask
 
