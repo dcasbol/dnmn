@@ -73,7 +73,7 @@ class FindModule(nn.Module):
 		if self.training:
 			# This first version uses pre-sigmoid competition (works better)
 			B = features.size(0)
-			h_all = self._conv(features)
+			h_all = self._conv(features) - 10.
 			h = h_all[torch.arange(B), c].unsqueeze(1)
 			#mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
 			mean = h_all.sum(1, keepdim=True) - h
