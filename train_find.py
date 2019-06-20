@@ -71,7 +71,7 @@ for epoch in range(NUM_EPOCHS):
 
 		if perc >= last_perc+0.01:
 			last_perc = last_perc+0.01
-			print('\r{: 6.2f}% - {}        '.format(perc, loss.item()), end='')
+			print('{: 6.2f}% - {}        '.format(perc, loss.item()), end='')
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
@@ -94,9 +94,9 @@ for epoch in range(NUM_EPOCHS):
 	if args.save:
 		PT_FILENAME = 'find_module-out{}.pt'.format(SUFFIX)
 		torch.save(find.state_dict(), PT_FILENAME)
-		print('\nModule saved')
+		print('Module saved')
 
-print('\n End of training')
+print('End of training')
 print(loss_list)
 LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
 with open(LOG_FILENAME,'w') as fd:
