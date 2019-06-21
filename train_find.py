@@ -40,9 +40,9 @@ if args.restore:
 	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
 find = cudalize(find)
 
-loss_fn = nn.BCELoss()
+loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
 
-opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-4)
+opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-3)
 
 if args.visualize > 0:
 	plt.figure()

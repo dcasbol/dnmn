@@ -70,25 +70,24 @@ class FindModule(nn.Module):
 
 	def forward(self, features, c):
 
-		if self.training:
-			# This first version uses pre-sigmoid competition (works better)
-			B = features.size(0)
-			h_all = self._conv(features) - 10.
-			h = h_all[torch.arange(B), c].unsqueeze(1)
-			#mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
-			mean = h_all.sum(1, keepdim=True) - h
-			mask_train = torch.sigmoid(h-mean).mean()
-			mask = torch.sigmoid(h)
-			return mask_train, mask
-
+		if self.training or not self.training:
 			# This another version uses post-sigmoid competition
 			x = torch.sigmoid(self._conv(features))
-			total = x.sum(1, keepdim=True)
 			B = x.size(0)
 			x = x[torch.arange(B), c].unsqueeze(1)
-			mask_train = x / (1. + total - x)
+			total = (x.sum(1, keepdim=True) - x) / (B-1)
+			mask_train = x / (1. + total)
 			mask_train = x.view(B,-1).mean(1)
 			return mask_train, x
+
+			# This first version uses pre-sigmoid competition (works better)
+			B = features.size(0)
+			h_all = self._conv(features)
+			h = h_all[torch.arange(B), c].unsqueeze(1)
+			mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
+			mask_train = (h-mean).view(B,-1).mean(1)
+			mask = torch.sigmoid(h)
+			return mask_train, mask
 		else:
 			k = self._conv.weight[c]
 			x = torch.sigmoid(F.conv2d(features, k))
