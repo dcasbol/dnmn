@@ -55,12 +55,12 @@ if args.visualize > 0:
 	plt.show()
 
 n = 0
-last_perc = -0.01
+last_perc = -1
 loss_list = list()
 for epoch in range(NUM_EPOCHS):
 	print('Epoch ', epoch)
 	for i, (features, label, label_str, input_set, input_id) in enumerate(loader):
-		perc = epoch + (i*BATCH_SIZE)/len(findset)
+		perc = (i*BATCH_SIZE*100)//len(findset)
 
 		features = cudalize(features)
 		label = cudalize(label)
@@ -74,10 +74,10 @@ for epoch in range(NUM_EPOCHS):
 		loss.backward()
 		opt.step()
 
-		if perc >= last_perc+0.01:
-			last_perc = last_perc+0.01
+		if perc > last_perc:
+			last_perc = perc
 			loss_list.append(loss.item())
-			print('{: 6.2f}% - {}        '.format(perc, loss_list[-1]))
+			print('{: 3d}% - {}        '.format(perc, loss_list[-1]))
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
