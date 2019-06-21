@@ -70,7 +70,7 @@ class FindModule(nn.Module):
 
 	def forward(self, features, c):
 
-		if self.training or not self.training:
+		if self.training:
 			# This another version uses post-sigmoid competition
 			x = torch.sigmoid(self._conv(features))
 			B = x.size(0)

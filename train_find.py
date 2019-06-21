@@ -71,7 +71,8 @@ for epoch in range(NUM_EPOCHS):
 
 		if perc >= last_perc+0.01:
 			last_perc = last_perc+0.01
-			print('{: 6.2f}% - {}        '.format(perc, loss.item()))
+			loss_list.append(loss.item())
+			print('{: 6.2f}% - {}        '.format(perc, loss_list[-1]))
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
@@ -79,7 +80,8 @@ for epoch in range(NUM_EPOCHS):
 
 				plt.subplot(1,2,1)
 				img = hmap.detach()[0,0].cpu().numpy()
-				plt.imshow(img, cmap='hot', vmin=0, vmax=1)
+				im = plt.imshow(img, cmap='hot', vmin=0, vmax=1)
+				plt.colorbar(im, orientation='horizontal')
 				plt.axis('off')
 
 				plt.subplot(1,2,2)
