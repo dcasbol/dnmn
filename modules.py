@@ -71,23 +71,24 @@ class FindModule(nn.Module):
 	def forward(self, features, c):
 
 		if self.training:
-			# This another version uses post-sigmoid competition
 			B = c.size(0)
+
+			# This version uses post-sigmoid competition
 			mask_all = torch.sigmoid(self._conv(features))
 			mask = mask_all[torch.arange(B), c].unsqueeze(1)
-			mask_against = 1. + mask_all.sum(1, keepdim=True) - mask
-			mask_train = mask / mask_against
+			mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
+			mask_train = mask / (1. + mask_against)
 			mask_train = mask_train.view(B,-1).mean(1)
 			return mask_train, mask
 
-			# This first version uses pre-sigmoid competition (works better)
-			B = features.size(0)
+			# This version uses pre-sigmoid competition (has troubles w/ neg. values)
 			h_all = self._conv(features)
 			h = h_all[torch.arange(B), c].unsqueeze(1)
-			mean = (h_all.sum(1, keepdim=True) - h) / (B-1)
-			mask_train = (h-mean).view(B,-1).mean(1)
+			h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)
+			h_against = F.relu(h_against)
+			h_train = (h-h_against).view(B,-1).mean(1)
 			mask = torch.sigmoid(h)
-			return mask_train, mask
+			return h_train, mask
 		else:
 			k = self._conv.weight[c]
 			x = torch.sigmoid(F.conv2d(features, k))
