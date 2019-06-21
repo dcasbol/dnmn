@@ -48,7 +48,7 @@ for features, label, label_str, input_set, input_id in loader:
 	ax = plt.subplot(1,2,1)
 	img = hmap.detach()[0,0].cpu().numpy()
 	im = plt.imshow(img, cmap='hot', vmin=0, vmax=1)
-	plt.colorbar(im, orientation='horizontal')
+	plt.colorbar(im, orientation='horizontal', pad=0.05)
 	plt.axis('off')
 
 	plt.subplot(1,2,2)
