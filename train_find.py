@@ -24,6 +24,8 @@ parser.add_argument('--suffix', type=str, default='',
 	help='Add suffix to files. Useful when training others simultaneously.')
 parser.add_argument('--lr', type=float, default=1e-4,
 	help='Specify learning rate')
+parser.add_argument('--competition', choices=['post', 'pre'],
+	help='Use division competition after sigmoid (post) or substraction before (pre)')
 args = parser.parse_args()
 
 NUM_EPOCHS = args.epochs
@@ -34,13 +36,16 @@ SUFFIX = '' if args.suffix == '' else '-' + args.suffix
 findset = VQAFindDataset('./', SET_NAME, metadata=True)
 loader = DataLoader(findset, batch_size=BATCH_SIZE, shuffle=True)
 
-find = FindModule()
+find = FindModule(competition=args.competition)
 if args.restore:
 	PT_FILENAME = 'find_module{}.pt'.format(SUFFIX)
 	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
 find = cudalize(find)
 
-loss_fn = nn.BCELoss(reduction='sum')
+if args.competition == 'post':
+	loss_fn = nn.BCELoss(reduction='sum')
+else:
+	loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
 
 opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-3)
 
@@ -81,7 +86,7 @@ for epoch in range(NUM_EPOCHS):
 				plt.subplot(1,2,1)
 				img = hmap.detach()[0,0].cpu().numpy()
 				im = plt.imshow(img, cmap='hot', vmin=0, vmax=1)
-				plt.colorbar(im, orientation='horizontal')
+				plt.colorbar(im, orientation='horizontal', pad=0.05)
 				plt.axis('off')
 
 				plt.subplot(1,2,2)

@@ -64,31 +64,33 @@ class MLPFindModule(nn.Module):
 class FindModule(nn.Module):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self):
+	def __init__(self, competition='post'):
 		super(FindModule, self).__init__()
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
+		self._competition = competition
 
 	def forward(self, features, c):
 
 		if self.training:
 			B = c.size(0)
 
-			# This version uses post-sigmoid competition
-			mask_all = torch.sigmoid(self._conv(features))
-			mask = mask_all[torch.arange(B), c].unsqueeze(1)
-			mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
-			mask_train = mask / (1. + mask_against)
-			mask_train = mask_train.view(B,-1).mean(1)
-			return mask_train, mask
-
-			# This version uses pre-sigmoid competition (has troubles w/ neg. values)
-			h_all = self._conv(features)
-			h = h_all[torch.arange(B), c].unsqueeze(1)
-			h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)
-			h_against = F.relu(h_against)
-			h_train = (h-h_against).view(B,-1).mean(1)
-			mask = torch.sigmoid(h)
-			return h_train, mask
+			if self._competition == 'post':
+				# This version uses post-sigmoid competition
+				mask_all = torch.sigmoid(self._conv(features))
+				mask = mask_all[torch.arange(B), c].unsqueeze(1)
+				mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
+				mask_train = mask / (1. + mask_against)
+				mask_train = mask_train.view(B,-1).mean(1)
+				return mask_train, mask
+			else:
+				# This version uses pre-sigmoid competition (has troubles w/ neg. values)
+				h_all = self._conv(features)
+				h = h_all[torch.arange(B), c].unsqueeze(1)
+				h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)
+				h_against = F.relu(h_against)
+				h_train = (h-h_against).view(B,-1).mean(1)
+				mask = torch.sigmoid(h)
+				return h_train, mask
 		else:
 			k = self._conv.weight[c]
 			x = torch.sigmoid(F.conv2d(features, k))
