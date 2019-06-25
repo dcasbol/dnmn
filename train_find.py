@@ -22,7 +22,7 @@ parser.add_argument('--save', action='store_true',
 	help='Save the module periodically')
 parser.add_argument('--suffix', type=str, default='',
 	help='Add suffix to files. Useful when training others simultaneously.')
-parser.add_argument('--lr', type=float, default=1e-4,
+parser.add_argument('--lr', type=float, default=1e-3,
 	help='Specify learning rate')
 parser.add_argument('--competition', choices=['post', 'pre'],
 	help='Use division competition after sigmoid (post) or substraction before (pre)')
@@ -65,7 +65,6 @@ for epoch in range(NUM_EPOCHS):
 		features = cudalize(features)
 		label = cudalize(label)
 
-		batch_size = features.size(0)
 		ytrain, hmap = find(features, label)
 		ones = cudalize(torch.ones_like(ytrain, dtype=torch.float))
 		loss = loss_fn(ytrain, ones)
@@ -77,7 +76,7 @@ for epoch in range(NUM_EPOCHS):
 		if perc > last_perc:
 			last_perc = perc
 			loss_list.append(loss.item())
-			print('{: 3d}% - {}        '.format(perc, loss_list[-1]))
+			print('{: 3d}% - {}'.format(perc, loss_list[-1]))
 			n += 1
 			if args.visualize > 0 and n%args.visualize == 0:
 				plt.clf()
@@ -105,6 +104,6 @@ for epoch in range(NUM_EPOCHS):
 
 print('End of training')
 print(loss_list)
-LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
-with open(LOG_FILENAME,'w') as fd:
+log_filename = 'training_log{}.json'.format(SUFFIX)
+with open(log_filename,'w') as fd:
 	json.dump(loss_list, fd)

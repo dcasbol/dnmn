@@ -98,18 +98,18 @@ class FindModule(nn.Module):
 		return x
 
 
-class ClassifyModule(nn.Module):
+class DescribeModule(nn.Module):
 
 	def __init__(self):
-		super(ClassifyModule, self).__init__()
-		self._linear = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+		super(DescribeModule, self).__init__()
+		self._reduct = nn.Linear(MASK_WIDTH**2, 1)
+		self._final = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 
 	def forward(self, mask, features):
 		B,C,H,W = features.size()
-		mask_total = mask.view(B,-1).sum(1, keepdim=True) + 1e-10
-		mask_normalized = mask / mask_total
-		attended = (mask_normalized*features).view(B,C,-1).sum(2)
-		return self._linear(attended)
+		attended = (mask*features).view(B,C,-1)
+		reduction = self._reduct(attended).view(B,C)
+		return self._final(reduction)
 
 
 class MeasureModule(nn.Module):

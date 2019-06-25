@@ -20,77 +20,60 @@ parser.add_argument('--save', action='store_true',
 	help='Save the module periodically')
 parser.add_argument('--suffix', type=str, default='',
 	help='Add suffix to files. Useful when training others simultaneously.')
-parser.add_argument('--lr', type=float, default=1e-4,
+parser.add_argument('--lr', type=float, default=1e-3,
 	help='Specify learning rate')
 args = parser.parse_args()
 
 NUM_EPOCHS = args.epochs
 BATCH_SIZE = args.batchsize
+MOD_NAME = 'describe'
 SET_NAME = 'train2014'
 SUFFIX = '' if args.suffix == '' else '-' + args.suffix
+LOG_FILENAME = '{}_log{}.json'.format(MOD_NAME, SUFFIX)
+PT_RESTORE = '{}_module{}.pt'.format(MOD_NAME, SUFFIX)
+PT_NEW = '{}-new{}.pt'.format(MOD_NAME, SUFFIX)
 
 descset = VQADescribeDataset('./', SET_NAME)
 loader = DataLoader(descset, batch_size=BATCH_SIZE, shuffle=True)
 
 desc = DescribeModule()
 if args.restore:
-	PT_FILENAME = 'describe_module{}.pt'.format(SUFFIX)
-	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
+	desc.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 desc = cudalize(desc)
 
-loss_fn = nn.BCELoss()
+loss_fn = nn.KLDivLoss(reduction='sum')
+logsm_fn = nn.LogSoftmax()
 
 opt = torch.optim.Adam(desc.parameters(), lr=args.lr, weight_decay=1e-4)
 
-n = 0
-last_perc = -0.01
+last_perc = -1
 loss_list = list()
 for epoch in range(NUM_EPOCHS):
 	print('Epoch ', epoch)
-	for i, (features, label, label_str, input_set, input_id) in enumerate(loader):
-		perc = epoch + (i*BATCH_SIZE)/len(findset)
+	for i, (mask, features, label) in enumerate(loader):
+		perc = epoch + (i*BATCH_SIZE)/len(descset)
 
+		mask = cudalize(mask)
 		features = cudalize(features)
 		label = cudalize(label)
 
-		batch_size = features.size(0)
-		ytrain, hmap = find(features, label)
-		ones = cudalize(torch.ones_like(ytrain, dtype=torch.float))
-		loss = loss_fn(ytrain, ones)
+		logits = desc(mask, features)
+		logp = logsm_fn(logits)
+		loss = loss_fn(logp, label)
 
 		opt.zero_grad()
 		loss.backward()
 		opt.step()
 
-		if perc >= last_perc+0.01:
-			last_perc = last_perc+0.01
-			print(perc, loss.item())
+		if perc > last_perc:
+			last_perc = perc
 			loss_list.append(loss.item())
-			n += 1
-			if args.visualize > 0 and n%args.visualize == 0:
-				plt.clf()
-				plt.suptitle(label_str[0])
-
-				plt.subplot(1,2,1)
-				img = hmap.detach()[0,0].cpu().numpy()
-				plt.imshow(img, cmap='hot', vmin=0, vmax=1)
-				plt.axis('off')
-
-				plt.subplot(1,2,2)
-				fn = RAW_IMAGE_FILE % (input_set[0], input_set[0], input_id[0])
-				img = np.array(Image.open(fn).resize((300,300)))
-				plt.imshow(img)
-				plt.axis('off')
-
-				plt.draw()
-				plt.pause(0.001)
+			print('{: 3d}% - {}'.format(perc, loss_list[-1]))
 
 	if args.save:
-		PT_FILENAME = 'find_module-new{}.pt'.format(SUFFIX)
-		torch.save(find.state_dict(), PT_FILENAME)
+		torch.save(desc.state_dict(), PT_NEW)
 		print('Module saved')
 
 print(loss_list)
-LOG_FILENAME = 'training_log{}.json'.format(SUFFIX)
 with open(LOG_FILENAME,'w') as fd:
 	json.dump(loss_list, fd)

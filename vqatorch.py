@@ -216,7 +216,7 @@ class VQADescribeDataset(VQADataset):
 		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
 
 	def __getitem__(self, i):
-		datum = self._by_id[self._id_list[i]]
+		datum, features = super(VQAFindDataset, self).__getitem__(i)
 		names, indices = [ datum['layouts_'+k] for k in ['names', 'indices'] ]
 
 		# Get hmaps
@@ -255,4 +255,4 @@ class VQADescribeDataset(VQADataset):
 		for l, n in labels.items():
 			one_hot[l] = n/total
 
-		return hmap, one_hot
+		return hmap, features, one_hot
