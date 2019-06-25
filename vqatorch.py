@@ -216,7 +216,7 @@ class VQADescribeDataset(VQADataset):
 		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
 
 	def __getitem__(self, i):
-		datum, features = super(VQAFindDataset, self).__getitem__(i)
+		datum, features = super(VQADescribeDataset, self).__getitem__(i)
 		names, indices = [ datum['layouts_'+k] for k in ['names', 'indices'] ]
 
 		# Get hmaps
