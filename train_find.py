@@ -42,10 +42,10 @@ if args.restore:
 	find.load_state_dict(torch.load(PT_FILENAME, map_location='cpu'))
 find = cudalize(find)
 
-if args.competition == 'post':
-	loss_fn = nn.BCELoss(reduction='sum')
-else:
-	loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
+loss_fn = dict(
+	pre  = nn.BCEWithLogitsLoss,
+	post = nn.BCELoss
+)[args.competition](reduction='sum')
 
 opt = torch.optim.Adam(find.parameters(), lr=args.lr, weight_decay=1e-3)
 

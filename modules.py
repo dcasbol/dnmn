@@ -64,8 +64,9 @@ class MLPFindModule(nn.Module):
 class FindModule(nn.Module):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self, competition='post'):
+	def __init__(self, competition='pre'):
 		super(FindModule, self).__init__()
+		assert competition in {'pre', 'post'}, "Invalid competition mode: %s" % competition
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
 

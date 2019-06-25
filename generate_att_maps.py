@@ -31,6 +31,9 @@ for i, (features, target, target_str, input_set, input_id) in enumerate(loader):
 		last_perc = perc
 		print('\rProcessing... {}%    '.format(perc), end='')
 
+	features = cudalize(features)
+	target   = cudalize(features)
+	
 	att_maps = to_numpy(find(features, target))
 	for att_map, set_name, img_id, map_c in zip(att_maps, input_set, input_id, target_str):
 
