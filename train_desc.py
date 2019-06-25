@@ -42,7 +42,7 @@ if args.restore:
 desc = cudalize(desc)
 
 loss_fn = nn.KLDivLoss(reduction='sum')
-logsm_fn = nn.LogSoftmax()
+logsm_fn = nn.LogSoftmax(dim=1)
 
 opt = torch.optim.Adam(desc.parameters(), lr=args.lr, weight_decay=1e-4)
 
