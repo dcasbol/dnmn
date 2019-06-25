@@ -51,7 +51,7 @@ loss_list = list()
 for epoch in range(NUM_EPOCHS):
 	print('Epoch ', epoch)
 	for i, (mask, features, label) in enumerate(loader):
-		perc = epoch + (i*BATCH_SIZE)/len(descset)
+		perc = (i*BATCH_SIZE*100)//len(descset)
 
 		mask = cudalize(mask)
 		features = cudalize(features)
