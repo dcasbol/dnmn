@@ -84,7 +84,7 @@ class FindModule(nn.Module):
 				mask_train = mask_train.view(B,-1).mean(1)
 				return mask_train, mask
 			else:
-				# This version uses pre-sigmoid competition (has troubles w/ neg. values)
+				# This version uses pre-sigmoid competition (works better)
 				h_all = self._conv(features)
 				h = h_all[torch.arange(B), c].unsqueeze(1)
 				h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)
