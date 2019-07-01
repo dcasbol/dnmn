@@ -60,11 +60,12 @@ class VQADataset(Dataset):
 	one layout is extracted.
 	"""
 
-	def __init__(self, root_dir, set_names):
+	def __init__(self, root_dir, set_names, features=True):
 		super(VQADataset, self).__init__()
 		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:
 			set_names = [set_names]
+		self._features = features
 
 		self._load_from_cache(set_names)
 		self._id_list = list(self._by_id.keys())
@@ -81,6 +82,8 @@ class VQADataset(Dataset):
 		datum = self._by_id[self._id_list[i]]
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
+		if not self._features:
+			return datum
 		features = list(np.load(input_path).values())[0]
 		#features = (features - self._mean) / self._std
 		# Positive values make more sense for multiplicative attention
@@ -205,14 +208,13 @@ class VQAFindDataset(VQADataset):
 		return output
 
 
-class VQADescribeDataset(VQADataset):
+class VQARootModuleDataset(VQADataset):
 
 	def __init__(self, *args, **kwargs):
 		super(VQADescribeDataset, self).__init__(*args, **kwargs)
 		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
 
-	def __getitem__(self, i):
-		datum, features = super(VQADescribeDataset, self).__getitem__(i)
+	def _build_hmap(self, datum):
 		names   = datum['layouts_names']
 		indices = datum['layouts_indices']
 
@@ -220,7 +222,7 @@ class VQADescribeDataset(VQADataset):
 		hmap_list = list()
 		for name, index in zip(names, indices):
 			if name != 'find': continue
-			
+
 			fn = self._interdir.format(
 				set = datum['input_set'],
 				cat = FIND_INDEX.get(index),
@@ -231,6 +233,15 @@ class VQADescribeDataset(VQADataset):
 
 		# Compose them with ANDs
 		mask = reduce(lambda x,y: x*y, hmap_list)
+		return mask
+
+	def __getitem__(self, i):
+
+		datum = super(VQADescribeDataset, self).__getitem__(i)
+		if self._features:
+			datum, features = sample
+
+		mask = self._build_hmap(datum)
 
 		# Label by majority vote
 		count = defaultdict(lambda: 0)
@@ -238,4 +249,15 @@ class VQADescribeDataset(VQADataset):
 			count[a] += 1
 		label = max(count.keys(), key=lambda k: count[k])
 
-		return mask, features, label
+		if self._features:
+			return mask, features, label
+		return mask, label
+
+
+class VQADescribeDataset(VQARootModuleDataset):
+	def __init__(self, *args, **kwargs):
+		super(VQADescribeDataset, self).__init__(*args, **kwargs, features=True)
+
+class VQAMeasureDataset(VQADataset):
+	def __init__(self, *args, **kwargs):
+		super(VQAMeasureDataset, self).__init__(*args, **kwargs, features=False)
