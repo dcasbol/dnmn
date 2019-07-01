@@ -8,6 +8,8 @@ from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, U
 from torch.utils.data import Dataset
 from misc.util import flatten
 from misc.parse import parse_tree
+from functools import reduce
+from collections import defaultdict
 
 
 def process_question(question):
@@ -81,7 +83,7 @@ class VQADataset(Dataset):
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		features = list(np.load(input_path).values())[0]
 		#features = (features - self._mean) / self._std
-		# Positive values work better for multiplicative attention
+		# Positive values make more sense for multiplicative attention
 		features = features / (2*self._std)
 		return datum, features.transpose([2,0,1])
 
@@ -136,6 +138,7 @@ class VQADataset(Dataset):
 				assert False
 
 			layouts = [ parse_to_layout(p) for p in parses ]
+			
 			layouts_names, layouts_indices = _ziplist(*layouts)
 			layouts_names = flatten(layouts_names)
 			layouts_indices = flatten(layouts_indices)
@@ -217,7 +220,8 @@ class VQADescribeDataset(VQADataset):
 
 	def __getitem__(self, i):
 		datum, features = super(VQADescribeDataset, self).__getitem__(i)
-		names, indices = [ datum['layouts_'+k] for k in ['names', 'indices'] ]
+		names   = datum['layouts_names']
+		indices = datum['layouts_indices']
 
 		# Get hmaps
 		hmap_list = list()
@@ -232,27 +236,13 @@ class VQADescribeDataset(VQADataset):
 			hmap = list(np.load(fn).values())[0]
 			hmap_list.append(hmap)
 
-		# Compose them (reverse polish notation)
-		fifo = list()
-		for name in reversed(names[1:]):
-			if name == 'find':
-				fifo.append(hmap_list.pop(-1))
-			elif name == 'and':
-				fifo.append(fifo.pop(-1)*fifo.pop(-1))
-		assert len(fifo) == 1, "Bad constructed parse"
-		hmap = fifo[0]
+		# Compose them with ANDs
+		mask = reduce(lambda x,y: x*y, hmap_list)
 
-		# Soft labelling
-		labels = dict()
+		# Label by majority vote
+		count = defaultdict(lambda: 0)
 		for a in datum['answers']:
-			try:
-				labels[a] += 1
-			except KeyError:
-				labels[a] = 1
+			count[a] += 1
+		label = max(count.keys(), key=lambda k: count[k])
 
-		total = sum(labels.values())
-		one_hot = np.zeros(len(ANSWER_INDEX), dtype=np.float32)
-		for l, n in labels.items():
-			one_hot[l] = n/total
-
-		return hmap, features, one_hot
+		return mask, features, label
