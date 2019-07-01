@@ -5,3 +5,4 @@ envnmntorch
 *.npz
 *.jpg
 *.pt
+results.json
