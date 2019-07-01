@@ -1,64 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.indices import FIND_INDEX, ANSWER_INDEX
+from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX
 from misc.constants import *
-from misc.util import cudalize, to_numpy
-import numpy as np
-
-
-class MLPFindModule(nn.Module):
-	"""This is the version used in the DNMN paper."""
-
-	def __init__(self):
-		super(MLPFindModule, self).__init__()
-		self._conv_proj = nn.Conv2d(IMG_DEPTH, ATT_HIDDEN, 1)
-		self._wordemb = nn.Parameter(torch.ones(len(FIND_INDEX), ATT_HIDDEN))
-		self._conv_mask = nn.Conv2d(ATT_HIDDEN, 1, 1, bias=False)
-
-	def forward(self, features, c):
-
-		if not self.training:
-			return self._eval_fwd(features, c)
-
-		proj = self._conv_proj(features)
-		B,A,H,W = proj.size()
-		M = len(FIND_INDEX)
-
-		# There should be at least N random non-class masks
-		c = to_numpy(c)
-		nc = set(c)
-		N = max(10, len(nc))
-		while len(nc) < N:
-			nc.add(np.random.randint(M))
-		nc = list(nc)
-		c = [ nc.index(Ci) for Ci in c ]
-		nc = cudalize(torch.tensor(nc))
-		c = cudalize(torch.tensor(c))
-
-		proj = proj.unsqueeze(0) #[1,B,A,H,W]
-		wemb = self._wordemb[nc].view(N,1,A,1,1)
-
-		attended = F.relu(proj*wemb) #[N,B,A,H,W]
-		attended = attended.view(-1,A,H,W)
-		mask = self._conv_mask(attended).view(N,B,1,H,W)
-
-		mask = torch.sigmoid(mask)
-		total = torch.sum(mask, 0) #[B,1,H,W]
-		ones = cudalize(torch.ones([]))
-		total = torch.max(total, ones)
-		mask = mask[c, torch.arange(B)] #[B,1,H,W]
-
-		mask_train = (mask/total).view(B,-1).mean(1)
-		return mask_train, mask
-
-	def _eval_fwd(self, features, c):
-		proj = self._conv_proj(features) # [B,A,H,W]
-		B, A = proj.size()[:2]
-		wemb = self._wordemb[c].view(B,A,1,1)
-		attended = F.relu(proj*wemb)
-		mask = self._conv_mask(attended)
-		return torch.sigmoid(mask)
 
 
 class FindModule(nn.Module):
@@ -124,3 +68,17 @@ class MeasureModule(nn.Module):
 	def forward(self, mask):
 		B = mask.size(0)
 		return self._layers(mask.view(B,-1))
+
+
+class QuestionEncoder(nn.Module):
+
+	def __init__(self):
+		super(QuestionEncoder, self).__init__()
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS)
+		self._lstm = nn.LSTM(HIDDEN_UNITS)
+		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+
+	def forward(self, question):
+		embed = self._wemb(question)
+		hidden = self._lstm(embed)[1]
+		return self._final(hidden)

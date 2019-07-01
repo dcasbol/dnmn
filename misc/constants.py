@@ -9,6 +9,5 @@ INTER_HMAP_FILE = "intermediate/hmaps/{set}/{cat}/{set}-{id}-{cat}.npz"
 
 MAX_ANSWERS = 2000
 IMG_DEPTH = 512
-ATT_HIDDEN = 100
-HIDDEN_UNITS = 1000
+HIDDEN_UNITS = 1024
 MASK_WIDTH = 14

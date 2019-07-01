@@ -56,6 +56,9 @@ if __name__ == '__main__':
 		loss_fn = nn.CrossEntropyLoss(reduction='sum')
 		logsm_fn = nn.LogSoftmax(dim=1)
 
+	elif MOD_NAME == 'encoder':
+		pass
+
 	loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
 	if args.restore:
