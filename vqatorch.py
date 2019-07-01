@@ -219,8 +219,8 @@ class VQADescribeDataset(VQADataset):
 		# Get hmaps
 		hmap_list = list()
 		for name, index in zip(names, indices):
-			if name != 'find':
-				continue
+			if name != 'find': continue
+			
 			fn = self._interdir.format(
 				set = datum['input_set'],
 				cat = FIND_INDEX.get(index),

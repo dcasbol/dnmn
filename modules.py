@@ -42,17 +42,21 @@ class FindModule(nn.Module):
 
 
 class DescribeModule(nn.Module):
+	""" From 1st NMN article: It first computes an average over image features
+	weighted by the attention, then passes this averaged feature vector through
+	a single fully-connected layer. """
 
 	def __init__(self):
 		super(DescribeModule, self).__init__()
-		self._reduct = nn.Linear(MASK_WIDTH**2, 1)
 		self._final = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 
 	def forward(self, mask, features):
 		B,C,H,W = features.size()
-		attended = (mask*features).view(B,C,-1)
-		reduction = self._reduct(attended).view(B,C)
-		return self._final(reduction)
+		feat_flat = features.view(B,C,-1)
+		mask_norm = mask.view(B,1,-1)
+		mask_norm = mask_norm / mask_norm.sum(2, keepdim=True)
+		attended = (mask_norm*feat_flat).sum(2)
+		return self._final(attended)
 
 
 class MeasureModule(nn.Module):
