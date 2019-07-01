@@ -124,7 +124,7 @@ if __name__ == '__main__':
 					plt.pause(0.001)
 
 		if args.save:
-			torch.save(find.state_dict(), PT_NEW)
+			torch.save(module.state_dict(), PT_NEW)
 			print('Module saved')
 
 	print('End of training')
