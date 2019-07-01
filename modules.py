@@ -76,7 +76,6 @@ class FindModule(nn.Module):
 			B = c.size(0)
 
 			if self._competition == 'post':
-				# This version uses post-sigmoid competition
 				mask_all = torch.sigmoid(self._conv(features))
 				mask = mask_all[torch.arange(B), c].unsqueeze(1)
 				mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
@@ -84,7 +83,7 @@ class FindModule(nn.Module):
 				mask_train = mask_train.view(B,-1).mean(1)
 				return mask_train, mask
 			else:
-				# This version uses pre-sigmoid competition (works better)
+				# This one should work better
 				h_all = self._conv(features)
 				h = h_all[torch.arange(B), c].unsqueeze(1)
 				h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)

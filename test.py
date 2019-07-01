@@ -5,6 +5,7 @@ from vqatorch import VQADataset
 from modules import FindModule, DescribeModule
 from misc.util import cudalize
 from misc.indices import ANSWER_INDEX, QUESTION_INDEX
+from collections import defaultdict
 
 if __name__ == '__main__':
 
@@ -19,7 +20,7 @@ if __name__ == '__main__':
 	parser.add_argument('--output', type=str, default='results.json')
 	args = parser.parse_args()
 
-	dataset = VQADataset('./', 'test2015')
+	dataset = VQADataset('./', 'train2014')
 
 	find = FindModule()
 	desc = DescribeModule()
@@ -37,7 +38,6 @@ if __name__ == '__main__':
 	for i in range(100):
 		datum, features = dataset[i]
 
-
 		features = cudalize(torch.tensor(features)).unsqueeze(0)
 
 		names = datum['layouts_names']
@@ -52,8 +52,14 @@ if __name__ == '__main__':
 		answer = ANSWER_INDEX.get(pred.argmax().item())
 		answer_list.append(dict(question_id=datum['question_id'], answer=answer))
 
-		readable = ' '.join([ QUESTION_INDEX.get(idx) for idx in datum['question'] ])
+		readable = ' '.join([ QUESTION_INDEX.get(idx) for idx in datum['question'][1:-1] ])
 		print(readable+'?', answer)
+
+		count = defaultdict(lambda: 0)
+		for a in datum['answers']:
+			count[a] += 1
+		answer = max(count.keys(), key=lambda k: count[k])
+		print(ANSWER_INDEX.get(answer))
 
 	print('Writing results to {!r}'.format(args.output))
 	with open(args.output, 'w') as fd:

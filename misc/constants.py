@@ -7,8 +7,6 @@ RAW_IMAGE_FILE = "data/vqa/Images/%s/raw/COCO_%s_%012d.jpg"
 NORMALIZERS_FILE = "data/vqa/Images/normalizers.npz"
 INTER_HMAP_FILE = "intermediate/hmaps/{set}/{cat}/{set}-{id}-{cat}.npz"
 
-CHOOSER = 'cvpr'
-
 MAX_ANSWERS = 2000
 IMG_DEPTH = 512
 ATT_HIDDEN = 100

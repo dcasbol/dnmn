@@ -91,7 +91,7 @@ class VQADataset(Dataset):
 		import os
 		import pickle
 		sets_str = '_'.join(set_names)
-		cache_fn = 'cache/{}_{}.dat'.format(sets_str, CHOOSER)
+		cache_fn = 'cache/{}.dat'.format(sets_str)
 		cache_fn = os.path.join(self._root_dir, cache_fn)
 		if os.path.exists(cache_fn):
 			print('Loading from cache file %s' % cache_fn)
@@ -124,18 +124,11 @@ class VQADataset(Dataset):
 			parses = [ parse_tree(p) for p in parse_strs ]
 			parses = [ ('_what', '_thing') if p == 'none' else p for p in parses ]
 
-			# TODO What is this?
-			if CHOOSER == "null":
-				parses = [("_what", "_thing")]
-			elif CHOOSER == "cvpr":
-				if parses[0][0] == "is":
-					parses = parses[-1:]
-				else:
-					parses = parses[:1]
-			elif CHOOSER == "naacl":
-				pass
+			# CVPR2016 implementation. Don't ask.
+			if parses[0][0] == "is":
+				parses = parses[-1:]
 			else:
-				assert False
+				parses = parses[:1]
 
 			layouts = [ parse_to_layout(p) for p in parses ]
 			
