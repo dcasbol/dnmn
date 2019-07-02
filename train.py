@@ -100,8 +100,8 @@ if __name__ == '__main__':
 				loss = loss_fn(logits, label)
 
 			else:
-				question, label = cudalize(*batch_data)
-				logits = module(question)
+				question, length, label = cudalize(*batch_data)
+				logits = module(question, length)
 				loss = loss_fn(logits, label)
 
 			opt.zero_grad()

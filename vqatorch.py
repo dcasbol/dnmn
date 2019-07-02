@@ -256,12 +256,13 @@ class VQAEncoderDataset(VQADataset):
 		datum = self._by_id[self._id_list[i]]
 		question = datum['question']
 		label = majority_label(datum['answers'])
-		return question, label
+		return question, len(question), label
 
 def encoder_collate_fn(data):
-	questions, labels = zip(*data)
-	T = max([ len(q) for q in questions ])
-	padded = [ [NULL_ID]*(T-len(q)) + q for q in questions ]
+	questions, lengths, labels = zip(*data)
+	T = max(lengths)
+	padded = [ q + [NULL_ID]*(T-l) for q, l, _ in data ]
 	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
+	lengths = torch.tensor(lengths, dtype=torch.long)
 	labels = torch.tensor(labels, dtype=torch.long)
-	return questions, labels
+	return questions, lengths, labels

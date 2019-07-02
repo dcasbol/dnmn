@@ -81,7 +81,8 @@ class QuestionEncoder(nn.Module):
 		self._lstm = nn.LSTM(HIDDEN_UNITS, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 
-	def forward(self, question):
+	def forward(self, question, length):
+		B = length.size(0)
 		embed = self._wemb(question)
-		hidden = self._lstm(embed)[1][0].squeeze(0)
+		hidden = self._lstm(embed)[0][length-1, torch.arange(B)]
 		return self._final(hidden)
