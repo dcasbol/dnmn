@@ -5,8 +5,8 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset, VQADescribeDataset
-from modules import FindModule, DescribeModule
+from vqatorch import VQAFindDataset, VQADescribeDataset, VQAEncoderDataset, encoder_collate_fn
+from modules import FindModule, DescribeModule, QuestionEncoder
 from misc.constants import *
 from misc.util import cudalize
 from PIL import Image
@@ -14,7 +14,7 @@ from PIL import Image
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Train a Module')
-	parser.add_argument('module', choices=['find', 'describe'])
+	parser.add_argument('module', choices=['find', 'describe', 'encoder'])
 	parser.add_argument('--epochs', type=int, default=1,
 		help='Max. training epochs')
 	parser.add_argument('--batchsize', type=int, default=128)
@@ -42,6 +42,11 @@ if __name__ == '__main__':
 
 	assert MOD_NAME == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
 
+	kwargs = dict(
+		batch_size  = BATCH_SIZE,
+		shuffle     = True,
+		num_workers = 4
+	)
 	if MOD_NAME == 'find':
 		dataset = VQAFindDataset('./', SET_NAME, metadata=True)
 		module  = FindModule(competition=args.competition)
@@ -51,15 +56,17 @@ if __name__ == '__main__':
 		)[args.competition](reduction='sum')
 
 	elif MOD_NAME == 'describe':
-		dataset = VQADescribeDataset('./', SET_NAME)
-		module  = DescribeModule()
-		loss_fn = nn.CrossEntropyLoss(reduction='sum')
-		logsm_fn = nn.LogSoftmax(dim=1)
+		dataset  = VQADescribeDataset('./', SET_NAME)
+		module   = DescribeModule()
+		loss_fn  = nn.CrossEntropyLoss(reduction='sum')
 
 	elif MOD_NAME == 'encoder':
-		pass
+		dataset = VQAEncoderDataset('./', SET_NAME)
+		module  = QuestionEncoder()
+		loss_fn = nn.CrossEntropyLoss(reduction='sum')
+		kwargs['collate_fn'] = encoder_collate_fn
 
-	loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+	loader = DataLoader(dataset, **kwargs)
 
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
@@ -82,20 +89,19 @@ if __name__ == '__main__':
 
 			if MOD_NAME == 'find':
 				features, instance, label_str, input_set, input_id = batch_data
-				features = cudalize(features)
-				instance = cudalize(instance)
-
+				features, instance = cudalize(features, instance)
 				ytrain, hmap = module(features, instance)
 				label = cudalize(torch.ones_like(ytrain, dtype=torch.float))
 				loss = loss_fn(ytrain, label)
 
-			else:
-				mask, features, label = batch_data
-				mask = cudalize(mask)
-				features = cudalize(features)
-				label = cudalize(label)
-
+			elif MOD_NAME == 'describe':
+				mask, features, label = cudalize(batch_data)
 				logits = module(mask, features)
+				loss = loss_fn(logits, label)
+
+			else:
+				question, label = cudalize(batch_data)
+				logits = module(question)
 				loss = loss_fn(logits, label)
 
 			opt.zero_grad()

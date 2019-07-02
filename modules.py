@@ -54,9 +54,9 @@ class DescribeModule(nn.Module):
 		B,C,H,W = features.size()
 		feat_flat = features.view(B,C,-1)
 		mask_norm = mask.view(B,1,-1)
-		mask_norm = F.softmax(mask_norm)
+		#mask_norm = F.softmax(mask_norm, dim=2)
 		#mask_norm = mask_norm / mask_norm.sum(2, keepdim=True)
-		attended = (mask_norm*feat_flat).sum(2)
+		attended = (mask_norm*feat_flat).mean(2)
 		return self._final(attended)
 
 
@@ -80,10 +80,10 @@ class QuestionEncoder(nn.Module):
 	def __init__(self):
 		super(QuestionEncoder, self).__init__()
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS)
-		self._lstm = nn.LSTM(HIDDEN_UNITS)
+		self._lstm = nn.LSTM(HIDDEN_UNITS, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 
 	def forward(self, question):
 		embed = self._wemb(question)
-		hidden = self._lstm(embed)[1]
+		hidden = self._lstm(embed)[1][0].squeeze(0)
 		return self._final(hidden)

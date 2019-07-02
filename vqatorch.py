@@ -4,12 +4,11 @@ import torch
 import random
 import numpy as np
 from misc.constants import *
-from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID
+from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID, NULL_ID
 from torch.utils.data import Dataset
-from misc.util import flatten
+from misc.util import flatten, majority_label
 from misc.parse import parse_tree
 from functools import reduce
-from collections import defaultdict
 
 
 def process_question(question):
@@ -42,16 +41,6 @@ def parse_to_layout(parse):
 	indices_here = [index_head] + indices_below
 	return modules_here, indices_here
 
-def _create_one_hot(values, size):
-	freqs = { v:0 for v in set(values) }
-	for v in values:
-		freqs[v] += 1
-	total = sum(freqs.values())
-	binary = np.zeros(size, dtype=np.float32)
-	for v, f in freqs.items():
-		binary[v] = f/total
-	return binary
-
 
 class VQADataset(Dataset):
 	"""
@@ -80,10 +69,11 @@ class VQADataset(Dataset):
 	def __getitem__(self, i):
 		# Get question data and load image features
 		datum = self._by_id[self._id_list[i]]
-		input_set, input_id = datum['input_set'], datum['input_id']
-		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		if not self._features:
 			return datum
+
+		input_set, input_id = datum['input_set'], datum['input_id']
+		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		features = list(np.load(input_path).values())[0]
 		#features = (features - self._mean) / self._std
 		# Positive values make more sense for multiplicative attention
@@ -242,12 +232,7 @@ class VQARootModuleDataset(VQADataset):
 			datum, features = datum
 
 		mask = self._build_hmap(datum)
-
-		# Label by majority vote
-		count = defaultdict(lambda: 0)
-		for a in datum['answers']:
-			count[a] += 1
-		label = max(count.keys(), key=lambda k: count[k])
+		label = majority_label(datum['answers'])
 
 		if self._features:
 			return mask, features, label
@@ -258,6 +243,25 @@ class VQADescribeDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQADescribeDataset, self).__init__(*args, **kwargs, features=True)
 
-class VQAMeasureDataset(VQADataset):
+class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQAMeasureDataset, self).__init__(*args, **kwargs, features=False)
+
+class VQAEncoderDataset(VQADataset):
+
+	def __init__(self, *args, **kwargs):
+		super(VQAEncoderDataset, self).__init__(*args, **kwargs, features=False)
+
+	def __getitem__(self, i):
+		datum = self._by_id[self._id_list[i]]
+		question = datum['question']
+		label = majority_label(datum['answers'])
+		return question, label
+
+def encoder_collate_fn(data):
+	questions, labels = zip(*data)
+	T = max([ len(q) for q in questions ])
+	padded = [ [NULL_ID]*(T-len(q)) + q for q in questions ]
+	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
+	labels = torch.tensor(labels, dtype=torch.long)
+	return questions, labels
