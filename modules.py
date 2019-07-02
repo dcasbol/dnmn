@@ -84,4 +84,4 @@ class QuestionEncoder(nn.Module):
 	def forward(self, question):
 		embed = self._wemb(question)
 		hidden = self._lstm(embed)[1][0].squeeze(0)
-		return self._final(F.relu(hidden))
+		return self._final(hidden)
