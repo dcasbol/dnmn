@@ -211,7 +211,7 @@ class VQAFindDataset(VQADataset):
 class VQARootModuleDataset(VQADataset):
 
 	def __init__(self, *args, **kwargs):
-		super(VQADescribeDataset, self).__init__(*args, **kwargs)
+		super(VQARootModuleDataset, self).__init__(*args, **kwargs)
 		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
 
 	def _build_hmap(self, datum):
@@ -237,7 +237,7 @@ class VQARootModuleDataset(VQADataset):
 
 	def __getitem__(self, i):
 
-		datum = super(VQADescribeDataset, self).__getitem__(i)
+		datum = super(VQARootModuleDataset, self).__getitem__(i)
 		if self._features:
 			datum, features = sample
 

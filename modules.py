@@ -54,7 +54,8 @@ class DescribeModule(nn.Module):
 		B,C,H,W = features.size()
 		feat_flat = features.view(B,C,-1)
 		mask_norm = mask.view(B,1,-1)
-		mask_norm = mask_norm / mask_norm.sum(2, keepdim=True)
+		mask_norm = F.softmax(mask_norm)
+		#mask_norm = mask_norm / mask_norm.sum(2, keepdim=True)
 		attended = (mask_norm*feat_flat).sum(2)
 		return self._final(attended)
 
