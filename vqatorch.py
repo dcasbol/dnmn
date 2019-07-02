@@ -239,7 +239,7 @@ class VQARootModuleDataset(VQADataset):
 
 		datum = super(VQARootModuleDataset, self).__getitem__(i)
 		if self._features:
-			datum, features = sample
+			datum, features = datum
 
 		mask = self._build_hmap(datum)
 
