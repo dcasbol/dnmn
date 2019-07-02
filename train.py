@@ -95,12 +95,12 @@ if __name__ == '__main__':
 				loss = loss_fn(ytrain, label)
 
 			elif MOD_NAME == 'describe':
-				mask, features, label = cudalize(batch_data)
+				mask, features, label = cudalize(*batch_data)
 				logits = module(mask, features)
 				loss = loss_fn(logits, label)
 
 			else:
-				question, label = cudalize(batch_data)
+				question, label = cudalize(*batch_data)
 				logits = module(question)
 				loss = loss_fn(logits, label)
 

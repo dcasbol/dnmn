@@ -49,7 +49,7 @@ class VQADataset(Dataset):
 	one layout is extracted.
 	"""
 
-	def __init__(self, root_dir, set_names, features=True):
+	def __init__(self, root_dir='./', set_names='train2014', features=True):
 		super(VQADataset, self).__init__()
 		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:

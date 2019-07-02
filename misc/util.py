@@ -3,7 +3,7 @@ from collections import defaultdict
 
 USE_CUDA = torch.cuda.is_available()
 def cudalize(*x):
-	x = [ xi.cuda() if USE_CUDA else xi for xi in x ]
+	x = [ xi.cuda() for xi in x ] if USE_CUDA else x
 	return x[0] if len(x) == 1 else x
 
 to_numpy = lambda x: x.detach().cpu().numpy()
