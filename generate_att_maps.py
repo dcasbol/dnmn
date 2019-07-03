@@ -6,6 +6,11 @@ from vqa import VQAFindDataset
 from modules import Find
 from misc.util import max_divisor_batch_size, cudalize, to_numpy
 
+def get_paths(set_name, img_id, instance):
+	dirname = './cache/hmaps/{}/{}'.format(set_name, instance)
+	basename = '{}-{}-{}.npz'.format(set_name, img_id, instance)
+	filename = os.path.join(dirname, basename)
+	return dirname, filename
 
 if __name__ == '__main__':
 
@@ -13,7 +18,7 @@ if __name__ == '__main__':
 	parser.add_argument('find_module', type=str)
 	args = parser.parse_args()
 
-	dataset = VQAFindDataset('./', 'train2014', filter_data=False, metadata=True)
+	dataset = VQAFindDataset(filter_data=False, metadata=True)
 	batch_size = max_divisor_batch_size(len(dataset), 256)
 
 	loader = DataLoader(dataset, batch_size=batch_size)
@@ -36,12 +41,21 @@ if __name__ == '__main__':
 		features = cudalize(features)
 		target   = cudalize(target)
 
-		att_maps = to_numpy(find(features, target))
-		for att_map, set_name, img_id, map_c in zip(att_maps, input_set, input_id, target_str):
+		# Only generate non-existent maps
+		pending = list()
+		for i, (set_name, img_id, map_c) in enumerate(zip(input_set, input_id, target_str)):
+			dirname, fn = get_paths(set_name, img_id, map_c)
+			if not os.path.exists(fn):
+				pending.append(i)
+		if len(pending) == 0: continue
+		indices  = cudalize(torch.tensor(pending))
+		features = features[indices]
+		target   = target[indices]
 
-			dirname = './cache/hmaps/{}/{}'.format(set_name, map_c)
-			filename = '{}-{}-{}.npz'.format(set_name, img_id, map_c)
-			fn = os.path.join(dirname, filename)
+		att_maps = to_numpy(find(features, target))
+		for i, att_map in enumerate(att_maps):
+			set_name, img_id, map_c = [ d[indices[i]] for d in [input_set, input_id, target_str] ]
+			dirname, fn = get_paths(set_name, img_id, map_c)
 			if not os.path.exists(dirname):
 				os.makedirs(dirname)
 			with open(fn, 'wb') as fd:
