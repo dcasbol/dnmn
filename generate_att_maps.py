@@ -42,7 +42,7 @@ if __name__ == '__main__':
 		target, target_str, set_name, img_id = dataset.get(i, load_features=False)
 
 		# Only generate non-existent maps
-		dirname, fn = get_paths(set_name, img_id, map_c)
+		dirname, fn = get_paths(set_name, img_id, target_str)
 		if not os.path.exists(fn):
 			pending.append(i)
 
@@ -56,13 +56,14 @@ if __name__ == '__main__':
 		att_maps = to_numpy(find(features, target))
 
 		# Save maps
-		for att_map, instance, set_name, img_id in zip(att_maps, target_strs, set_names, img_ids):
-			dirname, fn = get_paths(set_name, img_id, instance)
+		for att_map, target_str, set_name, img_id in zip(att_maps, target_strs, set_names, img_ids):
+			dirname, fn = get_paths(set_name, img_id, target_str)
 			if not os.path.exists(dirname):
 				os.makedirs(dirname)
 			with open(fn, 'wb') as fd:
 				np.savez_compressed(fd, att_map)
 		n_generated += len(pending)
+		pending = list()
 
 	print('\nFinalized')
 	print(n_generated, 'maps generated')
