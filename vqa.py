@@ -6,40 +6,9 @@ import numpy as np
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID, NULL_ID
 from torch.utils.data import Dataset
-from misc.util import flatten, majority_label
-from misc.parse import parse_tree
+from misc.util import flatten, ziplist, majority_label
+from misc.parse import parse_tree, process_question, parse_to_layout
 from functools import reduce
-
-
-def process_question(question):
-	qstr = question.lower().strip()
-	if qstr[-1] == "?":
-		qstr = qstr[:-1]
-	words = qstr.split()
-	words = ["<s>"] + words + ["</s>"]
-	return words
-
-def _ziplist(*args):
-	""" Original zip returns list of tuples """
-	return [ [ a[i] for a in args] for i in range(len(args[0])) ]
-
-def parse_to_layout(parse):
-	"""
-	All leaves become find modules, all internal
-	nodes become transform or combine modules dependent
-	on their arity, and root nodes become describe
-	or measure modules depending on the domain.
-	"""
-	if isinstance(parse, str):
-		return "find", FIND_INDEX[parse] or UNK_ID
-	head = parse[0]
-	below = [ parse_to_layout(c) for c in parse[1:] ]
-	modules_below, indices_below = _ziplist(*below)
-	module_head = 'and' if head == 'and' else 'describe'
-	index_head = DESC_INDEX[head] or UNK_ID
-	modules_here = [module_head] + modules_below
-	indices_here = [index_head] + indices_below
-	return modules_here, indices_here
 
 
 class VQADataset(Dataset):
@@ -125,7 +94,7 @@ class VQADataset(Dataset):
 
 			layouts = [ parse_to_layout(p) for p in parses ]
 			
-			layouts_names, layouts_indices = _ziplist(*layouts)
+			layouts_names, layouts_indices = ziplist(*layouts)
 			layouts_names = flatten(layouts_names)
 			layouts_indices = flatten(layouts_indices)
 

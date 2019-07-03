@@ -3,6 +3,38 @@ from misc.constants import *
 UNK = "*unknown*"
 NULL = "*null*"
 
+class Index:
+	def __init__(self):
+		self.contents = dict()
+		self.ordered_contents = []
+		self.reverse_contents = dict()
+
+	def __getitem__(self, item):
+		if item not in self.contents:
+			return None
+		return self.contents[item]
+
+	def index(self, item):
+		if item not in self.contents:
+			idx = len(self.contents) + 1
+			self.ordered_contents.append(item)
+			self.contents[item] = idx
+			self.reverse_contents[idx] = item
+		idx = self[item]
+		assert idx != 0
+		return idx
+
+	def get(self, idx):
+		if idx == 0:
+			return "*invalid*"
+		return self.reverse_contents[idx]
+
+	def __len__(self):
+		return len(self.contents) + 1
+
+	def __iter__(self):
+		return iter(self.ordered_contents)
+
 def _process_question(question):
 	qstr = question.lower().strip()
 	if qstr[-1] == "?":
@@ -14,7 +46,6 @@ def _process_question(question):
 def _prepare_indices():
 	import re
 	import json
-	from misc.util import Index
 	from collections import defaultdict
 	set_name = "train2014"
 	MIN_COUNT = 10
