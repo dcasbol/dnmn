@@ -203,6 +203,7 @@ class VQARootModuleDataset(VQADataset):
 				is_yesno = q[1] in yesno_qwords and or_word not in q
 				if is_yesno == yesno_questions:
 					self._id_list.append(did)
+			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
 	def _build_hmap(self, datum):
 		names   = datum['layouts_names']

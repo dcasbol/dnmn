@@ -2,7 +2,6 @@ import os
 import torch
 import argparse
 import numpy as np
-from torch.utils.data import DataLoader
 from vqa import VQAFindDataset
 from modules import Find
 from misc.util import max_divisor_batch_size, cudalize, to_numpy
@@ -21,6 +20,7 @@ if __name__ == '__main__':
 
 	dataset = VQAFindDataset(filter_data=False, metadata=True)
 	batch_size = max_divisor_batch_size(len(dataset), 256)
+	print('Optimal batch size set to', batch_size)
 
 	find = Find()
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
