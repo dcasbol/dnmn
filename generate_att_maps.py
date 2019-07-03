@@ -16,11 +16,12 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
 	parser.add_argument('find_module', type=str)
+	parser.add_argument('--adjust-batch', action='store_true')
 	args = parser.parse_args()
 
 	dataset = VQAFindDataset(filter_data=False, metadata=True)
-	batch_size = max_divisor_batch_size(len(dataset), 256)
-	print('Optimal batch size set to', batch_size)
+	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else 256
+	print('Batch size set to', batch_size)
 
 	find = Find()
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
@@ -46,7 +47,7 @@ if __name__ == '__main__':
 		if not os.path.exists(fn):
 			pending.append(i)
 
-		if len(pending) < batch_size and i < n_samples-1:
+		if (len(pending) < batch_size and i < n_samples-1) or len(pending) == 0:
 			continue
 
 		# Build batch

@@ -269,3 +269,4 @@ def encoder_collate_fn(data):
 	lengths = torch.tensor(lengths, dtype=torch.long)
 	labels = torch.tensor(labels, dtype=torch.long)
 	return questions, lengths, labels
+
