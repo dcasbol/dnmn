@@ -149,6 +149,25 @@ class VQAFindDataset(VQADataset):
 				self._imap.append(i)
 				self._tmap.append(j)
 
+	def get(self, i, load_features=True):
+		prev_features = self._features
+		self._features = load_features
+		datum = super(VQAFindDataset, self).__getitem__(self._imap[i])
+		self._features = prev_features
+		if load_features:
+			datum, features = datum
+
+		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
+		target = datum['layouts_indices']
+		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
+		target_str = FIND_INDEX.get(target)
+		
+		output = (features, target) if load_features else (target,)
+		if self._metadata:
+			output += (target_str, datum['input_set'], datum['input_id'])
+
+		return output
+
 	def __len__(self):
 		return len(self._imap)
 
