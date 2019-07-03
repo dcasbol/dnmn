@@ -1,8 +1,8 @@
 import argparse
 import torch
 import json
-from vqatorch import VQADataset
-from modules import FindModule, DescribeModule
+from vqa import VQADataset
+from modules import Find, Describe
 from misc.util import cudalize
 from misc.indices import ANSWER_INDEX, QUESTION_INDEX
 from collections import defaultdict
@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
 	dataset = VQADataset('./', 'train2014')
 
-	find = FindModule()
-	desc = DescribeModule()
+	find = Find()
+	desc = Describe()
 	find.eval()
 
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))

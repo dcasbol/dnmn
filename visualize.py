@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqatorch import VQAFindDataset
-from modules import FindModule
+from modules import Find
 from misc.indices import FIND_INDEX
 from misc.constants import *
 from PIL import Image
@@ -22,12 +22,10 @@ cond = -1
 if len(args.condition) > 0:
 	cond = FIND_INDEX[args.condition]
 
-SET_NAME = 'train2014'
-
-findset = VQAFindDataset('./', SET_NAME, metadata=True)
+findset = VQAFindDataset(metadata=True)
 loader = DataLoader(findset, batch_size=1, shuffle=False)
 
-find = FindModule()
+find = Find()
 find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
 find.eval()
 

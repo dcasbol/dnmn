@@ -64,7 +64,7 @@ class VQADataset(Dataset):
 			self._std  = zdata['std'].astype(np.float32)
 
 	def __len__(self):
-		return len(self._by_id)
+		return len(self._id_list)
 
 	def __getitem__(self, i):
 		# Get question data and load image features
@@ -200,9 +200,21 @@ class VQAFindDataset(VQADataset):
 
 class VQARootModuleDataset(VQADataset):
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, exclude=None, **kwargs):
 		super(VQARootModuleDataset, self).__init__(*args, **kwargs)
 		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
+		assert exclude in {None, 'yesno', 'others'}, "Invalid value for 'exclude': {}".format(exclude)
+
+		if exclude is not None:
+			yesno_questions = exlude == 'yesno'
+			yesno_q_word = { QUESTION_INDEX[s] for s in ['is', 'are', 'have', 'has', 'do', 'does'] }
+			or_word = QUESTION_INDEX['or']
+			self._id_list = list()
+			for did, datum in self._by_id.items():
+				q = datum['question']
+				is_yesno = q[1] in yesno_q_word and or_word not in q
+				if is_yesno == yesno_questions:
+					self._id_list.append(did)
 
 	def _build_hmap(self, datum):
 		names   = datum['layouts_names']
@@ -241,11 +253,13 @@ class VQARootModuleDataset(VQADataset):
 
 class VQADescribeDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
-		super(VQADescribeDataset, self).__init__(*args, **kwargs, features=True)
+		super(VQADescribeDataset, self).__init__(*args, **kwargs,
+			features=True, exclude='yesno')
 
 class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
-		super(VQAMeasureDataset, self).__init__(*args, **kwargs, features=False)
+		super(VQAMeasureDataset, self).__init__(*args, **kwargs,
+			features=False, exclude='others')
 
 class VQAEncoderDataset(VQADataset):
 

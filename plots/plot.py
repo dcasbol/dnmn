@@ -17,7 +17,8 @@ plt.xlabel(meta['xlabel'])
 plt.ylabel(meta['ylabel'])
 
 for key, values in data.items():
-	plt.plot(values, label=key)
+	xvals = [ 0.01 * i for i in range(len(values)) ]
+	plt.plot(xvals, values, label=key)
 
 plt.legend()
 plt.show()

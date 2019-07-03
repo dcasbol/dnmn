@@ -1,4 +1,4 @@
-from vqatorch import VQADataset
+from vqa import VQADataset
 from misc.indices import ANSWER_INDEX, DESC_INDEX, QUESTION_INDEX
 from collections import defaultdict
 

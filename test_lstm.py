@@ -1,7 +1,7 @@
 import argparse
 import torch
 import json
-from vqatorch import VQAEncoderDataset, encoder_collate_fn
+from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import QuestionEncoder
 from misc.util import cudalize, majority_label
 from misc.indices import ANSWER_INDEX, QUESTION_INDEX

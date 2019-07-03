@@ -5,11 +5,11 @@ from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX
 from misc.constants import *
 
 
-class FindModule(nn.Module):
+class Find(nn.Module):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
 	def __init__(self, competition='pre'):
-		super(FindModule, self).__init__()
+		super(Find, self).__init__()
 		assert competition in {'pre', 'post'}, "Invalid competition mode: %s" % competition
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
@@ -41,13 +41,13 @@ class FindModule(nn.Module):
 		return x
 
 
-class DescribeModule(nn.Module):
+class Describe(nn.Module):
 	""" From 1st NMN article: It first computes an average over image features
 	weighted by the attention, then passes this averaged feature vector through
 	a single fully-connected layer. """
 
 	def __init__(self):
-		super(DescribeModule, self).__init__()
+		super(Describe, self).__init__()
 		self._final = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 
 	def forward(self, mask, features):
@@ -58,10 +58,10 @@ class DescribeModule(nn.Module):
 		return self._final(attended)
 
 
-class MeasureModule(nn.Module):
+class Measure(nn.Module):
 
 	def __init__(self):
-		super(MeasureModule, self).__init__()
+		super(Measure, self).__init__()
 		self._layers = nn.Sequential(
 			nn.Linear(MASK_WIDTH**2, HIDDEN_UNITS),
 			nn.ReLU(),

@@ -2,8 +2,8 @@ import os
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset
-from modules import FindModule
+from vqa import VQAFindDataset
+from modules import Find
 from misc.util import max_divisor_batch_size, cudalize, to_numpy
 
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
 	loader = DataLoader(dataset, batch_size=batch_size)
 
-	find = FindModule()
+	find = Find()
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
 	find = cudalize(find)

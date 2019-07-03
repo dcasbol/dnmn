@@ -5,8 +5,9 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset, VQADescribeDataset, VQAEncoderDataset, encoder_collate_fn
-from modules import FindModule, DescribeModule, QuestionEncoder
+from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
+from vqa import VQAEncoderDataset, encoder_collate_fn
+from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
 from misc.util import cudalize
 from PIL import Image
@@ -34,7 +35,6 @@ if __name__ == '__main__':
 	NUM_EPOCHS = args.epochs
 	BATCH_SIZE = args.batchsize
 	MOD_NAME = args.module
-	SET_NAME = 'train2014'
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
 	LOG_FILENAME = '{}_log{}.json'.format(MOD_NAME, SUFFIX)
 	PT_RESTORE = '{}_module{}.pt'.format(MOD_NAME, SUFFIX)
@@ -42,30 +42,28 @@ if __name__ == '__main__':
 
 	assert MOD_NAME == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
 
+	dataset, module = dict(
+		find     = lambda: (VQAFindDataset(metadata=True), Find(competition=args.competition)),
+		describe = lambda: (VQADescribeDataset(), Describe()),
+		measure  = lambda: (VQAMeasureDataset(), Measure()),
+		encoder  = lambda: (VQAEncoderDataset(), QuestionEncoder())
+	)[MOD_NAME]()
+
+	if MOD_NAME == 'find':
+		loss_fn = dict(
+			pre  = nn.BCEWithLogitsLoss,
+			post = nn.BCELoss
+		)[args.competition](reduction='sum')
+	else:
+		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
+
 	kwargs = dict(
 		batch_size  = BATCH_SIZE,
 		shuffle     = True,
 		num_workers = 4
 	)
-	if MOD_NAME == 'find':
-		dataset = VQAFindDataset('./', SET_NAME, metadata=True)
-		module  = FindModule(competition=args.competition)
-		loss_fn = dict(
-			pre  = nn.BCEWithLogitsLoss,
-			post = nn.BCELoss
-		)[args.competition](reduction='sum')
-
-	elif MOD_NAME == 'describe':
-		dataset  = VQADescribeDataset('./', SET_NAME)
-		module   = DescribeModule()
-		loss_fn  = nn.CrossEntropyLoss(reduction='sum')
-
-	elif MOD_NAME == 'encoder':
-		dataset = VQAEncoderDataset('./', SET_NAME)
-		module  = QuestionEncoder()
-		loss_fn = nn.CrossEntropyLoss(reduction='sum')
-		kwargs['collate_fn'] = encoder_collate_fn
-
+	if MOD_NAME == 'encoder':
+		kwargs.update(collate_fn = encoder_collate_fn)
 	loader = DataLoader(dataset, **kwargs)
 
 	if args.restore:
@@ -90,20 +88,19 @@ if __name__ == '__main__':
 			if MOD_NAME == 'find':
 				features, instance, label_str, input_set, input_id = batch_data
 				features, instance = cudalize(features, instance)
-				ytrain, hmap = module(features, instance)
-				label = cudalize(torch.ones_like(ytrain, dtype=torch.float))
-				loss = loss_fn(ytrain, label)
-
+				output, hmap = module(features, instance)
+				label = cudalize(torch.ones_like(output, dtype=torch.float))
 			elif MOD_NAME == 'describe':
 				mask, features, label = cudalize(*batch_data)
-				logits = module(mask, features)
-				loss = loss_fn(logits, label)
-
+				output = module(mask, features)
+			elif MOD_NAME == 'measure':
+				mask, label = cudalize(*batch_data)
+				output = module(mask)
 			else:
 				question, length, label = cudalize(*batch_data)
-				logits = module(question, length)
-				loss = loss_fn(logits, label)
+				output = module(question, length)
 
+			loss = loss_fn(output, label)
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
