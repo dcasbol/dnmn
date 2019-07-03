@@ -206,13 +206,13 @@ class VQARootModuleDataset(VQADataset):
 		assert exclude in {None, 'yesno', 'others'}, "Invalid value for 'exclude': {}".format(exclude)
 
 		if exclude is not None:
-			yesno_questions = exlude == 'yesno'
-			yesno_q_word = { QUESTION_INDEX[s] for s in ['is', 'are', 'have', 'has', 'do', 'does'] }
+			yesno_questions = exclude == 'yesno'
+			yesno_qwords = { QUESTION_INDEX[s] for s in ['is', 'are', 'have', 'has', 'do', 'does'] }
 			or_word = QUESTION_INDEX['or']
 			self._id_list = list()
 			for did, datum in self._by_id.items():
 				q = datum['question']
-				is_yesno = q[1] in yesno_q_word and or_word not in q
+				is_yesno = q[1] in yesno_qwords and or_word not in q
 				if is_yesno == yesno_questions:
 					self._id_list.append(did)
 

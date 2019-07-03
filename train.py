@@ -15,7 +15,7 @@ from PIL import Image
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Train a Module')
-	parser.add_argument('module', choices=['find', 'describe', 'encoder'])
+	parser.add_argument('module', choices=['find', 'describe', 'measure', 'encoder'])
 	parser.add_argument('--epochs', type=int, default=1,
 		help='Max. training epochs')
 	parser.add_argument('--batchsize', type=int, default=128)
@@ -34,11 +34,12 @@ if __name__ == '__main__':
 
 	NUM_EPOCHS = args.epochs
 	BATCH_SIZE = args.batchsize
-	MOD_NAME = args.module
+	MOD_NAME   = args.module
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
-	LOG_FILENAME = '{}_log{}.json'.format(MOD_NAME, SUFFIX)
-	PT_RESTORE = '{}_module{}.pt'.format(MOD_NAME, SUFFIX)
-	PT_NEW = '{}-new{}.pt'.format(MOD_NAME, SUFFIX)
+	FULL_NAME    = MOD_NAME + SUFFIX
+	LOG_FILENAME = FULL_NAME + '_log.json'
+	PT_RESTORE   = FULL_NAME + '.pt'
+	PT_NEW       = FULL_NAME + '-new.pt'
 
 	assert MOD_NAME == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
 
