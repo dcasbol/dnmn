@@ -15,10 +15,8 @@ class Find(nn.Module):
 		self._competition = competition
 
 	def forward(self, features, c):
-
+		B = c.size(0)
 		if self.training:
-			B = c.size(0)
-
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(self._conv(features))
 				mask = mask_all[torch.arange(B), c].unsqueeze(1)
@@ -36,9 +34,11 @@ class Find(nn.Module):
 				mask = torch.sigmoid(h)
 				return h_train, mask
 		else:
-			k = self._conv.weight[c]
-			x = torch.sigmoid(F.conv2d(features, k))
-		return x
+			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
+			fs = features.unsqueeze(1).unbind(0)
+			maps = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ])
+			masks = torch.sigmoid(maps)
+			return masks
 
 
 class Describe(nn.Module):
