@@ -12,33 +12,23 @@ def get_paths(set_name, img_id, instance):
 	filename = os.path.join(dirname, basename)
 	return dirname, filename
 
-if __name__ == '__main__':
+def show_progress(i, total):
+	perc = (i*100)//total
+	if perc != show_progress.last:
+		show_progress.last = perc
+		print('\rProcessing... {}%    '.format(perc), end='')
+	return perc
+show_progress.last = -1
 
-	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
-	parser.add_argument('find_module', type=str)
-	parser.add_argument('--adjust-batch', action='store_true')
-	args = parser.parse_args()
+def filtered_generation(dataset, batch_size):
 
-	dataset = VQAFindDataset(filter_data=False, metadata=True)
-	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else 256
-	print('Batch size set to', batch_size)
-
-	find = Find()
-	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
-	find.eval()
-	find = cudalize(find)
-
-	last_perc = -1
-	n_samples = len(dataset)
 	n_generated = 0
+	n_samples = len(dataset)
 	pending = list()
 
 	for i in range(n_samples):
 
-		perc = (i*100)//n_samples
-		if perc != last_perc:
-			last_perc = perc
-			print('\rProcessing... {}%    '.format(perc), end='')
+		show_progress(i, n_samples)
 
 		target, target_str, set_name, img_id = dataset.get(i, load_features=False)
 
@@ -52,19 +42,62 @@ if __name__ == '__main__':
 
 		# Build batch
 		features, target, target_strs, set_names, img_ids = zip(*[ dataset[p] for p in pending ])
-		features = cudalize(torch.tensor(features))
-		target   = cudalize(torch.tensor(target))
-		att_maps = to_numpy(find(features, target))
-
-		# Save maps
-		for att_map, target_str, set_name, img_id in zip(att_maps, target_strs, set_names, img_ids):
-			dirname, fn = get_paths(set_name, img_id, target_str)
-			if not os.path.exists(dirname):
-				os.makedirs(dirname)
-			with open(fn, 'wb') as fd:
-				np.savez_compressed(fd, att_map)
-		n_generated += len(pending)
+		features = torch.tensor(features)
+		target   = torch.tensor(target)
+		n_generated += generate_and_save(find, features, target, set_names, img_ids, target_strs)
 		pending = list()
+
+	return n_generated
+
+def full_generation(find, dataset, batch_size):
+
+	perc = -1
+	n_generated = 0
+	n_batches = len(dataset)//batch_size
+	loader = DataLoader(dataset, batch_size=batch_size)
+
+	for i, (features, target, target_strs, set_names, img_ids) in enumerate(loader):
+		show_progress(i, n_batches)
+		n_generated += generate_and_save(find, features, target, set_names, img_ids, target_strs)
+
+	return n_generated
+
+def generate_and_save(find, features, target, set_names, img_ids, target_strs):
+
+	features = cudalize(features)
+	target   = cudalize(target)
+	att_maps = to_numpy(find(features, target))
+
+	for att_map, set_name, img_id, target_str in zip(att_maps, set_names, img_id, target_strs):
+		dirname, fn = get_paths(set_name, img_id, target_str)
+		if not os.path.exists(dirname):
+			os.makedirs(dirname)
+		with open(fn, 'wb') as fd:
+			np.savez_compressed(fd, att_map)
+
+	return len(att_maps)
+
+if __name__ == '__main__':
+
+	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
+	parser.add_argument('find_module', type=str)
+	parser.add_argument('--adjust-batch', action='store_true',
+		help="Adjust batch size to avoid a smaller final batch")
+	parser.add_argument('--skip-existing', action='store_true',
+		help="Don't generate existing maps. Faster if there are few maps missing.")
+	args = parser.parse_args()
+
+	dataset = VQAFindDataset(filter_data=False, metadata=True)
+	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else 256
+	print('Batch size set to', batch_size)
+
+	find = Find()
+	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
+	find.eval()
+	find = cudalize(find)
+
+	gen = filtered_generation if args.skip_existing else full_generation
+	n_generated = gen(find, dataset, batch_size)
 
 	print('\nFinalized')
 	print(n_generated, 'maps generated')
