@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
 			if perc != last_perc:
 				last_perc = perc
-				loss_list.append(loss.item())
+				loss_list.append(loss.item()/output.size(0))
 				print('{: 3d}% - {}'.format(perc, loss_list[-1]))
 				vis_count += 1
 				if args.visualize > 0 and vis_count%args.visualize == 0:
@@ -135,6 +135,5 @@ if __name__ == '__main__':
 			print('Module saved')
 
 	print('End of training')
-	print(loss_list)
 	with open(LOG_FILENAME,'w') as fd:
 		json.dump(loss_list, fd)
