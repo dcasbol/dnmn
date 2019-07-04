@@ -5,6 +5,7 @@ import numpy as np
 from vqa import VQAFindDataset
 from modules import Find
 from misc.util import max_divisor_batch_size, cudalize, to_numpy
+from torch.utils.data import DataLoader
 
 def get_paths(set_name, img_id, instance):
 	dirname = './cache/hmaps/{}/{}'.format(set_name, instance)
@@ -20,7 +21,7 @@ def show_progress(i, total):
 	return perc
 show_progress.last = -1
 
-def filtered_generation(dataset, batch_size):
+def filtered_generation(find, dataset, batch_size):
 
 	n_generated = 0
 	n_samples = len(dataset)
@@ -68,7 +69,7 @@ def generate_and_save(find, features, target, set_names, img_ids, target_strs):
 	target   = cudalize(target)
 	att_maps = to_numpy(find(features, target))
 
-	for att_map, set_name, img_id, target_str in zip(att_maps, set_names, img_id, target_strs):
+	for att_map, set_name, img_id, target_str in zip(att_maps, set_names, img_ids, target_strs):
 		dirname, fn = get_paths(set_name, img_id, target_str)
 		if not os.path.exists(dirname):
 			os.makedirs(dirname)
