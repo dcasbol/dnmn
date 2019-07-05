@@ -204,7 +204,7 @@ class VQARootModuleDataset(VQADataset):
 					self._id_list.append(did)
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
-	def _build_hmap(self, datum):
+	def _compose_hmap(self, datum):
 		names   = datum['layouts_names']
 		indices = datum['layouts_indices']
 
@@ -231,7 +231,7 @@ class VQARootModuleDataset(VQADataset):
 		if self._features:
 			datum, features = datum
 
-		mask = self._build_hmap(datum)
+		mask = self._compose_hmap(datum)
 		label = majority_label(datum['answers'])
 
 		if self._features:
