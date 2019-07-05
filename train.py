@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
 			if perc != last_perc:
 				last_perc = perc
-				loss_list.append([epoch + i/len(dataset), loss.item()/output.size(0)])
+				loss_list.append([epoch + (i*BATCH_SIZE)/len(dataset), loss.item()/output.size(0)])
 				print('{: 3d}% - {}'.format(perc, loss_list[-1]))
 				vis_count += 1
 				if args.visualize > 0 and vis_count%args.visualize == 0:
