@@ -17,7 +17,10 @@ plt.xlabel(meta['xlabel'])
 plt.ylabel(meta['ylabel'])
 
 for key, values in data.items():
-	xvals = [ 0.01 * i for i in range(len(values)) ]
+	if type(values[0]) in [list, tuple]:
+		xvals, values = zip(*values)
+	else:
+		xvals = [ 0.01 * i for i in range(len(values)) ]
 	plt.plot(xvals, values, label=key)
 
 plt.legend()

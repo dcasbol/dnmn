@@ -69,6 +69,7 @@ class Measure(nn.Module):
 		)
 
 	def forward(self, mask):
+		# PENDING USING THE INSTANCE measure[be]
 		B = mask.size(0)
 		return self._layers(mask.view(B,-1))
 

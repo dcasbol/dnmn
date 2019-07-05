@@ -23,6 +23,8 @@ class VQADataset(Dataset):
 		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:
 			set_names = [set_names]
+		for name in set_names:
+			assert name in {'train2014', 'val2014', 'test2015'}, '{!r} is not a valid set'.format(name)
 		self._features = features
 
 		self._load_from_cache(set_names)
@@ -98,7 +100,6 @@ class VQADataset(Dataset):
 			layouts_names = flatten(layouts_names)
 			layouts_indices = flatten(layouts_indices)
 
-			image_set_name = "test2015" if set_name == "test-dev2015" else set_name
 			question_id = question['question_id']
 			datum = dict(
 				question_id = question_id,
@@ -106,13 +107,13 @@ class VQADataset(Dataset):
 				parses = parses,
 				layouts_names = layouts_names,
 				layouts_indices = layouts_indices,
-				input_set = image_set_name,
+				input_set = set_name,
 				input_id = question["image_id"],
 				answers = []
 			)
 			self._by_id[question_id] = datum
 
-		if set_name not in ("test2015", "test-dev2015"):
+		if set_name != "test2015":
 			ann_fn = os.path.join(self._root_dir, ANN_FILE % set_name)
 			with open(ann_fn) as ann_f:
 				annotations = json.load(ann_f)["annotations"]

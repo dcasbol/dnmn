@@ -63,3 +63,6 @@ def values_to_distribution(values, size):
 	for v, f in freqs.items():
 		distr[v] = f/total
 	return distr
+
+def accuracy(pred, label):
+	return (pred.argmax(dim=1) == label).float().mean()
