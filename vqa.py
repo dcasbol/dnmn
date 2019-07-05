@@ -196,12 +196,10 @@ class VQARootModuleDataset(VQADataset):
 
 		if exclude is not None:
 			yesno_questions = exclude == 'yesno'
-			yesno_qwords = { QUESTION_INDEX[s] for s in ['is', 'are', 'have', 'has', 'do', 'does'] }
-			or_word = QUESTION_INDEX['or']
 			self._id_list = list()
 			for did, datum in self._by_id.items():
 				q = datum['question']
-				is_yesno = q[1] in yesno_qwords and or_word not in q
+				is_yesno = q[1] in YESNO_QWORDS and OR_WORD not in q
 				if is_yesno == yesno_questions:
 					self._id_list.append(did)
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
