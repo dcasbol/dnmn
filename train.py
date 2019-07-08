@@ -89,14 +89,14 @@ if __name__ == '__main__':
 			if MOD_NAME == 'find':
 				features, instance, label_str, input_set, input_id = batch_data
 				features, instance = cudalize(features, instance)
-				output, hmap = module(features, instance)
+				output, hmap = module[instance](features)
 				label = cudalize(torch.ones_like(output, dtype=torch.float))
 			elif MOD_NAME == 'describe':
 				mask, features, instance, label = cudalize(*batch_data)
 				output = module[instance](mask, features)
 			elif MOD_NAME == 'measure':
-				mask, label = cudalize(*batch_data)
-				output = module(mask)
+				mask, instance, label = cudalize(*batch_data)
+				output = module[instance](mask)
 			else:
 				question, length, label = cudalize(*batch_data)
 				output = module(question, length)
