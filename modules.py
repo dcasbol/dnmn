@@ -10,13 +10,14 @@ class Find(nn.Module):
 
 	def __init__(self, competition='pre'):
 		super(Find, self).__init__()
-		assert competition in {'pre', 'post'}, "Invalid competition mode: %s" % competition
+		assert competition in {'pre', 'post', None}, "Invalid competition mode: %s" % competition
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
 
 	def forward(self, features, c):
+		assert len(c.size()) == 1, 'c must be a one-dimensional tensor'
 		B = c.size(0)
-		if self.training:
+		if self.training and self._competition is not None:
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(self._conv(features))
 				mask = mask_all[torch.arange(B), c].unsqueeze(1)
@@ -34,6 +35,7 @@ class Find(nn.Module):
 				mask = torch.sigmoid(h)
 				return h_train, mask
 		else:
+			assert features.size(0) == B, 'features & c must have same size at dim 0'
 			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
 			fs = features.unsqueeze(1).unbind(0)
 			maps = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ])

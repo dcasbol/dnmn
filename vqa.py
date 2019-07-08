@@ -6,7 +6,7 @@ import numpy as np
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID, NULL_ID
 from torch.utils.data import Dataset
-from misc.util import flatten, ziplist, majority_label
+from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
 from misc.parse import parse_tree, process_question, parse_to_layout
 from functools import reduce
 
@@ -34,22 +34,27 @@ class VQADataset(Dataset):
 			self._mean = zdata['mean'].astype(np.float32)
 			self._std  = zdata['std'].astype(np.float32)
 
-	def __len__(self):
-		return len(self._id_list)
+	def _get_datum(self, i):
+		return self._by_id[self._id_list[i]]
 
-	def __getitem__(self, i):
-		# Get question data and load image features
-		datum = self._by_id[self._id_list[i]]
-		if not self._features:
-			return datum
-
+	def _get_features(self, datum):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		features = list(np.load(input_path).values())[0]
 		#features = (features - self._mean) / self._std
 		# Positive values make more sense for multiplicative attention
 		features = features / (2*self._std)
-		return datum, features.transpose([2,0,1])
+		return features.transpose([2,0,1])
+
+	def __len__(self):
+		return len(self._id_list)
+
+	def __getitem__(self, i):
+		# Get question data and load image features
+		datum = self._get_datum(i)
+		if not self._features:
+			return datum
+		return datum, self._get_features(datum)
 
 	def _load_from_cache(self, set_names):
 		import os
@@ -198,9 +203,7 @@ class VQARootModuleDataset(VQADataset):
 			yesno_questions = exclude == 'yesno'
 			self._id_list = list()
 			for did, datum in self._by_id.items():
-				q = datum['question']
-				is_yesno = q[1] in YESNO_QWORDS and OR_WORD not in q
-				if is_yesno == yesno_questions:
+				if is_yesno(datum['question']) == yesno_questions:
 					self._id_list.append(did)
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
@@ -265,7 +268,42 @@ def encoder_collate_fn(data):
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l, _ in data ]
 	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
-	lengths = torch.tensor(lengths, dtype=torch.long)
-	labels = torch.tensor(labels, dtype=torch.long)
+	lengths   = torch.tensor(lengths, dtype=torch.long)
+	labels    = torch.tensor(labels, dtype=torch.long)
 	return questions, lengths, labels
 
+class VQANMNDataset(VQADataset):
+
+	def __init__(self, *args, **kwargs):
+		super(VQANMNDataset, self).__init__(*args, **kwargs, features=True)
+
+	def __getitem__(self, i):
+		datum, features = super(VQANMNDataset, self).__getitem__(i)
+
+		names   = datum['layouts_names']
+		indices = datum['layouts_indices']
+		find_indices = [ i for n, i in zip(names, indices) if n == 'find' ]
+
+		q = datum['question']
+		label = majority_label(datum['answers'])
+		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
+
+		return q, len(q), is_yesno(q), features, find_indices, label, distr
+
+def nmn_collate_fn(data):
+	""" Custom collate function for NMN model. Pads questions, computes answer
+	probability distribution and gives find-instance indices as tuples,
+	because nr of calls is variable."""
+	questions, lengths, yesno, features, indices, label, distr = zip(*data)
+	T = max(lengths)
+	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
+
+	padded  = torch.tensor(padded, dtype=torch.long)
+	lengths = torch.tensor(lengths, dtype=torch.long)
+	yesno   = torch.tensor(yesno, dtype=torch.uint8)
+	features = torch.tensor(features, dtype=torch.float)
+	# Let the indices be converted by the NMN
+	label = torch.tensor(label, dtype=torch.long)
+	distr = torch.tensor(distr, dtype=torch.float)
+
+	return padded, lengths, yesno, features, indices, label, distr

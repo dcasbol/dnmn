@@ -1,5 +1,8 @@
 import torch
+import numpy as np
 from collections import defaultdict
+from misc.constants import YESNO_QWORDS, OR_WORD
+
 
 USE_CUDA = torch.cuda.is_available()
 def cudalize(*x):
@@ -66,3 +69,6 @@ def values_to_distribution(values, size):
 
 def accuracy(pred, label):
 	return (pred.argmax(dim=1) == label).float().mean()
+
+def is_yesno(q):
+	return q[1] in YESNO_QWORDS and OR_WORD not in q
