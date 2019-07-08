@@ -92,8 +92,8 @@ if __name__ == '__main__':
 				output, hmap = module(features, instance)
 				label = cudalize(torch.ones_like(output, dtype=torch.float))
 			elif MOD_NAME == 'describe':
-				mask, features, label = cudalize(*batch_data)
-				output = module(mask, features)
+				mask, features, instance, label = cudalize(*batch_data)
+				output = module[instance](mask, features)
 			elif MOD_NAME == 'measure':
 				mask, label = cudalize(*batch_data)
 				output = module(mask)

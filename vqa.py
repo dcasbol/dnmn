@@ -236,10 +236,11 @@ class VQARootModuleDataset(VQADataset):
 
 		mask = self._compose_hmap(datum)
 		label = majority_label(datum['answers'])
+		instance = datum['layouts_indices'][0]
 
 		if self._features:
-			return mask, features, label
-		return mask, label
+			return mask, features, instance, label
+		return mask, instance, label
 
 
 class VQADescribeDataset(VQARootModuleDataset):

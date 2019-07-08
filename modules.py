@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX
+from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX
 from misc.constants import *
+from misc.util import to_numpy
 
 
 class Find(nn.Module):
@@ -50,14 +51,35 @@ class Describe(nn.Module):
 
 	def __init__(self):
 		super(Describe, self).__init__()
-		self._final = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+		self._descr = list()
+		for i in range(len(DESC_INDEX)):
+			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+			setattr(self, '_linear_%d' % i, layer)
+			self._descr.append(layer)
+		self._instance = None
+
+	def __getitem__(self, instance):
+		self._instance = instance
+		return self
 
 	def forward(self, mask, features):
+		assert self._instance is not None, "Can't call module without instance"
 		B,C,H,W = features.size()
+
+		# Attend
 		feat_flat = features.view(B,C,-1)
 		mask_norm = mask.view(B,1,-1)
 		attended = (mask_norm*feat_flat).mean(2)
-		return self._final(attended)
+
+		# Describe
+		attended = attended.unsqueeze(1).unbind(0)
+		instance = to_numpy(self._instance)
+		preds = list()
+		for att, inst in zip(attended, instance):
+			preds.append(self._descr[inst](att))
+
+		self._instance = None
+		return torch.cat(preds)
 
 
 class Measure(nn.Module):
