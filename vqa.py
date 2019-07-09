@@ -284,18 +284,19 @@ class VQANMNDataset(VQADataset):
 		names   = datum['layouts_names']
 		indices = datum['layouts_indices']
 		find_indices = [ i for n, i in zip(names, indices) if n == 'find' ]
+		root_index = indices[0]
 
 		q = datum['question']
 		label = majority_label(datum['answers'])
 		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 
-		return q, len(q), is_yesno(q), features, find_indices, label, distr
+		return q, len(q), is_yesno(q), features, root_index, find_indices, label, distr
 
 def nmn_collate_fn(data):
 	""" Custom collate function for NMN model. Pads questions, computes answer
 	probability distribution and gives find-instance indices as tuples,
 	because nr of calls is variable."""
-	questions, lengths, yesno, features, indices, label, distr = zip(*data)
+	questions, lengths, yesno, features, root_idx, indices, label, distr = zip(*data)
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
@@ -304,7 +305,8 @@ def nmn_collate_fn(data):
 	yesno   = torch.tensor(yesno, dtype=torch.uint8)
 	features = torch.tensor(features, dtype=torch.float)
 	# Let the indices be converted by the NMN
+	root_idx = torch.tensor(root_idx, dtype=torch.long)
 	label = torch.tensor(label, dtype=torch.long)
 	distr = torch.tensor(distr, dtype=torch.float)
 
-	return padded, lengths, yesno, features, indices, label, distr
+	return padded, lengths, yesno, features, root_idx, indices, label, distr

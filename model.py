@@ -3,6 +3,7 @@ import torch.nn as nn
 from functools import reduce
 from misc.util import cudalize
 from modules import Find, Describe, Measure, QuestionEncoder
+from misc.indices import ANSWER_INDEX
 
 class NMN(nn.Module):
 
@@ -13,25 +14,46 @@ class NMN(nn.Module):
 		self._measure = Measure()
 		self._encoder = QuestionEncoder()
 
-	def forward(self, question, length, yesno, features, instances):
+	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
-		# Expand features that need +1 find op.
-		features = features.unsqueeze(1).unbind(0)
+		features_list = features.unsqueeze(1).unbind(0)
 
 		maps = list()
-		for f, inst in zip(features, instances):
+		for f, inst in zip(features_list, find_inst):
 			f = f.expand(len(inst), -1, -1, -1)
 			inst = cudalize(torch.tensor(inst, dtype=torch.long))
-			m = self._find(f, inst)
+			m = self._find[inst](f).prod(0, keepdim=True)
 			maps.append(m)
 		maps = torch.cat(maps)
 
-		# Root nodes
 		yesno_maps = maps[yesno]
-		yesno_inst = 
-		yesno_ans = self._measure()
-		others = ~yesno
-		other_maps = maps[others]
-		other_fts  = features[others]
+		yesno_inst = root_inst[yesno]
+		yesno_ans = self._measure[yesno_inst](yesno_maps)
 
-		enc = self._encoder(question, length)
+		other = ~yesno
+		other_maps = maps[other]
+		other_inst = root_inst[other]
+		other_fts  = features[other]
+		other_ans  = self._describe[other_inst](other_maps, other_fts)
+
+		root_pred = cudalize(torch.empty(yesno.size(0), len(ANSWER_INDEX), requires_grad=True))
+		root_pred[yesno] = yesno_ans
+		root_pred[other] = other_ans
+		root_pred = root_pred.softmax(1)
+
+		enc_pred = self._encoder(question, length).softmax(1)
+
+		return (root_pred*enc_pred).sqrt()
+
+	def load(self, module_name, filename):
+		assert module_name in {'find', 'describe', 'measure', 'encoder'}
+		name = '_'+module_name
+		module = getattr(self, name)
+		module.load_state_dict(torch.load(filename, map_location='cpu'))
+		setattr(self, name, cudalize(module))
+
+	def save(self, module_name, filename):
+		assert module_name in {'find', 'describe', 'measure', 'encoder'}
+		module = getattr(self, '_'+module_name)
+		torch.save(module.state_dict(), filename)
+		
