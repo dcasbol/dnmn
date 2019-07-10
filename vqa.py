@@ -4,7 +4,8 @@ import torch
 import random
 import numpy as np
 from misc.constants import *
-from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX, UNK_ID, NULL_ID
+from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX
+from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
 from misc.parse import parse_tree, process_question, parse_to_layout
@@ -137,23 +138,25 @@ class VQAFindDataset(VQADataset):
 		super(VQAFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
 
-		neg_set = {ANSWER_INDEX['no'], ANSWER_INDEX['0']}
 		self._imap = list()
 		self._tmap = list()
+		n_filtered = n_included = 0
 		for i, qid in enumerate(self._id_list):
+
 			q = self._by_id[qid]
+			if filter_data and set(q['answers']).issubset(NEG_ANSWERS):
+				n_filtered += 1
+				continue
+
 			lnames = q['layouts_names']
 			lindex = q['layouts_indices']
-			head = q['parses'][0][0]
-			if filter_data and head in {'is', 'how_many'}:
-				ans = { a for a in q['answers'] }
-				if len(ans.intersection(neg_set)) > 0:
-					continue
 			for j, (name, idx) in enumerate(zip(lnames, lindex)):
-				if name != 'find':
-					continue
+				if name != 'find': continue
+				n_included += 1
 				self._imap.append(i)
 				self._tmap.append(j)
+
+		print(n_filtered, 'filtered out,', n_included, 'included')
 
 	def get(self, i, load_features=True):
 		prev_features = self._features
@@ -300,7 +303,7 @@ def nmn_collate_fn(data):
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
-	padded  = torch.tensor(padded, dtype=torch.long)
+	padded  = torch.tensor(padded, dtype=torch.long).transpose(0,1)
 	lengths = torch.tensor(lengths, dtype=torch.long)
 	yesno   = torch.tensor(yesno, dtype=torch.uint8)
 	features = torch.tensor(features, dtype=torch.float)

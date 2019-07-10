@@ -1,4 +1,4 @@
-from misc.constants import *
+from misc.constants import MAX_ANSWERS
 
 UNK = "*unknown*"
 NULL = "*null*"
@@ -142,3 +142,7 @@ FIND_INDEX = _idx['FIND']
 ANSWER_INDEX = _idx['ANSWER']
 UNK_ID = _idx['UNK_ID']
 NULL_ID = _idx['NULL_ID']
+
+YESNO_QWORDS = { QUESTION_INDEX[w] for w in ['is', 'are', 'have', 'has', 'do', 'does'] }
+OR_QWORD = QUESTION_INDEX['or']
+NEG_ANSWERS = { ANSWER_INDEX[w] for w in ['no', '0', 'none', '*unknown*', 'no one', 'no idea'] }

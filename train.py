@@ -3,14 +3,13 @@ import json
 import torch
 import torch.nn as nn
 import numpy as np
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
 from misc.util import cudalize
-from PIL import Image
+from misc.visualization import MapVisualizer
 
 if __name__ == '__main__':
 
@@ -74,11 +73,8 @@ if __name__ == '__main__':
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=1e-4)
 
 	if args.visualize > 0:
-		plt.figure()
-		plt.ion()
-		plt.show()
+		vis = MapVisualizer(args.visualize)
 
-	vis_count = 0
 	last_perc = -1
 	loss_list = list()
 	for epoch in range(NUM_EPOCHS):
@@ -110,25 +106,8 @@ if __name__ == '__main__':
 				last_perc = perc
 				loss_list.append([epoch + (i*BATCH_SIZE)/len(dataset), loss.item()/output.size(0)])
 				print('{: 3d}% - {}'.format(perc, loss_list[-1][1]))
-				vis_count += 1
-				if args.visualize > 0 and vis_count%args.visualize == 0:
-					plt.clf()
-					plt.suptitle(label_str[0])
-
-					plt.subplot(1,2,1)
-					img = hmap.detach()[0,0].cpu().numpy()
-					im = plt.imshow(img, cmap='hot', vmin=0, vmax=1)
-					plt.colorbar(im, orientation='horizontal', pad=0.05)
-					plt.axis('off')
-
-					plt.subplot(1,2,2)
-					fn = RAW_IMAGE_FILE % (input_set[0], input_set[0], input_id[0])
-					img = np.array(Image.open(fn).resize((300,300)))
-					plt.imshow(img)
-					plt.axis('off')
-
-					plt.draw()
-					plt.pause(0.001)
+				if args.visualize > 0:
+					vis.update(hmap, label_str, input_set, input_id)
 
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)

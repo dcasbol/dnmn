@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-
 import sexpdata
 
 def parse_tree(p):

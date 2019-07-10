@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from collections import defaultdict
-from misc.constants import YESNO_QWORDS, OR_WORD
+from misc.indices import YESNO_QWORDS, OR_QWORD
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -67,8 +67,15 @@ def values_to_distribution(values, size):
 		distr[v] = f/total
 	return distr
 
-def accuracy(pred, label):
+def top1_accuracy(pred, label):
 	return (pred.argmax(dim=1) == label).float().mean()
 
+def inset_accuracy(pred, label_dist):
+	hit = (pred*label_dist).sum(1) > 0
+	return hit.float().mean()
+
+def weighted_accuracy(pred, label_dist):
+	return (pred*label_dist).sqrt().sum(1).mean()
+
 def is_yesno(q):
-	return q[1] in YESNO_QWORDS and OR_WORD not in q
+	return q[1] in YESNO_QWORDS and OR_QWORD not in q

@@ -1,5 +1,3 @@
-from misc.indices import QUESTION_INDEX
-
 QUESTION_FILE = "data/vqa/Questions/OpenEnded_mscoco_%s_questions.json"
 SINGLE_PARSE_FILE = "data/vqa/Questions/%s.sp"
 MULTI_PARSE_FILE = "data/vqa/Questions/%s.sps2"
@@ -13,6 +11,3 @@ MAX_ANSWERS = 2000
 IMG_DEPTH = 512
 HIDDEN_UNITS = 1024
 MASK_WIDTH = 14
-
-YESNO_QWORDS = { QUESTION_INDEX[s] for s in ['is', 'are', 'have', 'has', 'do', 'does'] }
-OR_WORD = QUESTION_INDEX['or']

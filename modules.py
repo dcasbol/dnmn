@@ -23,6 +23,7 @@ class InstanceModule(nn.Module):
 		self._instance = None
 		return inst
 
+
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
