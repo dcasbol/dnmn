@@ -239,11 +239,12 @@ class VQARootModuleDataset(VQADataset):
 
 		mask = self._compose_hmap(datum)
 		label = majority_label(datum['answers'])
+		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 		instance = datum['layouts_indices'][0]
 
 		if self._features:
-			return mask, features, instance, label
-		return mask, instance, label
+			return mask, features, instance, label, distr
+		return mask, instance, label, distr
 
 
 class VQADescribeDataset(VQARootModuleDataset):
@@ -265,16 +266,18 @@ class VQAEncoderDataset(VQADataset):
 		datum = self._by_id[self._id_list[i]]
 		question = datum['question']
 		label = majority_label(datum['answers'])
-		return question, len(question), label
+		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
+		return question, len(question), label, distr
 
 def encoder_collate_fn(data):
-	questions, lengths, labels = zip(*data)
+	questions, lengths, labels, distrs = zip(*data)
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l, _ in data ]
 	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
 	lengths   = torch.tensor(lengths, dtype=torch.long)
 	labels    = torch.tensor(labels, dtype=torch.long)
-	return questions, lengths, labels
+	distrs    = torch.tensor(distrs, dtype=torch.float)
+	return questions, lengths, labels, distrs
 
 class VQANMNDataset(VQADataset):
 

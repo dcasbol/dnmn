@@ -67,7 +67,7 @@ def generate_and_save(find, features, target, set_names, img_ids, target_strs):
 
 	features = cudalize(features)
 	target   = cudalize(target)
-	att_maps = to_numpy(find(features, target))
+	att_maps = to_numpy(find[target](features))
 
 	for att_map, set_name, img_id, target_str in zip(att_maps, set_names, img_ids, target_strs):
 		dirname, fn = get_paths(set_name, img_id, target_str)
@@ -80,17 +80,24 @@ def generate_and_save(find, features, target, set_names, img_ids, target_strs):
 
 if __name__ == '__main__':
 
+	DEFAULT_BATCH_SIZE = 256
+
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
 	parser.add_argument('find_module', type=str)
+	parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='train2014')
 	parser.add_argument('--adjust-batch', action='store_true',
 		help="Adjust batch size to avoid a smaller final batch")
 	parser.add_argument('--skip-existing', action='store_true',
 		help="Don't generate existing maps. Faster if there are few maps missing.")
 	args = parser.parse_args()
 
-	dataset = VQAFindDataset(filter_data=False, metadata=True)
-	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else 256
-	print('Batch size set to', batch_size)
+	dataset = VQAFindDataset(set_names=args.dataset, filter_data=False, metadata=True)
+	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else DEFAULT_BATCH_SIZE
+	if batch_size > 1:
+		print('Batch size set to', batch_size)
+	else:
+		batch_size = DEFAULT_BATCH_SIZE
+		print('Bad luck! Batch size set to default:', batch_size)
 
 	find = Find()
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))

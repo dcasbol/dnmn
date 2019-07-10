@@ -9,7 +9,8 @@ def cudalize(*x):
 	x = [ xi.cuda() for xi in x ] if USE_CUDA else x
 	return x[0] if len(x) == 1 else x
 
-to_numpy = lambda x: x.detach().cpu().numpy()
+def to_numpy(x):
+	return x.detach().cpu().numpy()
 
 def ziplist(*args):
 	""" Original zip returns list of tuples """
@@ -68,14 +69,14 @@ def values_to_distribution(values, size):
 	return distr
 
 def top1_accuracy(pred, label):
-	return (pred.argmax(dim=1) == label).float().mean()
+	return (pred.argmax(dim=1) == label).float().mean().item()
 
 def inset_accuracy(pred, label_dist):
 	hit = (pred*label_dist).sum(1) > 0
-	return hit.float().mean()
+	return hit.float().mean().item()
 
 def weighted_accuracy(pred, label_dist):
-	return (pred*label_dist).sqrt().sum(1).mean()
+	return (pred*label_dist).sqrt().sum(1).mean().item()
 
 def is_yesno(q):
 	return q[1] in YESNO_QWORDS and OR_QWORD not in q
