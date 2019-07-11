@@ -38,7 +38,8 @@ def run_module(module, batch_data):
 		result['distr'] = distr
 	return result
 
-if __name__ == '__main__':
+
+def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
 	parser.add_argument('module', choices=['find', 'describe', 'measure', 'encoder'])
@@ -58,36 +59,36 @@ if __name__ == '__main__':
 		help='(find) Select every N steps to visualize. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
 		help='Run validation every 1% of the dataset')
-	args = parser.parse_args()
+	return parser.parse_args()
 
-	NUM_EPOCHS = args.epochs
-	BATCH_SIZE = args.batchsize
-	MOD_NAME   = args.module
+
+if __name__ == '__main__':
+
+	args = get_args()
+
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
-	FULL_NAME    = MOD_NAME + SUFFIX
+	FULL_NAME    = args.module + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
 	PT_NEW       = FULL_NAME + '-new.pt'
 
-	assert MOD_NAME == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
+	assert args.module == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
+	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
-	if MOD_NAME == 'find':
+	if args.module == 'find':
 		module  = Find(competition=args.competition)
 		dataset = VQAFindDataset(metadata=True)
-	elif MOD_NAME == 'describe':
+	elif args.module == 'describe':
 		module  = Describe()
 		dataset = VQADescribeDataset()
-		valset  = VQADescribeDataset(set_names='val2014')
-	elif MOD_NAME == 'measure':
+	elif args.module == 'measure':
 		module  = Measure()
 		dataset = VQAMeasureDataset()
-		valset  = VQAMeasureDataset(set_names='val2014')
 	else:
 		module  = QuestionEncoder()
 		dataset = VQAEncoderDataset()
-		valset  = VQAEncoderDataset(set_names='val2014')
 
-	if MOD_NAME == 'find':
+	if args.module == 'find':
 		loss_fn = dict(
 			pre  = nn.BCEWithLogitsLoss,
 			post = nn.BCELoss
@@ -96,16 +97,24 @@ if __name__ == '__main__':
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
 
 	kwargs = dict(
-		batch_size  = BATCH_SIZE,
+		batch_size  = args.batchsize,
 		shuffle     = True,
 		num_workers = 4
 	)
-	if MOD_NAME == 'encoder':
-		kwargs.update(collate_fn = encoder_collate_fn)
+	if args.module == 'encoder':
+		kwargs['collate_fn'] = encoder_collate_fn
 	loader = DataLoader(dataset, **kwargs)
-	if MOD_NAME != 'find':
-		kwargs['batch_size'] = 100
-		val_loader = DataLoader(valset, **kwargs)
+
+	log = dict(epoch = list(), loss = list(), time = list())
+	if args.validate:
+		for k in ['top1', 'inset', 'wacc']:
+			log[k] = list()
+		valset = dict(
+			describe = VQADescribeDataset,
+			measure  = VQAMeasureDataset,
+			encoder  = VQAEncoderDataset,
+		)[args.module](set_names='val2014')
+		val_loader = DataLoader(valset, batch_size = 100, shuffle = False)
 
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
@@ -116,17 +125,15 @@ if __name__ == '__main__':
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
 
-	log = dict(epoch = list(), loss = list(), time = list())
-	if args.validate:
-		for k in ['top1', 'inset', 'wacc']:
-			log[k] = list()
-
+	# --------------------
+	# ---   Training   ---
+	# --------------------
 	clock = Chronometer()
 	last_perc = -1
-	for epoch in range(NUM_EPOCHS):
+	for epoch in range(args.epoch):
 		print('Epoch ', epoch)
 		for i, batch_data in enumerate(loader):
-			perc = (i*BATCH_SIZE*100)//len(dataset)
+			perc = (i*args.batchsize*100)//len(dataset)
 
 			result = run_module(module, batch_data)
 			output = result['output']
@@ -141,7 +148,7 @@ if __name__ == '__main__':
 			t = clock.read()
 			with clock.exclude():
 				last_perc = perc
-				log['epoch'].append(epoch + (i*BATCH_SIZE)/len(dataset))
+				log['epoch'].append(epoch + (i*args.batchsize)/len(dataset))
 				log['loss'].append(loss.item()/output.size(0))
 				log['time'].append(t)
 				tstr = time.strftime('%H:%M:%S', time.localtime(t))
@@ -150,7 +157,7 @@ if __name__ == '__main__':
 					label_str, input_set, input_id = batch_data[2:]
 					vis.update(hmap, label_str, input_set, input_id)
 
-				if args.validate and MOD_NAME != 'find':
+				if args.validate:
 					for batch_data in val_loader: break
 					result = run_module(module, batch_data)
 					output, label, distr = [ result[k] for k in ['output', 'label', 'distr'] ]
