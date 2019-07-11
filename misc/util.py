@@ -83,18 +83,37 @@ def weighted_accuracy(pred, label_dist):
 def is_yesno(q):
 	return q[1] in YESNO_QWORDS and OR_QWORD not in q
 
+def lookahead(iterable):
+	it = iter(iterable)
+	last = next(it)
+	for val in it:
+		yield last, False
+		last = val
+	yield last, True
+
 
 class Chronometer(object):
+
+	NORMAL  = 0
+	EXCLUDE = 1
+	INCLUDE = 2
 
 	def __init__(self):
 		self.reset()
 
 	def __enter__(self):
-		assert self._t_begin is None
-		self._t_begin = time()
+		assert self._mode != self.NORMAL
+		if self._mode == self.EXCLUDE:
+			self._t_begin = time()
+		else:
+			self._te += time() - self._t_begin
 
 	def __exit__(self, *args):
-		self._te += time() - self._t_begin
+		if self._mode == self.EXCLUDE:
+			self._te += time() - self._t_begin
+		else:
+			self._t_begin = time()
+		self._mode = self._stack.pop()
 
 	def read(self):
 		return time() - self._t0 - self._te
@@ -102,8 +121,17 @@ class Chronometer(object):
 	def reset(self):
 		self._t0 = time()
 		self._te = 0.
-		self._t_begin = None
+		self._mode = self.NORMAL
+		self._stack = list()
 
 	def exclude(self):
-		self._t_begin = None
+		assert self._mode != self.EXCLUDE
+		self._stack.append(self._mode)
+		self._mode = self.EXCLUDE
+		return self
+
+	def include(self):
+		assert self._mode == self.EXCLUDE
+		self._stack.append(self._mode)
+		self._mode = self.INCLUDE
 		return self

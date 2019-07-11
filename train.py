@@ -10,7 +10,7 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
-from misc.util import cudalize, Chronometer
+from misc.util import cudalize, lookahead, Chronometer
 from misc.visualization import MapVisualizer
 
 
@@ -130,9 +130,9 @@ if __name__ == '__main__':
 	# --------------------
 	clock = Chronometer()
 	last_perc = -1
-	for epoch in range(args.epoch):
+	for epoch in range(args.epochs):
 		print('Epoch ', epoch)
-		for i, batch_data in enumerate(loader):
+		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batchsize*100)//len(dataset)
 
 			result = run_module(module, batch_data)
@@ -143,7 +143,7 @@ if __name__ == '__main__':
 			loss.backward()
 			opt.step()
 
-			if perc == last_perc: continue
+			if perc == last_perc and not last_iter: continue
 
 			t = clock.read()
 			with clock.exclude():
@@ -158,13 +158,25 @@ if __name__ == '__main__':
 					vis.update(hmap, label_str, input_set, input_id)
 
 				if args.validate:
-					for batch_data in val_loader: break
-					result = run_module(module, batch_data)
-					output, label, distr = [ result[k] for k in ['output', 'label', 'distr'] ]
-					output = output.softmax(1)
-					log['top1'].append(util.top1_accuracy(output, label))
-					log['inset'].append(util.inset_accuracy(output, distr))
-					log['wacc'].append(util.weighted_accuracy(output, distr))
+					N = top1 = inset = wacc = 0
+
+					module.eval()
+					for batch_data in val_loader:
+						result = run_module(module, batch_data)
+						output, label, distr = [ result[k] for k in ['output', 'label', 'distr'] ]
+						output = output.softmax(1)
+						B = label.size(0)
+						N += B
+						top1  += util.top1_accuracy(output, label) * B
+						inset += util.inset_accuracy(output, distr) * B
+						wacc  += util.weighted_accuracy(output, distr) * B
+						if not last_iter:
+							break
+					module.train()
+					
+					log['top1'].append(top1/N)
+					log['inset'].append(inset/N)
+					log['wacc'].append(wacc/N)
 					[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
 
 		if args.save:
@@ -175,4 +187,4 @@ if __name__ == '__main__':
 	total = clock.read()
 	print('End of training. It took {} seconds'.format(total))
 	with open(LOG_FILENAME,'w') as fd:
-		json.dump(log, fd)
+		json.dump(log, fd, indent='\t')
