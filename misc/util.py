@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
+from time import time
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -76,7 +77,33 @@ def inset_accuracy(pred, label_dist):
 	return hit.float().mean().item()
 
 def weighted_accuracy(pred, label_dist):
-	return (pred*label_dist).sqrt().sum(1).mean().item()
+	idx = torch.arange(pred.size(0))
+	return label_dist[idx, pred.argmax(1)].mean().item()
 
 def is_yesno(q):
 	return q[1] in YESNO_QWORDS and OR_QWORD not in q
+
+
+class Chronometer(object):
+
+	def __init__(self):
+		self.reset()
+
+	def __enter__(self):
+		assert self._t_begin is None
+		self._t_begin = time()
+
+	def __exit__(self, *args):
+		self._te += time() - self._t_begin
+
+	def read(self):
+		return time() - self._t0 - self._te
+
+	def reset(self):
+		self._t0 = time()
+		self._te = 0.
+		self._t_begin = None
+
+	def exclude(self):
+		self._t_begin = None
+		return self

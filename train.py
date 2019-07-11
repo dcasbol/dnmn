@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 import torch
 import torch.nn as nn
 import numpy as np
@@ -9,8 +10,9 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
-from misc.util import cudalize
+from misc.util import cudalize, Chronometer
 from misc.visualization import MapVisualizer
+
 
 def run_module(module, batch_data):
 	result = dict()
@@ -114,8 +116,13 @@ if __name__ == '__main__':
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
 
+	log = dict(epoch = list(), loss = list(), time = list())
+	if args.validate:
+		for k in ['top1', 'inset', 'wacc']:
+			log[k] = list()
+
+	clock = Chronometer()
 	last_perc = -1
-	loss_list = list()
 	for epoch in range(NUM_EPOCHS):
 		print('Epoch ', epoch)
 		for i, batch_data in enumerate(loader):
@@ -129,28 +136,36 @@ if __name__ == '__main__':
 			loss.backward()
 			opt.step()
 
-			if perc != last_perc:
+			if perc == last_perc: continue
+
+			t = clock.read()
+			with clock.exclude():
 				last_perc = perc
-				loss_list.append([epoch + (i*BATCH_SIZE)/len(dataset), loss.item()/output.size(0)])
-				print('{: 3d}% - {}'.format(perc, loss_list[-1][1]))
+				log['epoch'].append(epoch + (i*BATCH_SIZE)/len(dataset))
+				log['loss'].append(loss.item()/output.size(0))
+				log['time'].append(t)
+				tstr = time.strftime('%H:%M:%S', time.localtime(t))
+				print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
 				if args.visualize > 0:
 					label_str, input_set, input_id = batch_data[2:]
 					vis.update(hmap, label_str, input_set, input_id)
 
-				# Run validation
-				if MOD_NAME != 'find':
+				if args.validate and MOD_NAME != 'find':
 					for batch_data in val_loader: break
 					result = run_module(module, batch_data)
 					output, label, distr = [ result[k] for k in ['output', 'label', 'distr'] ]
 					output = output.softmax(1)
-					print('top-1 acc   ', util.top1_accuracy(output, label))
-					print('inset acc   ', util.inset_accuracy(output, distr))
-					print('weighted acc', util.weighted_accuracy(output, distr))
+					log['top1'].append(util.top1_accuracy(output, label))
+					log['inset'].append(util.inset_accuracy(output, distr))
+					log['wacc'].append(util.weighted_accuracy(output, distr))
+					[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
 
 		if args.save:
-			torch.save(module.state_dict(), PT_NEW)
-			print('Module saved')
+			with clock.exclude():
+				torch.save(module.state_dict(), PT_NEW)
+				print('Module saved')
 
-	print('End of training')
+	total = clock.read()
+	print('End of training. It took {} seconds'.format(total))
 	with open(LOG_FILENAME,'w') as fd:
-		json.dump(loss_list, fd)
+		json.dump(log, fd)
