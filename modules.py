@@ -32,6 +32,7 @@ class Find(InstanceModule):
 		assert competition in {'pre', 'post', 'softmax', None}, "Invalid competition mode: %s" % competition
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
+		self._softsign = nn.Softsign()
 
 	def forward(self, features):
 		c = self._get_instance()
@@ -50,7 +51,7 @@ class Find(InstanceModule):
 				sm_all = h_all.softmax(1)
 				sm_train = sm_all[idx, c].unsqueeze(1)
 				sm_train = sm_train.view(B,-1).mean(1)
-				mask = h_all[idx, c].unsqueeze(1).tanh()
+				mask = self._softsign(h_all[idx, c].unsqueeze(1))
 				return sm_train, mask
 			else:
 				# This one should work better

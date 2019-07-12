@@ -53,6 +53,7 @@ def get_args():
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
+	parser.add_argument('--wd', type=float, default=1e-4, help='Weight decay')
 	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'], default='pre',
 		help='(find) Use division competition after sigmoid (post) or substraction before (pre)')
 	parser.add_argument('--visualize', type=int, default=0,
@@ -121,7 +122,7 @@ if __name__ == '__main__':
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 	module = cudalize(module)
 
-	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=1e-4)
+	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
