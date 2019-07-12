@@ -95,45 +95,24 @@ def lookahead(iterable):
 
 class Chronometer(object):
 
-	NORMAL  = 0
-	EXCLUDE = 1
-	INCLUDE = 2
-
 	def __init__(self):
-		self.reset()
-
-	def __enter__(self):
-		assert self._mode != self.NORMAL
-		if self._mode == self.EXCLUDE:
-			self._t_begin = time()
-		else:
-			self._te += time() - self._t_begin
-
-	def __exit__(self, *args):
-		if self._mode == self.EXCLUDE:
-			self._te += time() - self._t_begin
-		else:
-			self._t_begin = time()
-		self._mode = self._stack.pop()
+		self._t = 0.
+		self._t0 = 0.
+		self._running = False
 
 	def read(self):
-		t = self._t_begin if self._mode == self.EXCLUDE else time()
-		return t - self._t0 - self._te
+		return self._t + time() - self._t0 if self._running else self._t
 
 	def reset(self):
+		self._t = 0.
 		self._t0 = time()
-		self._te = 0.
-		self._mode = self.NORMAL
-		self._stack = list()
 
-	def exclude(self):
-		assert self._mode != self.EXCLUDE
-		self._stack.append(self._mode)
-		self._mode = self.EXCLUDE
-		return self
+	def start(self):
+		assert not self._running, "Chronometer already started"
+		self._t0 = time()
+		self._running = True
 
-	def include(self):
-		assert self._mode == self.EXCLUDE
-		self._stack.append(self._mode)
-		self._mode = self.INCLUDE
-		return self
+	def stop(self):
+		assert self._running, "Chronometer already stopped"
+		self._t += time() - self._t0
+		self._running = False

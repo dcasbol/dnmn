@@ -130,60 +130,61 @@ if __name__ == '__main__':
 	# --------------------
 	clock = Chronometer()
 	last_perc = -1
-	with clock.exclude():
-		for epoch in range(args.epochs):
-			print('Epoch ', epoch)
-			for (i, batch_data), last_iter in lookahead(enumerate(loader)):
-				perc = (i*args.batchsize*100)//len(dataset)
+	for epoch in range(args.epochs):
+		print('Epoch ', epoch)
+		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
+			perc = (i*args.batchsize*100)//len(dataset)
 
-				with clock.include():
+			# ---   begin timed block   ---
+			clock.start()
+			result = run_module(module, batch_data)
+			output = result['output']
+
+			loss = loss_fn(output, result['label'])
+			opt.zero_grad()
+			loss.backward()
+			opt.step()
+			clock.stop()
+			# ---   end timed block   ---
+
+			if perc == last_perc and not last_iter: continue
+
+			last_perc = perc
+			log['epoch'].append(epoch + (i*args.batchsize)/len(dataset))
+			log['loss'].append(loss.item()/output.size(0))
+			log['time'].append(clock.read())
+			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
+			print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
+			if args.visualize > 0:
+				label_str, input_set, input_id = batch_data[2:]
+				vis.update(hmap, label_str, input_set, input_id)
+
+			if args.validate:
+				N = top1 = inset = wacc = 0
+
+				module.eval()
+				for batch_data in val_loader:
 					result = run_module(module, batch_data)
-					output = result['output']
+					output = result['output'].softmax(1)
+					label  = result['label']
+					distr  = result['distr']
+					B = label.size(0)
+					N += B
+					top1  += util.top1_accuracy(output, label) * B
+					inset += util.inset_accuracy(output, distr) * B
+					wacc  += util.weighted_accuracy(output, distr) * B
+					if not last_iter:
+						break
+				module.train()
+				
+				log['top-1'].append(top1/N)
+				log['in set'].append(inset/N)
+				log['weighted'].append(wacc/N)
+				[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
 
-					loss = loss_fn(output, result['label'])
-					opt.zero_grad()
-					loss.backward()
-					opt.step()
-
-				if perc == last_perc and not last_iter: continue
-
-				t = clock.read()
-				last_perc = perc
-				log['epoch'].append(epoch + (i*args.batchsize)/len(dataset))
-				log['loss'].append(loss.item()/output.size(0))
-				log['time'].append(t)
-				tstr = time.strftime('%H:%M:%S', time.localtime(t))
-				print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
-				if args.visualize > 0:
-					label_str, input_set, input_id = batch_data[2:]
-					vis.update(hmap, label_str, input_set, input_id)
-
-				if args.validate:
-					N = top1 = inset = wacc = 0
-
-					module.eval()
-					for batch_data in val_loader:
-						result = run_module(module, batch_data)
-						output = result['output'].softmax(1)
-						label  = result['label']
-						distr  = result['distr']
-						B = label.size(0)
-						N += B
-						top1  += util.top1_accuracy(output, label) * B
-						inset += util.inset_accuracy(output, distr) * B
-						wacc  += util.weighted_accuracy(output, distr) * B
-						if not last_iter:
-							break
-					module.train()
-					
-					log['top-1'].append(top1/N)
-					log['in set'].append(inset/N)
-					log['weighted'].append(wacc/N)
-					[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
-
-			if args.save:
-				torch.save(module.state_dict(), PT_NEW)
-				print('Module saved')
+		if args.save:
+			torch.save(module.state_dict(), PT_NEW)
+			print('Module saved')
 
 	total = clock.read()
 	print('End of training. It took {} seconds'.format(total))

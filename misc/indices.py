@@ -1,4 +1,4 @@
-from misc.constants import MAX_ANSWERS
+from misc.constants import *
 
 UNK = "*unknown*"
 NULL = "*null*"
