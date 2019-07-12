@@ -45,10 +45,13 @@ class Find(InstanceModule):
 				mask_train = mask_train.view(B,-1).mean(1)
 				return mask_train, mask
 			elif self._competition == 'softmax':
-				h_all = self._conv(features).relu().softmax(1)
-				h = h_all[torch.arange(B), c].unsqueeze(1)
-				h_train = h.view(B,-1).mean(1)
-				return h_train, h
+				idx = torch.arange(B)
+				h_all = self._conv(features).relu()
+				sm_all = h_all.softmax(1)
+				sm_train = sm_all[idx, c].unsqueeze(1)
+				sm_train = sm_train.view(B,-1).mean(1)
+				mask = h_all[idx, c].unsqueeze(1).tanh()
+				return sm_train, mask
 			else:
 				# This one should work better
 				h_all = self._conv(features)
