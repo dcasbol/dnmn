@@ -91,7 +91,8 @@ if __name__ == '__main__':
 	if args.module == 'find':
 		loss_fn = dict(
 			pre  = nn.BCEWithLogitsLoss,
-			post = nn.BCELoss
+			post = nn.BCELoss,
+			softmax = nn.BCELoss
 		)[args.competition](reduction='sum')
 	else:
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
