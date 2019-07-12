@@ -156,8 +156,9 @@ if __name__ == '__main__':
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
 			print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
 			if args.visualize > 0:
-				label_str, input_set, input_id = batch_data[2:]
-				vis.update(hmap, label_str, input_set, input_id)
+				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
+				values = [ result[k] for k in keys ]
+				vis.update(*values)
 
 			if args.validate:
 				N = top1 = inset = wacc = 0
