@@ -13,11 +13,23 @@ with open(args.jsonpath) as fd:
 plt.figure()
 
 plt.title(meta['title'])
-plt.xlabel(meta['xlabel'])
 plt.ylabel(meta['ylabel'])
 
+# Most times, the xvals are the same for all plots shown
+# "xlabel" : ["Time in seconds", "time"]
+xkey = ''
+xlabel = meta['xlabel']
+if type(xlabel) == list:
+	xlabel, xkey = xlabel
+	xvals = data[xkey]
+
+plt.xlabel(xlabel)
+
 for key, values in data.items():
-	if type(values[0]) in [list, tuple]:
+	if key == xkey: continue
+	if xkey != '':
+		assert type(values[0]) != list, "Cannot override global x values."
+	elif type(values[0]) == list:
 		xvals, values = zip(*values)
 	else:
 		xvals = [ 0.01 * i for i in range(len(values)) ]

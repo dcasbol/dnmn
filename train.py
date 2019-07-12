@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
 	log = dict(epoch = list(), loss = list(), time = list())
 	if args.validate:
-		for k in ['top1', 'inset', 'wacc']:
+		for k in ['top-1', 'in set', 'weighted']:
 			log[k] = list()
 		valset = dict(
 			describe = VQADescribeDataset,
@@ -130,23 +130,24 @@ if __name__ == '__main__':
 	# --------------------
 	clock = Chronometer()
 	last_perc = -1
-	for epoch in range(args.epochs):
-		print('Epoch ', epoch)
-		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
-			perc = (i*args.batchsize*100)//len(dataset)
+	with clock.exclude():
+		for epoch in range(args.epochs):
+			print('Epoch ', epoch)
+			for (i, batch_data), last_iter in lookahead(enumerate(loader)):
+				perc = (i*args.batchsize*100)//len(dataset)
 
-			result = run_module(module, batch_data)
-			output = result['output']
+				with clock.include():
+					result = run_module(module, batch_data)
+					output = result['output']
 
-			loss = loss_fn(output, result['label'])
-			opt.zero_grad()
-			loss.backward()
-			opt.step()
+					loss = loss_fn(output, result['label'])
+					opt.zero_grad()
+					loss.backward()
+					opt.step()
 
-			if perc == last_perc and not last_iter: continue
+				if perc == last_perc and not last_iter: continue
 
-			t = clock.read()
-			with clock.exclude():
+				t = clock.read()
 				last_perc = perc
 				log['epoch'].append(epoch + (i*args.batchsize)/len(dataset))
 				log['loss'].append(loss.item()/output.size(0))
@@ -163,8 +164,9 @@ if __name__ == '__main__':
 					module.eval()
 					for batch_data in val_loader:
 						result = run_module(module, batch_data)
-						output, label, distr = [ result[k] for k in ['output', 'label', 'distr'] ]
-						output = output.softmax(1)
+						output = result['output'].softmax(1)
+						label  = result['label']
+						distr  = result['distr']
 						B = label.size(0)
 						N += B
 						top1  += util.top1_accuracy(output, label) * B
@@ -174,13 +176,12 @@ if __name__ == '__main__':
 							break
 					module.train()
 					
-					log['top1'].append(top1/N)
-					log['inset'].append(inset/N)
-					log['wacc'].append(wacc/N)
+					log['top-1'].append(top1/N)
+					log['in set'].append(inset/N)
+					log['weighted'].append(wacc/N)
 					[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
 
-		if args.save:
-			with clock.exclude():
+			if args.save:
 				torch.save(module.state_dict(), PT_NEW)
 				print('Module saved')
 

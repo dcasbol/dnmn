@@ -70,10 +70,11 @@ def values_to_distribution(values, size):
 	return distr
 
 def top1_accuracy(pred, label):
-	return (pred.argmax(dim=1) == label).float().mean().item()
+	return (pred.argmax(1) == label).float().mean().item()
 
 def inset_accuracy(pred, label_dist):
-	hit = (pred*label_dist).sum(1) > 0
+	idx = torch.arange(pred.size(0))
+	hit = label_dist[idx, pred.argmax(1)] > 0
 	return hit.float().mean().item()
 
 def weighted_accuracy(pred, label_dist):
@@ -116,7 +117,8 @@ class Chronometer(object):
 		self._mode = self._stack.pop()
 
 	def read(self):
-		return time() - self._t0 - self._te
+		t = self._t_begin if self._mode == self.EXCLUDE else time()
+		return t - self._t0 - self._te
 
 	def reset(self):
 		self._t0 = time()
