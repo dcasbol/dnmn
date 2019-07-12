@@ -272,7 +272,7 @@ class VQAEncoderDataset(VQADataset):
 def encoder_collate_fn(data):
 	questions, lengths, labels, distrs = zip(*data)
 	T = max(lengths)
-	padded = [ q + [NULL_ID]*(T-l) for q, l, _ in data ]
+	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
 	lengths   = torch.tensor(lengths, dtype=torch.long)
 	labels    = torch.tensor(labels, dtype=torch.long)
