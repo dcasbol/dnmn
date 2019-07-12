@@ -48,6 +48,7 @@ class Find(InstanceModule):
 				h_all = self._conv(features).relu().softmax(1)
 				h = h_all[torch.arange(B), c].unsqueeze(1)
 				h_train = h.view(B,-1).mean(1)
+				return h_train, h
 			else:
 				# This one should work better
 				h_all = self._conv(features)
