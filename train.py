@@ -53,7 +53,7 @@ def get_args():
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
-	parser.add_argument('--competition', choices=['post', 'pre'], default='pre',
+	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'], default='pre',
 		help='(find) Use division competition after sigmoid (post) or substraction before (pre)')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')

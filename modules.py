@@ -29,7 +29,7 @@ class Find(InstanceModule):
 
 	def __init__(self, competition='pre'):
 		super(Find, self).__init__()
-		assert competition in {'pre', 'post', None}, "Invalid competition mode: %s" % competition
+		assert competition in {'pre', 'post', 'softmax', None}, "Invalid competition mode: %s" % competition
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
 
@@ -44,6 +44,10 @@ class Find(InstanceModule):
 				mask_train = mask / (1. + mask_against)
 				mask_train = mask_train.view(B,-1).mean(1)
 				return mask_train, mask
+			elif self._competition == 'softmax':
+				h_all = self._conv(features).relu().softmax(1)
+				h = h_all[torch.arange(B), c].unsqueeze(1)
+				h_train = h.view(B,-1).mean(1)
 			else:
 				# This one should work better
 				h_all = self._conv(features)
@@ -52,7 +56,6 @@ class Find(InstanceModule):
 				h_against = F.relu(h_against)
 				h_train = (h-h_against).view(B,-1).mean(1)
 				mask = torch.sigmoid(h)
-				self._instance = None
 				return h_train, mask
 		else:
 			assert features.size(0) == B, 'features & c must have same size at dim 0'
