@@ -164,7 +164,6 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if args.validate:
-				print('VALIDATION')
 				N = top1 = inset = wacc = 0
 
 				module.eval()

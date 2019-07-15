@@ -4,7 +4,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from vqatorch import VQAFindDataset
+from vqa import VQAFindDataset
 from modules import Find
 from misc.indices import FIND_INDEX
 from misc.constants import *
@@ -16,6 +16,7 @@ parser.add_argument('ptfile', type=str,
 parser.add_argument('condition', type=str, nargs='?', default="",
 	help='Condition visualizations on class.')
 parser.add_argument('--wait', type=float, default=1.)
+parser.add_argument('--shuffle', action='store_true')
 args = parser.parse_args()
 
 cond = -1
@@ -23,7 +24,7 @@ if len(args.condition) > 0:
 	cond = FIND_INDEX[args.condition]
 
 findset = VQAFindDataset(metadata=True)
-loader = DataLoader(findset, batch_size=1, shuffle=False)
+loader = DataLoader(findset, batch_size=1, shuffle=args.shuffle)
 
 find = Find()
 find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
@@ -33,15 +34,15 @@ plt.figure()
 plt.ion()
 plt.show()
 
-for features, label, label_str, input_set, input_id in loader:
+for features, instance, instance_str, input_set, input_id in loader:
 
-	if cond > 0 and label[0].item() != cond:
+	if cond > 0 and instance[0].item() != cond:
 		continue
 
-	hmap = find(features, label)
+	hmap = find[instance](features)
 
 	plt.clf()
-	plt.suptitle(label_str[0])
+	plt.suptitle(instance_str[0])
 
 	ax = plt.subplot(1,2,1)
 	img = hmap.detach()[0,0].cpu().numpy()
