@@ -116,7 +116,8 @@ if __name__ == '__main__':
 			measure  = VQAMeasureDataset,
 			encoder  = VQAEncoderDataset,
 		)[args.module](set_names='val2014')
-		val_loader = DataLoader(valset, batch_size = 100, shuffle = False)
+		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
+		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
 
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
@@ -163,6 +164,7 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if args.validate:
+				print('VALIDATION')
 				N = top1 = inset = wacc = 0
 
 				module.eval()
