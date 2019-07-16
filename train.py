@@ -91,11 +91,8 @@ if __name__ == '__main__':
 		dataset = VQAEncoderDataset()
 
 	if args.module == 'find':
-		loss_fn = dict(
-			pre  = nn.BCEWithLogitsLoss,
-			post = nn.BCELoss,
-			softmax = nn.BCELoss
-		)[args.competition](reduction='sum')
+		loss_fn = nn.BCEWithLogitsLoss if args.competition == 'pre' else nn.BCELoss
+		loss_fn = loss_fn(reduction='sum')
 	else:
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
 
