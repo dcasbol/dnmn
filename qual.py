@@ -12,6 +12,29 @@ from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
 from misc.util import cudalize, lookahead, Chronometer
 from misc.visualization import MapVisualizer
+from misc.indices import FIND_INDEX
+
+
+class RevMask(nn.Module):
+
+	def __init__(self):
+		super(RevMask, self).__init__()
+		self._classifier = nn.Sequential(
+			nn.Linear(IMG_DEPTH, HIDDEN_UNITS),
+			nn.ReLU(),
+			nn.Linear(HIDDEN_UNITS, len(FIND_INDEX))
+		)
+		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
+
+	def forward(self, image, mask):
+		B,C,H,W = image.size()
+		image = image.view(B,C,-1)
+		mask = mask.view(B,1,-1)
+		attended = (mask*image).mean(2)
+		return self._classifier(attended)
+
+	def loss(self, pred, instance):
+		return self._loss_fn(pred, instance)
 
 
 def run_module(module, batch_data):
@@ -120,11 +143,14 @@ if __name__ == '__main__':
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 	module = cudalize(module)
+	rev = RevMask()
 
-	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
+	params = list(module.parameters()) + list(rev.parameters())
+	opt = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
+
 
 	# --------------------
 	# ---   Training   ---
@@ -141,7 +167,10 @@ if __name__ == '__main__':
 			result = run_module(module, batch_data)
 			output = result['output']
 
-			loss = loss_fn(output, result['label'])
+			image, instance = batch_data[:2]
+			pred = rev(image, result['hmap'])
+
+			loss = loss_fn(output, result['label']) + rev.loss(pred, instance)
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
