@@ -24,10 +24,7 @@ class MapVisualizer(object):
 
 		plt.subplot(1,2,1)
 		img = to_numpy(hmaps[0,0])
-		if np.amax(img) > 1 or np.amin(img) < 0:
-			img -= min(np.amin(img), 0.)
-			img /= np.amax(img) + 1e-10
-		im = plt.imshow(img, cmap='hot', vmin=0, vmax=1)
+		im = plt.imshow(img, cmap='hot', vmin=np.amin(img), vmax=np.amax(img))
 		plt.colorbar(im, orientation='horizontal', pad=0.05)
 		plt.axis('off')
 

@@ -84,12 +84,18 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
 	parser.add_argument('find_module', type=str)
+	parser.add_argument('mask_norm', choices=['sigmoid', 'softsign', 'none'],
+		help="How the mask is normalized.")
 	parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='train2014')
 	parser.add_argument('--adjust-batch', action='store_true',
 		help="Adjust batch size to avoid a smaller final batch")
 	parser.add_argument('--skip-existing', action='store_true',
 		help="Don't generate existing maps. Faster if there are few maps missing.")
 	args = parser.parse_args()
+
+	if not args.skip_existing:
+		assert not os.path.exists('./cache/hmaps/'),
+			"Please remove cache/hmaps dir before proceeding."
 
 	dataset = VQAFindDataset(set_names=args.dataset, filter_data=False, metadata=True)
 	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else DEFAULT_BATCH_SIZE
@@ -99,7 +105,8 @@ if __name__ == '__main__':
 		batch_size = DEFAULT_BATCH_SIZE
 		print('Bad luck! Batch size set to default:', batch_size)
 
-	find = Find()
+	mask_norm = args.mask_norm if args.mask_norm != 'none' else None
+	find = Find(mask_norm=mask_norm)
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
 	find = cudalize(find)
