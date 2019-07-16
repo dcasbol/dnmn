@@ -81,7 +81,7 @@ class Find(InstanceModule):
 				sm_all = h_all.softmax(1)
 				sm_train = sm_all[B_idx, c].unsqueeze(1)
 				sm_train = sm_train.view(B,-1).mean(1)
-				mask = self._normalize_fn(h_all[idx, c].unsqueeze(1))
+				mask = self._normalize_fn(h_all[B_idx, c].unsqueeze(1))
 				return sm_train, mask
 			else:
 				# This one should work better
