@@ -54,7 +54,8 @@ def get_args():
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
 	parser.add_argument('--wd', type=float, default=1e-4, help='Weight decay')
-	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'], default='pre',
+	parser.add_argument('--competition', choices=['post', 'pre', 'softmax', 'relu-softmax'],
+		default='pre',
 		help='(find) Use division competition after sigmoid (post) or substraction before (pre)')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')
