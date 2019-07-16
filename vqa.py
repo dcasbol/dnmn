@@ -43,7 +43,7 @@ class VQADataset(Dataset):
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		features = list(np.load(input_path).values())[0]
 		#features = (features - self._mean) / self._std
-		# Positive values make more sense for multiplicative attention
+		# Positive values make more sense for a conv without bias
 		features = features / (2*self._std)
 		return features.transpose([2,0,1])
 

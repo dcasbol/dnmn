@@ -27,43 +27,70 @@ class InstanceModule(nn.Module):
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self, competition='pre'):
+	def __init__(self, competition='pre', mask_norm='auto'):
 		super(Find, self).__init__()
-		assert competition in {'pre', 'post', 'softmax', None}, "Invalid competition mode: %s" % competition
+		
+		if mask_norm == 'auto':
+			if competition in ['softmax', 'relu-softmax']:
+				mask_norm = None
+			else:
+				mask_norm = 'sigmoid'
+				
+		assert competition in {'pre', 'post', 'softmax', 'relu-softmax', None},\
+			"Invalid competition mode: {}".format(competition)
+		assert mask_norm in {'sigmoid', 'softsign', 'linear', 'euclidean', None},\
+			"Invalid normalization mode: {}".format(mask_norm)
+
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
-		self._softsign = nn.Softsign()
+		self._normalize_fn = {
+			'sigmoid'   : torch.sigmoid,
+			'sofsign'   : nn.Softsign(),
+			'linear'    : lambda x: self._norm_linear(x),
+			'euclidean' : lambda x: self._norm_euclidean(x),
+			None        : lambda x: x
+		}[mask_norm]
+
+	def _norm_linear(self, hmap):
+		hmap -= hmap.min(1).values
+		vmax = hmap.max(1).values
+		mask /= torch.max(vmax, torch.ones_like(vmax)).values
+		return mask
+
+	def _norm_euclidean(self, hmap):
+		B,C,H,W = hmap.size()
+		norm = hmap.view(B,C,-1).pow(2).sum(2).sqrt() + 1e-10
+		return hmap / norm.view(B,C,1,1)
 
 	def forward(self, features):
 		c = self._get_instance()
 		B = c.size(0)
 		if self.training and self._competition is not None:
+			B_idx = torch.arange(B)
+			h_all = self._conv(features)
 			if self._competition == 'post':
-				mask_all = torch.sigmoid(self._conv(features))
-				mask = mask_all[torch.arange(B), c].unsqueeze(1)
+				mask_all = torch.sigmoid(h_all)
+				mask = mask_all[B_idx, c].unsqueeze(1)
 				mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
 				mask_train = mask / (1. + mask_against)
 				mask_train = mask_train.view(B,-1).mean(1)
 				return mask_train, mask
-			elif self._competition == 'softmax':
-				idx = torch.arange(B)
-				h_all = self._conv(features).relu()
+			elif self._competition in ['softmax', 'relu-softmax']:
+				if self._competition == 'relu-softmax':
+					h_all = h_all.relu()
 				sm_all = h_all.softmax(1)
-				sm_train = sm_all[idx, c].unsqueeze(1)
+				sm_train = sm_all[B_idx, c].unsqueeze(1)
 				sm_train = sm_train.view(B,-1).mean(1)
-				mask = self._softsign(h_all[idx, c].unsqueeze(1))
+				mask = self._normalize_fn(h_all[idx, c].unsqueeze(1))
 				return sm_train, mask
 			else:
 				# This one should work better
-				h_all = self._conv(features)
-				h = h_all[torch.arange(B), c].unsqueeze(1)
-				h_against = (h_all.sum(1, keepdim=True) - h) / (B-1)
-				h_against = F.relu(h_against)
+				h = h_all[B_idx, c].unsqueeze(1)
+				h_against = (h_all.relu().sum(1, keepdim=True) - h.relu()) / (B-1)
 				h_train = (h-h_against).view(B,-1).mean(1)
-				mask = torch.sigmoid(h)
+				mask = self._normalize_fn(h)
 				return h_train, mask
 		else:
-			assert features.size(0) == B, 'features & c must have same size at dim 0'
 			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
 			fs = features.unsqueeze(1).unbind(0)
 			maps = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ])
