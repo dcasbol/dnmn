@@ -30,6 +30,7 @@ class VQADataset(Dataset):
 
 		self._load_from_cache(set_names)
 		self._id_list = list(self._by_id.keys())
+		self._id_list.sort() # Ensure same order in all systems
 
 		with np.load(NORMALIZERS_FILE) as zdata:
 			self._mean = zdata['mean'].astype(np.float32)
@@ -204,10 +205,11 @@ class VQARootModuleDataset(VQADataset):
 
 		if exclude is not None:
 			yesno_questions = exclude == 'yesno'
-			self._id_list = list()
-			for did, datum in self._by_id.items():
-				if is_yesno(datum['question']) == yesno_questions:
-					self._id_list.append(did)
+			new_id_list = list()
+			for qid in self._id_list:
+				if is_yesno(self._by_id[qid]['question']) == yesno_questions:
+					new_id_list.append(did)
+			self._id_list = new_id_list
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
 	def _compose_hmap(self, datum):
