@@ -5,35 +5,34 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Display benchmark data')
 parser.add_argument('jsonpath', type=str)
+parser.add_argument('xkey', type=str, help='Key for x values')
+parser.add_argument('ykeys', type=str, nargs='*')
+parser.add_argument('--title', type=str)
+parser.add_argument('--xlabel', type=str)
+parser.add_argument('--ylabel', type=str)
 args = parser.parse_args()
 
 with open(args.jsonpath) as fd:
-	meta, data = json.load(fd)
+	data = json.load(fd)
+
+if args.xkey not in data.keys() or len(args.ykeys) == 0:
+	print('Keys:', list(data.keys()))
+	quit()
+
+xvals = data[args.xkey]
+del data[args.xkey]
 
 plt.figure()
 
-plt.title(meta['title'])
-plt.ylabel(meta['ylabel'])
+if args.title is not None:
+	plt.title(args.title)
+if args.xlabel is not None:
+	plt.xlabel(args.xlabel)
+if args.ylabel is not None:
+	plt.ylabel(args.ylabel)
 
-# Most times, the xvals are the same for all plots shown
-# "xlabel" : ["Time in seconds", "time"]
-xkey = ''
-xlabel = meta['xlabel']
-if type(xlabel) == list:
-	xlabel, xkey = xlabel
-	xvals = data[xkey]
-
-plt.xlabel(xlabel)
-
-for key, values in data.items():
-	if key == xkey: continue
-	if xkey != '':
-		assert type(values[0]) != list, "Cannot override global x values."
-	elif type(values[0]) == list:
-		xvals, values = zip(*values)
-	else:
-		xvals = [ 0.01 * i for i in range(len(values)) ]
-	plt.plot(xvals, values, label=key)
+for key in args.ykeys:
+	plt.plot(xvals, data[key], label=key)
 
 plt.legend()
 plt.show()

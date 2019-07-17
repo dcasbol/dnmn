@@ -43,6 +43,12 @@ def _process_question(question):
 	words = ["<s>"] + words + ["</s>"]
 	return words
 
+def _index_words(index_obj, word_counts, min_count):
+	selected = [ word for word, count in word_counts.items() if count >= min_count ]
+	selected.sort() # Ensure same indexing in every system
+	for word in selected:
+		index_obj.index(word)
+
 def _prepare_indices():
 	import re
 	import json
@@ -64,15 +70,10 @@ def _prepare_indices():
 
 	word_counts = defaultdict(lambda: 0)
 	with open(QUESTION_FILE % set_name) as question_f:
-		questions = json.load(question_f)["questions"]
-
-		for question in questions:
-			words = _process_question(question["question"])
-			for word in words:
+		for question in json.load(question_f)["questions"]:
+			for word in _process_question(question["question"]):
 				word_counts[word] += 1
-	for word, count in word_counts.items():
-		if count >= MIN_COUNT:
-			QUESTION_INDEX.index(word)
+	_index_words(QUESTION_INDEX, word_counts, MIN_COUNT)
 
 	desc_counts = defaultdict(lambda: 0)
 	find_counts = defaultdict(lambda: 0)
@@ -87,13 +88,8 @@ def _prepare_indices():
 					find_counts[part] += 1
 
 	threshold = 10*MIN_COUNT
-	for pred, count in desc_counts.items():
-		if count >= threshold:
-			DESC_INDEX.index(pred)
-
-	for pred, count in find_counts.items():
-		if count >= threshold:
-			FIND_INDEX.index(pred)
+	_index_words(DESC_INDEX, desc_counts, threshold)
+	_index_words(FIND_INDEX, find_counts, threshold)
 
 	answer_counts = defaultdict(lambda: 0)
 	with open(ANN_FILE % set_name) as ann_f:
@@ -107,7 +103,7 @@ def _prepare_indices():
 					continue
 				answer_counts[word] += 1
 
-	keep_answers = reversed(sorted([(c, a) for a, c in answer_counts.items()]))
+	keep_answers = sorted([(c, a) for a, c in answer_counts.items()], reverse=True)
 	keep_answers = list(keep_answers)[:MAX_ANSWERS]
 	for count, answer in keep_answers:
 		ANSWER_INDEX.index(answer)

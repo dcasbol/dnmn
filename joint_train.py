@@ -39,12 +39,13 @@ if __name__ == '__main__':
 	dataset = VQANMNDataset()
 	loader = DataLoader(dataset,
 		batch_size = args.batch_size,
-		shuffle = False,
 		collate_fn = nmn_collate_fn
 	)
 
 	def loss_fn(x, y):
-		return -(x[torch.arange(x.size(0)), y] + 1e-10).log().sum()
+		# -y*log(x) -(1-y)*log(1-x)
+		x = x[torch.arange(x.size(0)), y]
+		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
 		
 	opt = torch.optim.Adam(nmn.parameters(), lr=1e-3, weight_decay=1e-4)
 
