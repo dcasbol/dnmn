@@ -17,21 +17,17 @@ from misc.indices import FIND_INDEX
 
 class RevMask(nn.Module):
 
-	def __init__(self):
+	def __init__(self, find_module):
 		super(RevMask, self).__init__()
-		self._classifier = nn.Sequential(
-			nn.Linear(IMG_DEPTH, HIDDEN_UNITS),
-			nn.ReLU(),
-			nn.Linear(HIDDEN_UNITS, len(FIND_INDEX))
-		)
+		self._classifier = find_module._conv
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
 
 	def forward(self, image, mask):
 		B,C,H,W = image.size()
 		image = image.view(B,C,-1)
 		mask = mask.view(B,1,-1)
-		attended = (mask*image).mean(2)
-		return self._classifier(attended)
+		attended = (mask*image).mean(2).view(B,C,1,1)
+		return self._classifier(attended).view(B,-1)
 
 	def loss(self, pred, instance):
 		return self._loss_fn(pred, instance)
@@ -42,7 +38,8 @@ def run_module(module, batch_data):
 	if isinstance(module, Find):
 		features, instance, label_str, input_set, input_id = batch_data
 		features, instance = cudalize(features, instance)
-		output, hmap = module[instance](features)
+		hmap = module[instance](features)
+		output = hmap.view(hmap.size(0), -1).mean(1)
 		label = cudalize(torch.ones_like(output, dtype=torch.float))
 		result = dict(hmap=hmap, label_str=label_str, input_set=input_set, input_id=input_id)
 	elif isinstance(module, Describe):
@@ -101,7 +98,7 @@ if __name__ == '__main__':
 	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
 	if args.module == 'find':
-		module  = Find(competition=args.competition)
+		module  = Find(competition=None)
 		dataset = VQAFindDataset(metadata=True)
 	elif args.module == 'describe':
 		module  = Describe()
@@ -129,6 +126,8 @@ if __name__ == '__main__':
 	loader = DataLoader(dataset, **kwargs)
 
 	log = dict(epoch = list(), loss = list(), time = list())
+	log['mask loss'] = list()
+	log['util loss'] = list()
 	if args.validate:
 		for k in ['top-1', 'in set', 'weighted']:
 			log[k] = list()
@@ -143,10 +142,9 @@ if __name__ == '__main__':
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 	module = cudalize(module)
-	rev = RevMask()
+	rev = cudalize(RevMask(module))
 
-	params = list(module.parameters()) + list(rev.parameters())
-	opt = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wd)
+	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
@@ -167,10 +165,12 @@ if __name__ == '__main__':
 			result = run_module(module, batch_data)
 			output = result['output']
 
-			image, instance = batch_data[:2]
+			image, instance = cudalize(*batch_data[:2])
 			pred = rev(image, result['hmap'])
 
-			loss = loss_fn(output, result['label']) + rev.loss(pred, instance)
+			pred_loss = rev.loss(pred, instance)
+			mask_loss = loss_fn(output, result['label'])
+			loss = pred_loss + mask_loss
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -183,8 +183,14 @@ if __name__ == '__main__':
 			log['epoch'].append(epoch + (i*args.batch_size)/len(dataset))
 			log['loss'].append(loss.item()/output.size(0))
 			log['time'].append(clock.read())
+			log['mask loss'].append(mask_loss.item()/output.size(0))
+			log['util loss'].append(pred_loss.item()/output.size(0))
+
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
+			ploss_a = mask_loss.item()/output.size(0)
+			ploss_b = pred_loss.item()/output.size(0)
+			ploss = 'mask: {}; pred: {}'.format(ploss_a, ploss_b)
+			print('{} {: 3d}% - {}'.format(tstr, perc, ploss))
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
 				values = [ result[k] for k in keys ]
