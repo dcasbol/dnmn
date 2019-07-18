@@ -1,4 +1,5 @@
 import torch
+import json
 import numpy as np
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
@@ -9,6 +10,9 @@ USE_CUDA = torch.cuda.is_available()
 def cudalize(*x):
 	x = [ xi.cuda() for xi in x ] if USE_CUDA else x
 	return x[0] if len(x) == 1 else x
+
+def cudalize_dict(d, exclude=[]):
+	return { k : cudalize(v) for k, v in d.items() if k not in exclude }
 
 def to_numpy(x):
 	return x.detach().cpu().numpy()
@@ -92,6 +96,25 @@ def lookahead(iterable):
 		last = val
 	yield last, True
 
+
+class Logger(object):
+
+	def __init__(self):
+		self._log = defaultdict(lambda: [])
+
+	def log(self, **kwargs):
+		for k, v in kwargs.items():
+			self._log[k].append(v)
+
+	def save(self, filename):
+		with open(filename, 'w') as fd:
+			json.dump(self._log, fd)
+
+	def print(self, exclude=[]):
+		for key, values in self._log.items():
+			if key in exclude: continue
+			print(k, ':', vs[-1])
+			
 
 class Chronometer(object):
 

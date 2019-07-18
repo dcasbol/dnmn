@@ -308,13 +308,13 @@ def nmn_collate_fn(data):
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
-	padded  = torch.tensor(padded, dtype=torch.long).transpose(0,1)
-	lengths = torch.tensor(lengths, dtype=torch.long)
-	yesno   = torch.tensor(yesno, dtype=torch.uint8)
-	features = torch.tensor(features, dtype=torch.float)
-	# Let the indices be converted by the NMN
-	root_idx = torch.tensor(root_idx, dtype=torch.long)
-	label = torch.tensor(label, dtype=torch.long)
-	distr = torch.tensor(distr, dtype=torch.float)
-
-	return padded, lengths, yesno, features, root_idx, indices, label, distr
+	return dict(
+		question  = torch.tensor(padded, dtype=torch.long).transpose(0,1),
+		length    = torch.tensor(lengths, dtype=torch.long),
+		yesno     = torch.tensor(yesno, dtype=torch.uint8),
+		features  = torch.tensor(features, dtype=torch.float),
+		find_inst = indices,
+		root_inst = torch.tensor(root_idx, dtype=torch.long),
+		label     = torch.tensor(label, dtype=torch.long),
+		distr     = torch.tensor(distr, dtype=torch.float)
+	)

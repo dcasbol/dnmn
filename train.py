@@ -10,7 +10,7 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
-from misc.util import cudalize, lookahead, Chronometer
+from misc.util import cudalize, lookahead, Logger, Chronometer
 from misc.visualization import MapVisualizer
 
 
@@ -58,7 +58,7 @@ def get_args():
 		default='pre',
 		help='(find) Use division competition after sigmoid (post) or substraction before (pre)')
 	parser.add_argument('--visualize', type=int, default=0,
-		help='(find) Select every N steps to visualize. 0 is disabled.')
+		help='(find) Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
 		help='Run validation every 1% of the dataset')
 	return parser.parse_args()
@@ -105,10 +105,7 @@ if __name__ == '__main__':
 		kwargs['collate_fn'] = encoder_collate_fn
 	loader = DataLoader(dataset, **kwargs)
 
-	log = dict(epoch = list(), loss = list(), time = list())
 	if args.validate:
-		for k in ['top-1', 'in set', 'weighted']:
-			log[k] = list()
 		valset = dict(
 			describe = VQADescribeDataset,
 			measure  = VQAMeasureDataset,
@@ -129,6 +126,7 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
+	logger = Logger()
 	clock = Chronometer()
 	last_perc = -1
 	for epoch in range(args.epochs):
@@ -149,13 +147,18 @@ if __name__ == '__main__':
 			# ---   end timed block   ---
 
 			if perc == last_perc and not last_iter: continue
-
 			last_perc = perc
-			log['epoch'].append(epoch + (i*args.batch_size)/len(dataset))
-			log['loss'].append(loss.item()/output.size(0))
-			log['time'].append(clock.read())
+
+			mean_loss = loss.item()/output.size(0)
+			logger.log(
+				epoch = epoch + perc/100,
+				loss  = mean_loss,
+				time  = clock.read()
+			)
+
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			print('{} {: 3d}% - {}'.format(tstr, perc, log['loss'][-1]))
+			print('{} {: 3d}% - {}'.format(tstr, perc, mean_loss))
+
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
 				values = [ result[k] for k in keys ]
@@ -175,20 +178,20 @@ if __name__ == '__main__':
 					top1  += util.top1_accuracy(output, label) * B
 					inset += util.inset_accuracy(output, distr) * B
 					wacc  += util.weighted_accuracy(output, distr) * B
-					if not last_iter:
-						break
+					if not last_iter: break
 				module.train()
 				
-				log['top-1'].append(top1/N)
-				log['in set'].append(inset/N)
-				log['weighted'].append(wacc/N)
-				[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
+				logger.log(
+					top_1    = top1/N,
+					in_set   = inset/N,
+					weighted = wacc/N
+				)
+				logger.print(exclude=['time', 'epoch'])
 
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
 			print('Module saved')
-		with open(LOG_FILENAME, 'w') as fd:
-			json.dump(log, fd)
 
-	total = clock.read()
-	print('End of training. It took {} seconds'.format(total))
+		logger.save(LOG_FILENAME)
+
+	print('End of training. It took {} seconds'.format(clock.read()))
