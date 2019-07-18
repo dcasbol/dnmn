@@ -222,8 +222,8 @@ if __name__ == '__main__':
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
 			print('Module saved')
+		with open(LOG_FILENAME, 'w') as fd:
+			json.dump(log, fd)
 
 	total = clock.read()
 	print('End of training. It took {} seconds'.format(total))
-	with open(LOG_FILENAME,'w') as fd:
-		json.dump(log, fd, indent='\t')
