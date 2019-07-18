@@ -1,5 +1,6 @@
 import time
 import torch
+import argparse
 import torch.nn as nn
 import misc.util as util
 from model import NMN
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 	args = get_args()
 
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
-	FULL_NAME    = args.module + SUFFIX
+	FULL_NAME    = 'NMN' + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
 	PT_NEW       = FULL_NAME + '-new.pt'

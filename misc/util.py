@@ -12,7 +12,7 @@ def cudalize(*x):
 	return x[0] if len(x) == 1 else x
 
 def cudalize_dict(d, exclude=[]):
-	return { k : cudalize(v) for k, v in d.items() if k not in exclude }
+	return { k : cudalize(v) if k not in exclude else v for k, v in d.items() }
 
 def to_numpy(x):
 	return x.detach().cpu().numpy()
@@ -114,7 +114,7 @@ class Logger(object):
 		for key, values in self._log.items():
 			if key in exclude: continue
 			print(k, ':', vs[-1])
-			
+
 
 class Chronometer(object):
 
