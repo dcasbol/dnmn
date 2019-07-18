@@ -42,7 +42,12 @@ class VQADataset(Dataset):
 	def _get_features(self, datum):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
-		features = list(np.load(input_path).values())[0]
+		try:
+			features = list(np.load(input_path).values())[0]
+		except Exception as e:
+			print('Error while loading features.')
+			print('input_path:', input_path)
+			raise e
 		#features = (features - self._mean) / self._std
 		# Positive values make more sense for a conv without bias
 		features = features / (2*self._std)
