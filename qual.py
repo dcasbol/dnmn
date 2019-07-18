@@ -177,19 +177,20 @@ if __name__ == '__main__':
 			last_perc = perc
 
 			B = output.size(0)
+			inst_acc = util.top1_accuracy(pred, instance)
 			logger.log(
 				epoch = epoch + perc/100,
 				loss = loss.item()/B,
 				time = clock.read(),
 				mask_loss = mask_loss.item()/B,
 				util_loss = pred_loss.item()/B,
-				inst_acc = util.top1_accuracy(pred, instance)
+				inst_acc = inst_acc
 			)
 
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
 			ploss_a = mask_loss.item()/B
 			ploss_b = pred_loss.item()/B
-			ploss = 'mask: {}; pred: {}'.format(ploss_a, ploss_b)
+			ploss = 'mask: {}; pred: {}; acc: {}'.format(ploss_a, ploss_b, inst_acc)
 			print('{} {: 3d}% - {}'.format(tstr, perc, ploss))
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
@@ -222,8 +223,7 @@ if __name__ == '__main__':
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
 			print('Module saved')
-		with open(LOG_FILENAME, 'w') as fd:
-			json.dump(log, fd)
+		logger.save(LOG_FILENAME)
 
 	total = clock.read()
 	print('End of training. It took {} seconds'.format(total))
