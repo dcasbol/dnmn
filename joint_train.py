@@ -60,6 +60,8 @@ if __name__ == '__main__':
 		)
 
 	# TO DO: deal with restoring. Allow independent module restoration.
+	if args.restore:
+		nmn.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 
 	# L(x) = -y*log(x) -(1-y)*log(1-x)
 	def loss_fn(x, y):
@@ -134,7 +136,8 @@ if __name__ == '__main__':
 				logger.print(exclude=['time', 'epoch'])
 
 			if args.save:
-				assert False, 'TO DO'
+				torch.save(nmn.state_dict(), PT_NEW)
+				print('Model saved')
 
 			logger.save(LOG_FILENAME)
 

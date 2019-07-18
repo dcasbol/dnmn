@@ -10,7 +10,7 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
-from misc.util import cudalize, lookahead, Chronometer
+from misc.util import cudalize, lookahead, Logger, Chronometer
 from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX
 
@@ -26,7 +26,8 @@ class RevMask(nn.Module):
 		B,C,H,W = image.size()
 		image = image.view(B,C,-1)
 		mask = mask.view(B,1,-1)
-		attended = (mask*image).mean(2).view(B,C,1,1)
+		total = mask.sum(2)
+		attended = ((mask*image).sum(2) / (total + 1e-10)).view(B,C,1,1)
 		return self._classifier(attended).view(B,-1)
 
 	def loss(self, pred, instance):
@@ -124,12 +125,7 @@ if __name__ == '__main__':
 		kwargs['collate_fn'] = encoder_collate_fn
 	loader = DataLoader(dataset, **kwargs)
 
-	log = dict(epoch = list(), loss = list(), time = list())
-	log['mask loss'] = list()
-	log['util loss'] = list()
 	if args.validate:
-		for k in ['top-1', 'in set', 'weighted']:
-			log[k] = list()
 		valset = dict(
 			describe = VQADescribeDataset,
 			measure  = VQAMeasureDataset,
@@ -152,6 +148,7 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
+	logger = Logger()
 	clock = Chronometer()
 	last_perc = -1
 	for epoch in range(args.epochs):
@@ -177,17 +174,21 @@ if __name__ == '__main__':
 			# ---   end timed block   ---
 
 			if perc == last_perc and not last_iter: continue
-
 			last_perc = perc
-			log['epoch'].append(epoch + (i*args.batch_size)/len(dataset))
-			log['loss'].append(loss.item()/output.size(0))
-			log['time'].append(clock.read())
-			log['mask loss'].append(mask_loss.item()/output.size(0))
-			log['util loss'].append(pred_loss.item()/output.size(0))
+
+			B = output.size(0)
+			logger.log(
+				epoch = epoch + perc/100,
+				loss = loss.item()/B,
+				time = clock.read(),
+				mask_loss = mask_loss.item()/B,
+				util_loss = pred_loss.item()/B,
+				inst_acc = util.top1_accuracy(pred, instance)
+			)
 
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			ploss_a = mask_loss.item()/output.size(0)
-			ploss_b = pred_loss.item()/output.size(0)
+			ploss_a = mask_loss.item()/B
+			ploss_b = pred_loss.item()/B
 			ploss = 'mask: {}; pred: {}'.format(ploss_a, ploss_b)
 			print('{} {: 3d}% - {}'.format(tstr, perc, ploss))
 			if args.visualize > 0:
