@@ -19,9 +19,9 @@ def run_module(module, batch_data):
 	if isinstance(module, Find):
 		features, instance, label_str, input_set, input_id = batch_data
 		features, instance = cudalize(features, instance)
-		output, hmap = module[instance](features)
-		label = cudalize(torch.ones_like(output, dtype=torch.float))
-		result = dict(hmap=hmap, label_str=label_str, input_set=input_set, input_id=input_id)
+		output = module[instance](features)
+		label = None
+		result = dict(hmap=output, label_str=label_str, input_set=input_set, input_id=input_id)
 	elif isinstance(module, Describe):
 		mask, features, instance, label, distr = cudalize(*batch_data)
 		output = module[instance](mask, features)
@@ -91,8 +91,7 @@ if __name__ == '__main__':
 		dataset = VQAEncoderDataset()
 
 	if args.module == 'find':
-		loss_fn = nn.BCEWithLogitsLoss if args.competition == 'pre' else nn.BCELoss
-		loss_fn = loss_fn(reduction='sum')
+		loss_fn = lambda a, b: module.loss() # Pending adaptation of other modules
 	else:
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
 

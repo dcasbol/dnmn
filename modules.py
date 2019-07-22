@@ -31,36 +31,25 @@ class Find(InstanceModule):
 		super(Find, self).__init__()
 		
 		if mask_norm == 'auto':
-			if competition in ['softmax', 'relu-softmax']:
-				mask_norm = None
-			else:
-				mask_norm = 'sigmoid'
+			mask_norm = None if competition == 'softmax' else 'sigmoid'
 				
-		assert competition in {'pre', 'post', 'softmax', 'relu-softmax', None},\
+		assert competition in {'pre', 'post', 'softmax', None},\
 			"Invalid competition mode: {}".format(competition)
-		assert mask_norm in {'sigmoid', 'softsign', 'linear', 'euclidean', None},\
+		assert mask_norm in {'sigmoid', None},\
 			"Invalid normalization mode: {}".format(mask_norm)
 
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
 		self._normalize_fn = {
 			'sigmoid'   : torch.sigmoid,
-			'sofsign'   : nn.Softsign(),
-			'linear'    : lambda x: self._norm_linear(x),
-			'euclidean' : lambda x: self._norm_euclidean(x),
 			None        : lambda x: x
 		}[mask_norm]
-
-	def _norm_linear(self, hmap):
-		hmap -= hmap.min(1).values
-		vmax = hmap.max(1).values
-		mask /= torch.max(vmax, torch.ones_like(vmax)).values
-		return mask
-
-	def _norm_euclidean(self, hmap):
-		B,C,H,W = hmap.size()
-		norm = hmap.view(B,C,-1).pow(2).sum(2).sqrt() + 1e-10
-		return hmap / norm.view(B,C,1,1)
+		self._loss_func = {
+			'pre'     : nn.BCEWithLogitsLoss,
+			'post'    : nn.BCELoss,
+			'softmax' : nn.CrossEntropyLoss
+		}[competition](reduction = 'sum')
+		self._loss = None
 
 	def forward(self, features):
 		c = self._get_instance()
@@ -74,22 +63,22 @@ class Find(InstanceModule):
 				mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
 				mask_train = mask / (1. + mask_against)
 				mask_train = mask_train.view(B,-1).mean(1)
-				return mask_train, mask
-			elif self._competition in ['softmax', 'relu-softmax']:
-				if self._competition == 'relu-softmax':
-					h_all = h_all.relu()
-				sm_all = h_all.softmax(1)
-				sm_train = sm_all[B_idx, c].unsqueeze(1)
-				sm_train = sm_train.view(B,-1).mean(1)
-				mask = self._normalize_fn(h_all[B_idx, c].unsqueeze(1))
-				return sm_train, mask
-			else:
+				self._loss = self._loss_func(mask_train, torch.ones_like(mask_train))
+				return mask
+			elif self._competition == 'pre':
 				# This one should work better
 				h = h_all[B_idx, c].unsqueeze(1)
+				mask = torch.sigmoid(h)
 				h_against = (h_all.relu().sum(1, keepdim=True) - h.relu()) / (B-1)
 				h_train = (h-h_against).view(B,-1).mean(1)
-				mask = self._normalize_fn(h)
-				return h_train, mask
+				self._loss = self._loss_func(h_train, torch.ones_like(h_train))
+				return mask
+			elif self._competition == 'softmax':
+				h_all = h_all.relu()
+				mask  = h_all[B_idx, c].unsqueeze(1)
+				gap   = h_all.view(B,h_all.size(1),-1).mean(2)
+				self._loss = self._loss_func(gap, c)
+				return mask
 		else:
 			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
 			fs = features.unsqueeze(1).unbind(0)
@@ -97,6 +86,11 @@ class Find(InstanceModule):
 			masks = torch.sigmoid(maps)
 			return masks
 
+	def loss(self):
+		assert self._loss is not None, "Call to loss must be preceded by a forward call."
+		loss = self._loss
+		self._loss = None
+		return loss
 
 class Describe(InstanceModule):
 	""" From 1st NMN article: It first computes an average over image features
