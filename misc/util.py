@@ -113,7 +113,7 @@ class Logger(object):
 	def print(self, exclude=[]):
 		for key, values in self._log.items():
 			if key in exclude: continue
-			print(k, ':', vs[-1])
+			print(key, ':', values[-1])
 
 
 class Chronometer(object):
