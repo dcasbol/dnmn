@@ -27,6 +27,7 @@ class VQADataset(Dataset):
 		for name in set_names:
 			assert name in {'train2014', 'val2014', 'test2015'}, '{!r} is not a valid set'.format(name)
 		self._features = features
+		self._set_names = set_names
 
 		self._load_from_cache(set_names)
 		self._id_list = list(self._by_id.keys())
@@ -288,8 +289,9 @@ def encoder_collate_fn(data):
 
 class VQANMNDataset(VQADataset):
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, answers=True, **kwargs):
 		super(VQANMNDataset, self).__init__(*args, **kwargs, features=True)
+		self._skip_answers = 'test2015' in self._set_names or not answers
 
 	def __getitem__(self, i):
 		datum, features = super(VQANMNDataset, self).__getitem__(i)
@@ -300,26 +302,43 @@ class VQANMNDataset(VQADataset):
 		root_index = indices[0]
 
 		q = datum['question']
+		item = (q, len(q), is_yesno(q), features, root_index, find_indices)
+		if self._skip_answers:
+			return item + (datum['question_id'],)
+
 		label = majority_label(datum['answers'])
 		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 
-		return q, len(q), is_yesno(q), features, root_index, find_indices, label, distr
+		return item + (label, distr)
 
 def nmn_collate_fn(data):
 	""" Custom collate function for NMN model. Pads questions, computes answer
 	probability distribution and gives find-instance indices as tuples,
 	because nr of calls is variable."""
-	questions, lengths, yesno, features, root_idx, indices, label, distr = zip(*data)
+
+	unzipped = zip(*data)
+	has_labels = len(unzipped) == 8
+	questions, lengths, yesno, features, root_idx, indices = unzipped[:6]
+	if has_labels:
+		label, distr = unzipped[-2:]
+	else:
+		qids = unzipped[-1]
+
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
-	return dict(
+	batch = dict(
 		question  = torch.tensor(padded, dtype=torch.long).transpose(0,1),
 		length    = torch.tensor(lengths, dtype=torch.long),
 		yesno     = torch.tensor(yesno, dtype=torch.uint8),
 		features  = torch.tensor(features, dtype=torch.float),
 		find_inst = indices,
-		root_inst = torch.tensor(root_idx, dtype=torch.long),
-		label     = torch.tensor(label, dtype=torch.long),
-		distr     = torch.tensor(distr, dtype=torch.float)
+		root_inst = torch.tensor(root_idx, dtype=torch.long)
 	)
+	if has_labels:
+		batch['label'] = torch.tensor(label, dtype=torch.long)
+		batch['distr'] = torch.tensor(distr, dtype=torch.float)
+	else:
+		batch['question_id'] = qids
+
+	return batch
