@@ -1,11 +1,18 @@
 # coding: utf-8
 
+""" This script has been derived from the demo code provided at the official
+VQA github, and adapted to work seemlessly with our implementation. For the
+original code, see:
+https://github.com/GT-Vision-Lab/VQA/blob/master/PythonEvaluationTools/vqaEvalDemo.py
+"""
+
 import os
 import json
 import argparse
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='VQA evaluation script')
+parser.add_argument('set_name', type=str, choices=['train2014', 'val2014'])
 parser.add_argument('--vqa-dir', type=str, default='~/VQA')
 parser.add_argument('--data-dir', type=str, default='../data/vqa')
 args = parser.parse_args()
@@ -18,14 +25,8 @@ from vqa import VQA
 from vqaEvaluation.vqaEval import VQAEval
 
 dataDir = os.path.expanduser(args.data_dir)
-
-# set up file names and paths
-versionType ='v2_' # this should be '' when using VQA v2.0 dataset
-taskType    ='OpenEnded' # 'OpenEnded' only for v2.0. 'OpenEnded' or 'MultipleChoice' for v1.0
-dataType    ='mscoco'  # 'mscoco' only for v1.0. 'mscoco' for real and 'abstract_v002' for abstract for v1.0. 
-dataSubType ='train2014'
-annFile     ='%s/Annotations/%s%s_%s_annotations.json'%(dataDir, versionType, dataType, dataSubType)
-quesFile    ='%s/Questions/%s%s_%s_%s_questions.json'%(dataDir, versionType, taskType, dataType, dataSubType)
+annFile     ='%s/Annotations/mscoco_%s_annotations.json'%(dataDir, args.set_name)
+quesFile    ='%s/Questions/OpenEnded_mscoco_%s_questions.json'%(dataDir, args.set_name)
 resultType  ='fake'
 fileTypes   = ['results', 'accuracy', 'evalQA', 'evalQuesType', 'evalAnsType'] 
 

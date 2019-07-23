@@ -1,7 +1,12 @@
 __pycache__
-data
+data/vqa/Annotations
+data/vqa/Images
+data/vqa/Questions/*
 cache/*.dat
 envnmntorch
 *.npz
 *.jpg
 *.pt
+
+# sps2 files
+!*.sps2
