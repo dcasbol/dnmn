@@ -39,8 +39,7 @@ def run_module(module, batch_data):
 	if isinstance(module, Find):
 		features, instance, label_str, input_set, input_id = batch_data
 		features, instance = cudalize(features, instance)
-		hmap = module[instance](features)
-		output = hmap.view(hmap.size(0), -1).mean(1)
+		output, hmap = module[instance](features)
 		label = cudalize(torch.ones_like(output, dtype=torch.float))
 		result = dict(hmap=hmap, label_str=label_str, input_set=input_set, input_id=input_id)
 	elif isinstance(module, Describe):
@@ -99,7 +98,7 @@ if __name__ == '__main__':
 	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
 	if args.module == 'find':
-		module  = Find(competition=None)
+		module  = Find(competition='pre')
 		dataset = VQAFindDataset(metadata=True)
 	elif args.module == 'describe':
 		module  = Describe()
@@ -112,7 +111,8 @@ if __name__ == '__main__':
 		dataset = VQAEncoderDataset()
 
 	if args.module == 'find':
-		loss_fn = nn.BCELoss(reduction='sum')
+		loss_fn = nn.BCEWithLogitsLoss if args.competition == 'pre' else nn.BCELoss
+		loss_fn = loss_fn(reduction='sum')
 	else:
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
 
@@ -139,7 +139,8 @@ if __name__ == '__main__':
 	module = cudalize(module)
 	rev = cudalize(RevMask(module))
 
-	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
+	params = list(module.parameters()) + list(rev.parameters())
+	opt = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
@@ -166,7 +167,7 @@ if __name__ == '__main__':
 
 			pred_loss = rev.loss(pred, instance)
 			mask_loss = loss_fn(output, result['label'])
-			loss = pred_loss + mask_loss
+			loss = 0.5*pred_loss + mask_loss
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
