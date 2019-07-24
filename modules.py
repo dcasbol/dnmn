@@ -47,9 +47,15 @@ class Find(InstanceModule):
 		self._loss_func = {
 			'pre'     : nn.BCEWithLogitsLoss,
 			'post'    : nn.BCELoss,
-			'softmax' : nn.CrossEntropyLoss
+			'softmax' : nn.CrossEntropyLoss,
+			None      : lambda reduction: None
 		}[competition](reduction = 'sum')
 		self._loss = None
+
+	def _cross_entropy(x, y):
+		# L(x) = -y*log(x) -(1-y)*log(1-x)
+		x = x[torch.arange(x.size(0)), y]
+		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
 
 	def forward(self, features):
 		c = self._get_instance()

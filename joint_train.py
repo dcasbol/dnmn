@@ -63,13 +63,13 @@ if __name__ == '__main__':
 	if args.restore:
 		nmn.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 
-	# L(x) = -y*log(x) -(1-y)*log(1-x)
-	def loss_fn(x, y):
-		x = x[torch.arange(x.size(0)), y]
-		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
-
 	nmn = cudalize(nmn)
 	opt = torch.optim.Adam(nmn.parameters(), lr=1e-3, weight_decay=1e-4)
+
+	def cross_entropy(x, y):
+		# L(x) = -y*log(x) -(1-y)*log(1-x)
+		x = x[torch.arange(x.size(0)), y]
+		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
 
 	# --------------------
 	# ---   Training   ---
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 			# ---   begin timed block   ---
 			clock.start()
 			pred = nmn(*nmn_data)
-			loss = loss_fn(pred, batch_dict['label'])
+			loss = cross_entropy(pred, batch_dict['label'])
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -116,8 +116,9 @@ if __name__ == '__main__':
 
 				nmn.eval()
 				for batch_dict in val_loader:
-					batch_dict = cudalize_dict(batch_dict)
-					pred  = get_nmn_data(batch_dict)
+					batch_dict = cudalize_dict(batch_dict, exclude=['find_inst'])
+					nmn_data  = get_nmn_data(batch_dict)
+					pred = nmn(*nmn_data)
 					label = batch_dict['label']
 					distr = batch_dict['distr']
 					B = label.size(0)
@@ -135,10 +136,10 @@ if __name__ == '__main__':
 				)
 				logger.print(exclude=['time', 'epoch'])
 
-			if args.save:
-				torch.save(nmn.state_dict(), PT_NEW)
-				print('Model saved')
+		if args.save:
+			torch.save(nmn.state_dict(), PT_NEW)
+			print('Model saved')
 
-			logger.save(LOG_FILENAME)
+		logger.save(LOG_FILENAME)
 
 	print('End of training. It took {} seconds'.format(clock.read()))
