@@ -316,7 +316,7 @@ def nmn_collate_fn(data):
 	probability distribution and gives find-instance indices as tuples,
 	because nr of calls is variable."""
 
-	unzipped = zip(*data)
+	unzipped = list(zip(*data))
 	has_labels = len(unzipped) == 8
 	questions, lengths, yesno, features, root_idx, indices = unzipped[:6]
 	if has_labels:

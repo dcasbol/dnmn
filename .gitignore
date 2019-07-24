@@ -1,7 +1,12 @@
 __pycache__
+
+# Data directory and cache files
 data
 cache/*.dat
-envnmntorch
 *.npz
-*.jpg
+
+# PyTorch files
 *.pt
+
+# Virtual Environments
+env*/

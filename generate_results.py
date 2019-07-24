@@ -4,6 +4,7 @@ from model import NMN
 from vqa import VQANMNDataset, nmn_collate_fn
 from misc.util import cudalize, cudalize_dict, max_divisor_batch_size, to_numpy
 from misc.indices import ANSWER_INDEX
+from torch.utils.data import DataLoader
 
 
 def get_nmn_data(batch_dict):

@@ -2,7 +2,8 @@ numpy
 torchvision
 Pillow                # Mostly visualization and img loading
 sexpdata              # S-Expressions for parsing
-matplotlib            # Visualization & Plotting
+matplotlib            # Visualization & Plotting. Install for python2 too.
 tensorflow-gpu==1.2.0 # Only for img_to_features.py
 keras                 # Only for img_to_features.py
+
 
