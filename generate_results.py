@@ -5,19 +5,24 @@ from vqa import VQANMNDataset, nmn_collate_fn
 from misc.util import cudalize, cudalize_dict, max_divisor_batch_size, to_numpy
 from misc.indices import ANSWER_INDEX
 
+
+def get_nmn_data(batch_dict):
+	keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
+	return [ batch_dict[k] for k in keys ]
+
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description="""
 		Generate test results for a NMN (json file).
 		User must provide either the file for the whole NMN or the file for each module.
 		""")
-	parser.add_argument('set_name', choices=['train2014', 'val2014', 'train2015'])
+	parser.add_argument('set_name', choices=['train2014', 'val2014', 'test2015'])
 	parser.add_argument('--encoder')
 	parser.add_argument('--find')
 	parser.add_argument('--describe')
 	parser.add_argument('--measure')
 	parser.add_argument('--nmn')
-	parser.add_argument('--output', type=str, default='results.json')
+	parser.add_argument('--output', default='results.json')
 	args = parser.parse_args()
 
 	modules = ['encoder', 'find', 'describe', 'measure']
@@ -51,7 +56,8 @@ if __name__ == '__main__':
 			print('\r{: 3d}%'.format(perc), end='')
 
 		batch_data = cudalize_dict(batch_data, exclude=['question_id', 'find_inst'])
-		answers = to_numpy(nmn(**batch_data).argmax(1))
+		nmn_data = get_nmn_data(batch_data)
+		answers = to_numpy(nmn(*nmn_data).argmax(1))
 
 		for qid, ans in zip(batch_data['question_id'], answers):
 			result = dict(
