@@ -45,14 +45,20 @@ class NMN(torch.nn.Module):
 
 		return (root_pred*enc_pred).sqrt()
 
-	def load(self, module_name, filename):
+	def load(self, filename):
+		self.load_state_dict(torch.load(filename, map_location='cpu'))
+
+	def save(self, filename):
+		torch.save(self.state_dict(), filename)
+
+	def load_module(self, module_name, filename):
 		assert module_name in {'find', 'describe', 'measure', 'encoder'}
 		name = '_'+module_name
 		module = getattr(self, name)
 		module.load_state_dict(torch.load(filename, map_location='cpu'))
 		setattr(self, name, cudalize(module))
 
-	def save(self, module_name, filename):
+	def save_module(self, module_name, filename):
 		assert module_name in {'find', 'describe', 'measure', 'encoder'}
 		module = getattr(self, '_'+module_name)
 		torch.save(module.state_dict(), filename)

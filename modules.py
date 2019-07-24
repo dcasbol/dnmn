@@ -72,7 +72,6 @@ class Find(InstanceModule):
 				self._loss = self._loss_func(mask_train, torch.ones_like(mask_train))
 				return mask
 			elif self._competition == 'pre':
-				# This one should work better
 				h = h_all[B_idx, c].unsqueeze(1)
 				mask = torch.sigmoid(h)
 				h_against = (h_all.relu().sum(1, keepdim=True) - h.relu()) / (B-1)
@@ -88,8 +87,7 @@ class Find(InstanceModule):
 		else:
 			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
 			fs = features.unsqueeze(1).unbind(0)
-			maps = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ])
-			masks = torch.sigmoid(maps)
+			masks = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ]).relu()
 			return masks
 
 	def loss(self):
