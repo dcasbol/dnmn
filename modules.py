@@ -85,9 +85,10 @@ class Find(InstanceModule):
 				self._loss = self._loss_func(gap, c)
 				return mask
 		else:
-			ks = self._conv.weight[c].unsqueeze(1).unbind(0)
-			fs = features.unsqueeze(1).unbind(0)
-			masks = torch.cat([ F.conv2d(f, k) for f, k in zip(fs, ks) ]).relu()
+			B,C,H,W = features.size()
+			ks = self._conv.weight[c]
+			fs = features.contiguous().view(1,B*C,H,W)
+			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W)
 			return masks
 
 	def loss(self):
