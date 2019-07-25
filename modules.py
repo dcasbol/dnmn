@@ -102,13 +102,14 @@ class Describe(InstanceModule):
 	weighted by the attention, then passes this averaged feature vector through
 	a single fully-connected layer. """
 
-	def __init__(self):
+	def __init__(self, normalized_attention=False):
 		super(Describe, self).__init__()
 		self._descr = list()
 		for i in range(len(DESC_INDEX)):
 			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 			setattr(self, '_descr_%d' % i, layer)
 			self._descr.append(layer)
+		self._norm = not normalized_attention
 
 	def forward(self, mask, features):
 		B,C,H,W = features.size()
@@ -116,7 +117,10 @@ class Describe(InstanceModule):
 		# Attend
 		feat_flat = features.view(B,C,-1)
 		mask_norm = mask.view(B,1,-1)
-		attended = (mask_norm*feat_flat).mean(2)
+		if self._norm:
+			mask_norm -= mask_norm.min(2, keepdim=True).values
+			mask_norm /= mask_norm.max(2, keepdim=True).values + 1e-10
+		attended = (mask_norm*feat_flat).sum(2) / mask_norm.sum(2)
 
 		# Describe
 		attended = attended.unsqueeze(1).unbind(0)

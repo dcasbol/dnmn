@@ -8,7 +8,7 @@ class NMN(torch.nn.Module):
 	def __init__(self):
 		super(NMN, self).__init__()
 		self._find = Find(competition=None)
-		self._describe = Describe()
+		self._describe = Describe(normalized_attention=False)
 		self._measure = Measure()
 		self._encoder = QuestionEncoder()
 
@@ -43,7 +43,7 @@ class NMN(torch.nn.Module):
 		root_pred = root_pred.softmax(1)
 		enc_pred = self._encoder(question, length).softmax(1)
 
-		return (root_pred*enc_pred).sqrt()
+		return (root_pred*enc_pred + 1e-30).sqrt()
 
 	def load(self, filename):
 		self.load_state_dict(torch.load(filename, map_location='cpu'))

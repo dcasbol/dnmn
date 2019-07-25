@@ -69,7 +69,8 @@ if __name__ == '__main__':
 	def cross_entropy(x, y):
 		# L(x) = -y*log(x) -(1-y)*log(1-x)
 		x = x[torch.arange(x.size(0)), y]
-		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+		ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+		return ce
 
 	# --------------------
 	# ---   Training   ---
@@ -87,11 +88,12 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
-			pred = nmn(*nmn_data)
-			loss = cross_entropy(pred, batch_dict['label'])
-			opt.zero_grad()
-			loss.backward()
-			opt.step()
+			with torch.autograd.detect_anomaly():
+				pred = nmn(*nmn_data)
+				loss = cross_entropy(pred, batch_dict['label'])
+				opt.zero_grad()
+				loss.backward()
+				opt.step()
 			clock.stop()
 			# ---   end timed block   ---
 
