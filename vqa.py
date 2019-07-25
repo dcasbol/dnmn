@@ -151,7 +151,8 @@ class VQAFindDataset(VQADataset):
 		for i, qid in enumerate(self._id_list):
 
 			q = self._by_id[qid]
-			if filter_data and set(q['answers']).issubset(NEG_ANSWERS):
+			#if filter_data and set(q['answers']).issubset(NEG_ANSWERS):
+			if filter_data and len(set(q['answers']).intersection(NEG_ANSWERS)) > 0:
 				n_filtered += 1
 				continue
 
