@@ -141,9 +141,17 @@ class VQADataset(Dataset):
 
 class VQAFindDataset(VQADataset):
 
-	def __init__(self, *args, filter_data=True, metadata=False, **kwargs):
+	def __init__(self, *args, filter_data=True, metadata=False, 
+		filtering='majority', **kwargs):
 		super(VQAFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
+
+		assert filtering in ['majority', 'all', 'any'], "Invalid filtering mode {!r}".format(filtering)
+		filter_op = dict(
+			majority = lambda ans: majority_label(ans) in NEG_ANSWERS,
+			all      = lambda ans: set(ans).issubset(NEG_ANSWERS),
+			any      = lambda ans: len(set(ans).intersection(NEG_ANSWERS)) > 0
+		)[filtering]
 
 		self._imap = list()
 		self._tmap = list()
@@ -151,8 +159,7 @@ class VQAFindDataset(VQADataset):
 		for i, qid in enumerate(self._id_list):
 
 			q = self._by_id[qid]
-			#if filter_data and set(q['answers']).issubset(NEG_ANSWERS):
-			if filter_data and len(set(q['answers']).intersection(NEG_ANSWERS)) > 0:
+			if filter_data and filter_op(q['answers']):
 				n_filtered += 1
 				continue
 
