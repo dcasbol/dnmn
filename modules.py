@@ -79,7 +79,6 @@ class Find(InstanceModule):
 				self._loss = self._loss_func(h_train, torch.ones_like(h_train))
 				return mask
 			elif self._competition == 'softmax':
-				h_all = h_all.relu()
 				mask  = h_all[B_idx, c].unsqueeze(1)
 				gap   = h_all.view(B,h_all.size(1),-1).mean(2)
 				self._loss = self._loss_func(gap, c)
