@@ -14,13 +14,13 @@ def get_args():
 	parser = argparse.ArgumentParser(description='Train NMN jointly')
 	parser.add_argument('--epochs', type=int, default=1,
 		help='Max. training epochs')
-	parser.add_argument('--batch-size', type=int, default=128)
+	parser.add_argument('--batch-size', type=int, default=512)
 	parser.add_argument('--restore', action='store_true')
 	parser.add_argument('--save', action='store_true')
 	parser.add_argument('--suffix', type=str, default='',
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
-	parser.add_argument('--wd', type=float, default=1e-4, help='Weight decay')
+	parser.add_argument('--wd', type=float, default=1e-2, help='Weight decay')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
@@ -59,12 +59,11 @@ if __name__ == '__main__':
 			collate_fn = nmn_collate_fn
 		)
 
-	# TO DO: deal with restoring. Allow independent module restoration.
 	if args.restore:
 		nmn.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 
 	nmn = cudalize(nmn)
-	opt = torch.optim.Adam(nmn.parameters(), lr=1e-3, weight_decay=1e-4)
+	opt = torch.optim.Adam(nmn.parameters(), lr=args.lr, weight_decay=args.wd)
 
 	def cross_entropy(x, y):
 		# L(x) = -y*log(x) -(1-y)*log(1-x)

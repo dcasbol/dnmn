@@ -289,10 +289,12 @@ def encoder_collate_fn(data):
 	questions, lengths, labels, distrs = zip(*data)
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
-	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
-	lengths   = torch.tensor(lengths, dtype=torch.long)
-	labels    = torch.tensor(labels, dtype=torch.long)
-	distrs    = torch.tensor(distrs, dtype=torch.float)
+	to_tens = lambda x, t: torch.tensor(x,
+		dtype=getattr(torch, t), requires_grad=False)
+	questions = to_tens(padded, 'long').transpose(0,1)
+	lengths   = to_tens(lengths, 'long')
+	labels    = to_tens(labels, 'long')
+	distrs    = to_tens(distrs, 'float')
 	return questions, lengths, labels, distrs
 
 class VQANMNDataset(VQADataset):
@@ -335,17 +337,19 @@ def nmn_collate_fn(data):
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
+	to_tens = lambda x, t: torch.tensor(x,
+		dtype=getattr(torch, t), requires_grad=False)
 	batch = dict(
-		question  = torch.tensor(padded, dtype=torch.long).transpose(0,1),
-		length    = torch.tensor(lengths, dtype=torch.long),
-		yesno     = torch.tensor(yesno, dtype=torch.uint8),
-		features  = torch.tensor(features, dtype=torch.float),
+		question  = to_tens(padded, 'long').transpose(0,1),
+		length    = to_tens(lengths, 'long'),
+		yesno     = to_tens(yesno, 'uint8'),
+		features  = to_tens(features, 'float'),
 		find_inst = indices,
-		root_inst = torch.tensor(root_idx, dtype=torch.long)
+		root_inst = to_tens(root_idx, 'long')
 	)
 	if has_labels:
-		batch['label'] = torch.tensor(label, dtype=torch.long)
-		batch['distr'] = torch.tensor(distr, dtype=torch.float)
+		batch['label'] = to_tens(label, 'long')
+		batch['distr'] = to_tens(distr, 'float')
 	else:
 		batch['question_id'] = qids
 

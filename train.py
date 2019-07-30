@@ -14,6 +14,7 @@ from misc.util import cudalize, lookahead, Logger, Chronometer
 from misc.visualization import MapVisualizer
 
 
+
 def run_module(module, batch_data):
 	result = dict()
 	if isinstance(module, Find):
@@ -45,7 +46,7 @@ def get_args():
 	parser.add_argument('module', choices=['find', 'describe', 'measure', 'encoder'])
 	parser.add_argument('--epochs', type=int, default=1,
 		help='Max. training epochs')
-	parser.add_argument('--batch-size', type=int, default=128)
+	parser.add_argument('--batch-size', type=int, default=512)
 	parser.add_argument('--restore', action='store_true')
 	parser.add_argument('--save', action='store_true',
 		help='Save the module after every epoch.')
@@ -53,10 +54,10 @@ def get_args():
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
-	parser.add_argument('--wd', type=float, default=1e-4, help='Weight decay')
-	parser.add_argument('--competition', choices=['post', 'pre', 'softmax', 'relu-softmax'],
-		default='pre',
-		help='(find) Use division competition after sigmoid (post) or substraction before (pre)')
+	parser.add_argument('--wd', type=float, default=1e-2, help='Weight decay')
+	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'],
+		default='softmax',
+		help='(find) Activation competition: pre/post sigmoidal or ReLU+softmax.')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
@@ -91,7 +92,7 @@ if __name__ == '__main__':
 		dataset = VQAEncoderDataset()
 
 	if args.module == 'find':
-		loss_fn = lambda a, b: module.loss() # Pending adaptation of other modules
+		loss_fn = lambda a, b: module.loss()
 	else:
 		loss_fn =  nn.CrossEntropyLoss(reduction='sum')
 

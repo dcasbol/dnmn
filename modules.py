@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX
+from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
 from misc.util import to_numpy
 
@@ -27,23 +27,14 @@ class InstanceModule(nn.Module):
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self, competition='pre', mask_norm='auto'):
+	def __init__(self, competition):
 		super(Find, self).__init__()
-		
-		if mask_norm == 'auto':
-			mask_norm = None if competition == 'softmax' else 'sigmoid'
 				
 		assert competition in {'pre', 'post', 'softmax', None},\
 			"Invalid competition mode: {}".format(competition)
-		assert mask_norm in {'sigmoid', None},\
-			"Invalid normalization mode: {}".format(mask_norm)
 
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._competition = competition
-		self._normalize_fn = {
-			'sigmoid'   : torch.sigmoid,
-			None        : lambda x: x
-		}[mask_norm]
 		self._loss_func = {
 			'pre'     : nn.BCEWithLogitsLoss,
 			'post'    : nn.BCELoss,
@@ -51,11 +42,6 @@ class Find(InstanceModule):
 			None      : lambda reduction: None
 		}[competition](reduction = 'sum')
 		self._loss = None
-
-	def _cross_entropy(x, y):
-		# L(x) = -y*log(x) -(1-y)*log(1-x)
-		x = x[torch.arange(x.size(0)), y]
-		return -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
 
 	def forward(self, features):
 		c = self._get_instance()
@@ -116,11 +102,11 @@ class Describe(InstanceModule):
 
 		# Attend
 		feat_flat = features.view(B,C,-1)
-		mask_norm = mask.view(B,1,-1)
+		mask = mask.view(B,1,-1)
 		if self._norm:
-			mask_norm -= mask_norm.min(2, keepdim=True).values
-			mask_norm /= mask_norm.max(2, keepdim=True).values + 1e-10
-		attended = (mask_norm*feat_flat).sum(2) / mask_norm.sum(2)
+			mask -= mask.min(2, keepdim=True).values
+			mask /= mask.max(2, keepdim=True).values + 1e-10
+		attended = (mask*feat_flat).sum(2) / (mask.sum(2) + 1e-10)
 
 		# Describe
 		attended = attended.unsqueeze(1).unbind(0)
@@ -160,7 +146,8 @@ class QuestionEncoder(nn.Module):
 
 	def __init__(self):
 		super(QuestionEncoder, self).__init__()
-		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS)
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS,
+			padding_idx=NULL_ID, scale_grad_by_freq=True)
 		self._lstm = nn.LSTM(HIDDEN_UNITS, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 
