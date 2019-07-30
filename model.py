@@ -8,7 +8,7 @@ class NMN(torch.nn.Module):
 	def __init__(self):
 		super(NMN, self).__init__()
 		self._find = Find(competition=None)
-		self._describe = Describe(normalized_attention=False)
+		self._describe = Describe(normalize_attention=False)
 		self._measure = Measure()
 		self._encoder = QuestionEncoder()
 

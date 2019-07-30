@@ -74,7 +74,7 @@ class Find(InstanceModule):
 			B,C,H,W = features.size()
 			ks = self._conv.weight[c]
 			fs = features.contiguous().view(1,B*C,H,W)
-			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W)
+			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W).relu()
 			return masks
 
 	def loss(self):
@@ -88,14 +88,14 @@ class Describe(InstanceModule):
 	weighted by the attention, then passes this averaged feature vector through
 	a single fully-connected layer. """
 
-	def __init__(self, normalized_attention=False):
+	def __init__(self, normalize_attention=False):
 		super(Describe, self).__init__()
 		self._descr = list()
 		for i in range(len(DESC_INDEX)):
 			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 			setattr(self, '_descr_%d' % i, layer)
 			self._descr.append(layer)
-		self._norm = not normalized_attention
+		self._norm = normalize_attention
 
 	def forward(self, mask, features):
 		B,C,H,W = features.size()
@@ -147,7 +147,7 @@ class QuestionEncoder(nn.Module):
 	def __init__(self):
 		super(QuestionEncoder, self).__init__()
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS,
-			padding_idx=NULL_ID, scale_grad_by_freq=True)
+			padding_idx=NULL_ID)
 		self._lstm = nn.LSTM(HIDDEN_UNITS, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 
