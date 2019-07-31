@@ -146,7 +146,7 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc and not last_iter: continue
+			if perc == last_perc: continue #and not last_iter: continue
 			last_perc = perc
 
 			mean_loss = loss.item()/output.size(0)
@@ -178,7 +178,7 @@ if __name__ == '__main__':
 					top1  += util.top1_accuracy(output, label) * B
 					inset += util.inset_accuracy(output, distr) * B
 					wacc  += util.weighted_accuracy(output, distr) * B
-					if not last_iter: break
+					break #if not last_iter: break
 				module.train()
 				
 				logger.log(
