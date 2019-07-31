@@ -84,8 +84,6 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
 	parser.add_argument('find_module', type=str)
-	parser.add_argument('mask_norm', choices=['sigmoid', 'softsign', 'none'],
-		help="How the mask is normalized.")
 	parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='train2014')
 	parser.add_argument('--adjust-batch', action='store_true',
 		help="Adjust batch size to avoid a smaller final batch")
@@ -106,7 +104,7 @@ if __name__ == '__main__':
 		print('Bad luck! Batch size set to default:', batch_size)
 
 	mask_norm = args.mask_norm if args.mask_norm != 'none' else None
-	find = Find(mask_norm=mask_norm)
+	find = Find(competition=None)
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
 	find = cudalize(find)
