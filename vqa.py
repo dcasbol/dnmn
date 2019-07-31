@@ -222,7 +222,7 @@ class VQARootModuleDataset(VQADataset):
 			new_id_list = list()
 			for qid in self._id_list:
 				if is_yesno(self._by_id[qid]['question']) == yesno_questions:
-					new_id_list.append(did)
+					new_id_list.append(qid)
 			self._id_list = new_id_list
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 

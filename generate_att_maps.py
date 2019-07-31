@@ -92,7 +92,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	if not args.skip_existing:
-		assert not os.path.exists('./cache/hmaps/'),\
+		assert not os.path.exists('./cache/hmaps/' + args.dataset),\
 			"Please remove cache/hmaps dir before proceeding."
 
 	dataset = VQAFindDataset(set_names=args.dataset, filter_data=False, metadata=True)
