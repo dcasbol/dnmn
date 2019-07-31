@@ -96,7 +96,7 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc and not last_iter: continue
+			if perc == last_perc: continue #and not last_iter: continue
 			last_perc = perc
 
 			mean_loss = loss.item()/batch_dict['label'].size(0)
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 					top1  += util.top1_accuracy(pred, label) * B
 					inset += util.inset_accuracy(pred, distr) * B
 					wacc  += util.weighted_accuracy(pred, distr) * B
-					if not last_iter: break
+					break #if not last_iter: break
 				nmn.train()
 
 				logger.log(
