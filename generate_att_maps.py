@@ -103,7 +103,6 @@ if __name__ == '__main__':
 		batch_size = DEFAULT_BATCH_SIZE
 		print('Bad luck! Batch size set to default:', batch_size)
 
-	mask_norm = args.mask_norm if args.mask_norm != 'none' else None
 	find = Find(competition=None)
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
