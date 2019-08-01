@@ -7,6 +7,7 @@ from model import NMN
 from vqa import VQANMNDataset, nmn_collate_fn
 from torch.utils.data import DataLoader
 from misc.util import cudalize, cudalize_dict, lookahead, Logger, Chronometer
+from misc.constants import *
 
 
 def get_args():
@@ -54,7 +55,7 @@ if __name__ == '__main__':
 	if args.validate:
 		valset = VQANMNDataset(set_names = 'val2014')
 		val_loader = DataLoader(valset,
-			batch_size = 100,
+			batch_size = VAL_BATCH_SIZE,
 			shuffle    = False,
 			collate_fn = nmn_collate_fn
 		)

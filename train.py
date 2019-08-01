@@ -112,7 +112,7 @@ if __name__ == '__main__':
 			encoder  = VQAEncoderDataset,
 		)[args.module](set_names='val2014')
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
-		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
+		val_loader = DataLoader(valset, batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
 
 	if args.restore:
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
