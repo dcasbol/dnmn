@@ -110,6 +110,12 @@ class Logger(object):
 		with open(filename, 'w') as fd:
 			json.dump(self._log, fd)
 
+	def load(self, filename):
+		with open(filename, 'r') as fd:
+			prev_log = json.load(fd)
+			for key, values in prev_log.items():
+				self._log[key].extend(values)
+
 	def print(self, exclude=[]):
 		for key, values in self._log.items():
 			if key in exclude: continue

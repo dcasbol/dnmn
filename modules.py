@@ -146,9 +146,9 @@ class QuestionEncoder(nn.Module):
 
 	def __init__(self):
 		super(QuestionEncoder, self).__init__()
-		self._wemb = nn.Embedding(len(QUESTION_INDEX), HIDDEN_UNITS,
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE,
 			padding_idx=NULL_ID)
-		self._lstm = nn.LSTM(HIDDEN_UNITS, HIDDEN_UNITS)
+		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 
 	def forward(self, question, length):
