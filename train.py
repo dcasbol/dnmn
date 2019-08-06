@@ -55,6 +55,7 @@ def get_args():
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
 	parser.add_argument('--wd', type=float, default=1e-2, help='Weight decay')
+	parser.add_argument('--dropout', action='store_true')
 	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'],
 		default='softmax',
 		help='(find) Activation competition: pre/post sigmoidal or ReLU+softmax.')
@@ -88,7 +89,7 @@ if __name__ == '__main__':
 		module  = Measure()
 		dataset = VQAMeasureDataset()
 	else:
-		module  = QuestionEncoder()
+		module  = QuestionEncoder(dropout=args.dropout)
 		dataset = VQAEncoderDataset()
 
 	if args.module == 'find':
@@ -115,9 +116,11 @@ if __name__ == '__main__':
 		val_loader = DataLoader(valset, batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
 
 	logger = Logger()
+	clock  = Chronometer()
 	if args.restore:
 		logger.load(LOG_FILENAME)
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
+		clock._t0 = logger._log['time'][-1]
 	module = cudalize(module)
 	first_epoch = int(logger._log['epoch'][-1] + 0.5) if args.restore else 0
 
@@ -129,7 +132,6 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
-	clock = Chronometer()
 	last_perc = -1
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)

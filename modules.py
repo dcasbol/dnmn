@@ -150,15 +150,19 @@ class Measure(InstanceModule):
 
 class QuestionEncoder(nn.Module):
 
-	def __init__(self):
+	def __init__(self, dropout=False):
 		super(QuestionEncoder, self).__init__()
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE,
 			padding_idx=NULL_ID)
 		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+		self._dropout = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
+		}[dropout]
 
 	def forward(self, question, length):
 		B = length.size(0)
 		embed = self._wemb(question)
 		hidden = self._lstm(embed)[0][length-1, torch.arange(B)]
-		return self._final(hidden)
+		return self._final(self._dropout(hidden))
