@@ -27,9 +27,9 @@ class InstanceModule(nn.Module):
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self, competition):
+	def __init__(self, competition, dropout=False):
 		super(Find, self).__init__()
-				
+
 		assert competition in {'pre', 'post', 'softmax', None},\
 			"Invalid competition mode: {}".format(competition)
 
@@ -42,13 +42,19 @@ class Find(InstanceModule):
 			None      : lambda reduction: None
 		}[competition](reduction = 'sum')
 		self._loss = None
+		self._dropout = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
+		}[dropout]
 
 	def forward(self, features):
 		c = self._get_instance()
 		B = c.size(0)
 		if self.training and self._competition is not None:
 			B_idx = torch.arange(B)
-			h_all = self._conv(features)
+			features = self._dropout(features)
+			kernel = self._dropout(self._conv.weight)
+			h_all = F.conv2d(features, kernel)
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(h_all)
 				mask = mask_all[B_idx, c].unsqueeze(1)
@@ -72,8 +78,8 @@ class Find(InstanceModule):
 				return mask
 		else:
 			B,C,H,W = features.size()
-			ks = self._conv.weight[c]
-			fs = features.contiguous().view(1,B*C,H,W)
+			ks = self._dropout(self._conv.weight[c])
+			fs = self._dropout(features.contiguous().view(1,B*C,H,W))
 			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W).relu()
 			return masks
 
@@ -125,9 +131,9 @@ class Measure(InstanceModule):
 		self._measure = list()
 		for i in range(len(DESC_INDEX)):
 			layers =  nn.Sequential(
-				nn.Linear(MASK_WIDTH**2, HIDDEN_UNITS),
+				nn.Linear(MASK_WIDTH**2, HIDDEN_SIZE),
 				nn.ReLU(),
-				nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+				nn.Linear(HIDDEN_SIZE, len(ANSWER_INDEX))
 			)
 			setattr(self, '_measure_%d' % i, layers)
 			self._measure.append(layers)

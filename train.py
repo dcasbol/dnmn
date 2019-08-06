@@ -119,7 +119,7 @@ if __name__ == '__main__':
 		logger.load(LOG_FILENAME)
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 	module = cudalize(module)
-	first_epoch = int(logger._log['epoch'][-1] + 0.5)
+	first_epoch = int(logger._log['epoch'][-1] + 0.5) if args.restore else 0
 
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
 
