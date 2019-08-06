@@ -22,6 +22,7 @@ def get_args():
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
 	parser.add_argument('--wd', type=float, default=1e-2, help='Weight decay')
+	parser.add_argument('--dropout', action='store_true')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
@@ -43,7 +44,7 @@ if __name__ == '__main__':
 	PT_RESTORE   = FULL_NAME + '.pt'
 	PT_NEW       = FULL_NAME + '-new.pt'
 
-	nmn = NMN()
+	nmn = NMN(dropout=args.dropout)
 
 	dataset = VQANMNDataset()
 	loader = DataLoader(dataset,
@@ -60,8 +61,14 @@ if __name__ == '__main__':
 			collate_fn = nmn_collate_fn
 		)
 
+	logger = Logger()
+	clock = Chronometer()
+	first_epoch = 0
 	if args.restore:
 		nmn.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
+		logger.load(LOG_FILENAME)
+		clock._t0 = logger._log['time'][-1]
+		first_epoch = int(logger._log['epoch'][-1] + 0.5)
 
 	nmn = cudalize(nmn)
 	opt = torch.optim.Adam(nmn.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -75,10 +82,8 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
-	logger = Logger()
-	clock = Chronometer()
 	last_perc = -1
-	for epoch in range(args.epochs):
+	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		for (i, batch_dict), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)

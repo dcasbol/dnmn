@@ -8,9 +8,13 @@ from misc.util import to_numpy
 
 class InstanceModule(nn.Module):
 
-	def __init__(self):
+	def __init__(self, dropout=False):
 		super(InstanceModule, self).__init__()
 		self._instance = None
+		self._dropout = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
+		}[dropout]
 
 	def __getitem__(self, instance):
 		assert self._instance is None
@@ -27,8 +31,8 @@ class InstanceModule(nn.Module):
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
-	def __init__(self, competition, dropout=False):
-		super(Find, self).__init__()
+	def __init__(self, competition, **kwargs):
+		super(Find, self).__init__(**kwargs)
 
 		assert competition in {'pre', 'post', 'softmax', None},\
 			"Invalid competition mode: {}".format(competition)
@@ -42,10 +46,6 @@ class Find(InstanceModule):
 			None      : lambda reduction: None
 		}[competition](reduction = 'sum')
 		self._loss = None
-		self._dropout = {
-			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
-		}[dropout]
 
 	def forward(self, features):
 		c = self._get_instance()
@@ -94,8 +94,8 @@ class Describe(InstanceModule):
 	weighted by the attention, then passes this averaged feature vector through
 	a single fully-connected layer. """
 
-	def __init__(self, normalize_attention=False):
-		super(Describe, self).__init__()
+	def __init__(self, normalize_attention=False, **kwargs):
+		super(Describe, self).__init__(**kwargs)
 		self._descr = list()
 		for i in range(len(DESC_INDEX)):
 			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
@@ -105,6 +105,7 @@ class Describe(InstanceModule):
 
 	def forward(self, mask, features):
 		B,C,H,W = features.size()
+		features = self._dropout(features)
 
 		# Attend
 		feat_flat = features.view(B,C,-1)
@@ -113,6 +114,7 @@ class Describe(InstanceModule):
 			mask -= mask.min(2, keepdim=True).values
 			mask /= mask.max(2, keepdim=True).values + 1e-10
 		attended = (mask*feat_flat).sum(2) / (mask.sum(2) + 1e-10)
+		attended = self._dropout(attended)
 
 		# Describe
 		attended = attended.unsqueeze(1).unbind(0)
@@ -126,8 +128,8 @@ class Describe(InstanceModule):
 
 class Measure(InstanceModule):
 
-	def __init__(self):
-		super(Measure, self).__init__()
+	def __init__(self, **kwargs):
+		super(Measure, self).__init__(**kwargs)
 		self._measure = list()
 		for i in range(len(DESC_INDEX)):
 			layers =  nn.Sequential(
@@ -140,6 +142,7 @@ class Measure(InstanceModule):
 
 	def forward(self, mask):
 		B = mask.size(0)
+		mask = self._dropout(mask)
 		mask = mask.view(B, -1).unsqueeze(1).unbind(0)
 		instance = to_numpy(self._get_instance())
 		preds = list()
@@ -150,16 +153,12 @@ class Measure(InstanceModule):
 
 class QuestionEncoder(nn.Module):
 
-	def __init__(self, dropout=False):
-		super(QuestionEncoder, self).__init__()
+	def __init__(self, **kwargs):
+		super(QuestionEncoder, self).__init__(**kwargs)
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE,
 			padding_idx=NULL_ID)
 		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
-		self._dropout = {
-			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
-		}[dropout]
 
 	def forward(self, question, length):
 		B = length.size(0)

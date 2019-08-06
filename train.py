@@ -80,13 +80,13 @@ if __name__ == '__main__':
 	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
 	if args.module == 'find':
-		module  = Find(competition=args.competition)
+		module  = Find(competition=args.competition, dropout=args.dropout)
 		dataset = VQAFindDataset(metadata=True)
 	elif args.module == 'describe':
-		module  = Describe()
+		module  = Describe(dropout=args.dropout)
 		dataset = VQADescribeDataset()
 	elif args.module == 'measure':
-		module  = Measure()
+		module  = Measure(dropout=args.dropout)
 		dataset = VQAMeasureDataset()
 	else:
 		module  = QuestionEncoder(dropout=args.dropout)
@@ -117,12 +117,13 @@ if __name__ == '__main__':
 
 	logger = Logger()
 	clock  = Chronometer()
+	first_epoch = 0
 	if args.restore:
 		logger.load(LOG_FILENAME)
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
 		clock._t0 = logger._log['time'][-1]
+		first_epoch = int(logger._log['epoch'][-1] + 0.5)
 	module = cudalize(module)
-	first_epoch = int(logger._log['epoch'][-1] + 0.5) if args.restore else 0
 
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
 

@@ -1,19 +1,32 @@
 import torch
+import torch.nn.functional as F
 from misc.util import cudalize
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.indices import ANSWER_INDEX
 
 class NMN(torch.nn.Module):
 
-	def __init__(self):
+	def __init__(self, dropout=False):
 		super(NMN, self).__init__()
 		self._find = Find(competition=None)
 		self._describe = Describe(normalize_attention=False)
-		self._measure = Measure()
-		self._encoder = QuestionEncoder()
+		self._measure = Measure(dropout=dropout)
+		self._encoder = QuestionEncoder(dropout=dropout)
+
+		self._dropout = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
+		}
+		self._dropout2d = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout2d(x, p=0.5, training=self.training)
+		}
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
+		# 2d dropout is equivalent to dropout over 1x1 kernel
+		# Drop here to drop the same features for all modules
+		features = self._dropout2d(self._dropout(features))
 		features_list = features.unsqueeze(1).unbind(0)
 
 		maps = list()
