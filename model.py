@@ -16,11 +16,11 @@ class NMN(torch.nn.Module):
 		self._dropout = {
 			False : lambda x: x,
 			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
-		}
+		}[dropout]
 		self._dropout2d = {
 			False : lambda x: x,
 			True  : lambda x: F.dropout2d(x, p=0.5, training=self.training)
-		}
+		}[dropout]
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
