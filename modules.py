@@ -80,7 +80,9 @@ class Find(InstanceModule):
 			B,C,H,W = features.size()
 			ks = self._dropout(self._conv.weight[c])
 			fs = self._dropout(features.contiguous().view(1,B*C,H,W))
-			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W).relu()
+			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W)
+			if self._competition == 'softmax':
+				masks = masks.relu()
 			return masks
 
 	def loss(self):
