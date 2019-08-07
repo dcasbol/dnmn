@@ -6,9 +6,9 @@ from misc.indices import ANSWER_INDEX
 
 class NMN(torch.nn.Module):
 
-	def __init__(self, dropout=False):
+	def __init__(self, dropout=False, find_mode=None):
 		super(NMN, self).__init__()
-		self._find = Find(competition=None)
+		self._find = Find(competition=find_mode)
 		self._describe = Describe(normalize_attention=False)
 		self._measure = Measure(dropout=dropout)
 		self._encoder = QuestionEncoder(dropout=dropout)
