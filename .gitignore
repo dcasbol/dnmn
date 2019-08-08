@@ -3,7 +3,9 @@ __pycache__
 # Data directory and cache files
 data
 cache/*.dat
+cache/hmaps
 *.npz
+results
 
 # PyTorch files
 *.pt
