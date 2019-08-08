@@ -122,6 +122,9 @@ class Logger(object):
 			if key in exclude: continue
 			print(key, ':', values[-1])
 
+	def last(self, key):
+		return self._log[key][-1]
+
 
 class Chronometer(object):
 
@@ -132,6 +135,9 @@ class Chronometer(object):
 
 	def read(self):
 		return self._t + time() - self._t0 if self._running else self._t
+
+	def read_str(self):
+		return time.strftime('%H:%M:%S', time.localtime(self.read()))
 
 	def reset(self):
 		self._t = 0.
@@ -146,3 +152,27 @@ class Chronometer(object):
 		assert self._running, "Chronometer already stopped"
 		self._t += time() - self._t0
 		self._running = False
+
+	def set_t0(self, t0):
+		self._t0 = time()
+
+
+class PercentageCounter(object):
+
+	def __init__(self, batch_size, dataset_len):
+		self._last_perc   = -1
+		self._batch_size  = batch_size
+		self._dataset_len = dataset_len
+
+	def update(self, batch_idx):
+		perc = (batch_idx*self._batch_size*100)//self._dataset_len
+		if perc == last_perc:
+			return False
+		self._last_perc = perc
+		return True
+
+	def float(self):
+		return self._last_perc/100
+
+	def __repr__(self):
+		return '{: 3d}%'.format(self._last_perc)

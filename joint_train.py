@@ -6,7 +6,8 @@ import misc.util as util
 from model import NMN
 from vqa import VQANMNDataset, nmn_collate_fn
 from torch.utils.data import DataLoader
-from misc.util import cudalize, cudalize_dict, lookahead, Logger, Chronometer
+from misc.util import cudalize, cudalize_dict, lookahead
+from misc.util import Logger, Chronometer, PercentageCounter
 from misc.constants import *
 
 
@@ -61,14 +62,18 @@ if __name__ == '__main__':
 			collate_fn = nmn_collate_fn
 		)
 
-	logger = Logger()
-	clock = Chronometer()
+	logger    = Logger()
+	clock     = Chronometer()
+	raw_clock = Chronometer()
+	perc_cnt  = PercentageCounter(args.batch_size, len(dataset))
 	first_epoch = 0
+
 	if args.restore:
-		nmn.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
+		nmn.load(PT_RESTORE)
 		logger.load(LOG_FILENAME)
-		clock._t0 = logger._log['time'][-1]
-		first_epoch = int(logger._log['epoch'][-1] + 0.5)
+		clock.set_t0(logger.last('time'))
+		raw_clock.set_t0(logger.last('raw_time'))
+		first_epoch = int(logger.last('epoch') + 0.5)
 
 	nmn = cudalize(nmn)
 	opt = torch.optim.Adam(nmn.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -82,11 +87,10 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
-	last_perc = -1
+	raw_clock.start()
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		for (i, batch_dict), last_iter in lookahead(enumerate(loader)):
-			perc = (i*args.batch_size*100)//len(dataset)
 
 			batch_dict = cudalize_dict(batch_dict, exclude=['find_inst'])
 			nmn_data = get_nmn_data(batch_dict)
@@ -102,18 +106,19 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc: continue #and not last_iter: continue
-			last_perc = perc
+			if not perc_cnt.update(i): continue
 
 			mean_loss = loss.item()/batch_dict['label'].size(0)
 			logger.log(
-				epoch = epoch + perc/100,
-				loss  = mean_loss,
-				time  = clock.read()
+				raw_time = raw_clock.read(),
+				time     = clock.read(),
+				epoch    = epoch + perc_cnt.float(),
+				loss     = mean_loss
 			)
 
-			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			print('{} {: 3d}% - {}'.format(tstr, perc, mean_loss))
+			raw_tstr = raw_clock.read_str()
+			tstr     = clock.read_str()
+			print('{}/{} {} - {}'.format(raw_tstr, tstr, perc_cnt, mean_loss))
 
 			if args.visualize > 0:
 				assert False, 'TO DO'
@@ -133,7 +138,7 @@ if __name__ == '__main__':
 					top1  += util.top1_accuracy(pred, label) * B
 					inset += util.inset_accuracy(pred, distr) * B
 					wacc  += util.weighted_accuracy(pred, distr) * B
-					break #if not last_iter: break
+					break
 				nmn.train()
 
 				logger.log(
@@ -149,4 +154,5 @@ if __name__ == '__main__':
 
 		logger.save(LOG_FILENAME)
 
-	print('End of training. It took {} seconds'.format(clock.read()))
+	print('End of training. It took {} training seconds'.format(clock.read()))
+	print('{} seconds in total'.format(raw_clock.read()))

@@ -10,35 +10,48 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.constants import *
-from misc.util import cudalize, lookahead, Logger, Chronometer
+from misc.util import cudalize, lookahead, Logger, Chronometer, PercentageCounter
 from misc.visualization import MapVisualizer
 
 
+def run_find(module, batch_data):
+	features, instance, label_str, input_set, input_id = batch_data
+	features, instance = cudalize(features, instance)
+	output = module[instance](features)
+	return dict(
+		output    = output,
+		hmap      = output,
+		label_str = label_str,
+		input_set = input_set,
+		input_id  = input_id
+	)
 
-def run_module(module, batch_data):
-	result = dict()
-	if isinstance(module, Find):
-		features, instance, label_str, input_set, input_id = batch_data
-		features, instance = cudalize(features, instance)
-		output = module[instance](features)
-		label = None
-		result = dict(hmap=output, label_str=label_str, input_set=input_set, input_id=input_id)
-	elif isinstance(module, Describe):
-		mask, features, instance, label, distr = cudalize(*batch_data)
-		output = module[instance](mask, features)
-	elif isinstance(module, Measure):
-		mask, instance, label, distr = cudalize(*batch_data)
-		output = module[instance](mask)
-	else:
-		question, length, label, distr = cudalize(*batch_data)
-		output = module(question, length)
+def run_describe(module, batch_data):
+	mask, features, instance, label, distr = cudalize(*batch_data)
+	output = module[instance](mask, features)
+	return dict(
+		output = output,
+		label  = label,
+		distr  = distr
+	)
 
-	result['output'] = output
-	result['label']  = label
-	if not isinstance(module, Find):
-		result['distr'] = distr
-	return result
+def run_measure(module, batch_data):
+	mask, instance, label, distr = cudalize(*batch_data)
+	output = module[instance](mask)
+	return dict(
+		output = output,
+		label  = label,
+		distr  = distr
+	)
 
+def run_encoder(module, batch_data):
+	question, length, label, distr = cudalize(*batch_data)
+	output = module(question, length)
+	return dict(
+		output = output,
+		label  = label,
+		distr  = distr
+	)
 
 def get_args():
 
@@ -82,15 +95,19 @@ if __name__ == '__main__':
 	if args.module == 'find':
 		module  = Find(competition=args.competition, dropout=args.dropout)
 		dataset = VQAFindDataset(metadata=True)
+		run_module = run_find
 	elif args.module == 'describe':
 		module  = Describe(dropout=args.dropout)
 		dataset = VQADescribeDataset()
+		run_module = run_describe
 	elif args.module == 'measure':
 		module  = Measure(dropout=args.dropout)
 		dataset = VQAMeasureDataset()
+		run_module = run_measure
 	else:
 		module  = QuestionEncoder(dropout=args.dropout)
 		dataset = VQAEncoderDataset()
+		run_module = run_encoder
 
 	if args.module == 'find':
 		loss_fn = lambda a, b: module.loss()
@@ -115,16 +132,20 @@ if __name__ == '__main__':
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
 		val_loader = DataLoader(valset, batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
 
-	logger = Logger()
-	clock  = Chronometer()
+	logger    = Logger()
+	clock     = Chronometer()
+	raw_clock = Chronometer()
+	perc_cnt  = PercentageCounter(args.batch_size, len(dataset))
 	first_epoch = 0
+
 	if args.restore:
 		logger.load(LOG_FILENAME)
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
-		clock._t0 = logger._log['time'][-1]
-		first_epoch = int(logger._log['epoch'][-1] + 0.5)
-	module = cudalize(module)
+		clock.set_t0(logger.last('time'))
+		raw_clock.set_t0(logger.last('raw_time'))
+		first_epoch = int(logger.last('epoch') + 0.5)
 
+	module = cudalize(module)
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
@@ -133,11 +154,10 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
-	last_perc = -1
+	raw_clock.start()
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
-			perc = (i*args.batch_size*100)//len(dataset)
 
 			# ---   begin timed block   ---
 			clock.start()
@@ -151,18 +171,19 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc: continue #and not last_iter: continue
-			last_perc = perc
+			if not perc_cnt.update(i): continue
 
 			mean_loss = loss.item()/output.size(0)
 			logger.log(
-				epoch = epoch + perc/100,
-				loss  = mean_loss,
-				time  = clock.read()
+				raw_time = raw_clock.read(),
+				time     = clock.read(),
+				epoch    = epoch + perc_cnt.float(),
+				loss     = mean_loss
 			)
 
-			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			print('{} {: 3d}% - {}'.format(tstr, perc, mean_loss))
+			raw_tstr = raw_clock.read_str()
+			tstr     = clock.read_str()
+			print('{}/{} {} - {}'.format(raw_tstr, tstr, perc_cnt, mean_loss))
 
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
@@ -183,7 +204,7 @@ if __name__ == '__main__':
 					top1  += util.top1_accuracy(output, label) * B
 					inset += util.inset_accuracy(output, distr) * B
 					wacc  += util.weighted_accuracy(output, distr) * B
-					break #if not last_iter: break
+					break
 				module.train()
 				
 				logger.log(
@@ -191,7 +212,7 @@ if __name__ == '__main__':
 					in_set   = inset/N,
 					weighted = wacc/N
 				)
-				logger.print(exclude=['time', 'epoch'])
+				logger.print(exclude=['raw_time', 'time', 'epoch'])
 
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
@@ -199,4 +220,5 @@ if __name__ == '__main__':
 
 		logger.save(LOG_FILENAME)
 
-	print('End of training. It took {} seconds'.format(clock.read()))
+	print('End of training. It took {} training seconds'.format(clock.read()))
+	print('{} seconds in total'.format(raw_clock.read()))
