@@ -46,6 +46,7 @@ if __name__ == '__main__':
 		for name, filename in zip(modules, modules_fn):
 			nmn.load_module(name, filename)
 	nmn = cudalize(nmn)
+	nmn.eval()
 
 	result_list = list()
 
