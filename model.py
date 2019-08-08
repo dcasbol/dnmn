@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from misc.util import cudalize
+from misc.util import cudalize, DEVICE
 from modules import Find, Describe, Measure, QuestionEncoder
 from misc.indices import ANSWER_INDEX
 
@@ -24,20 +24,21 @@ class NMN(torch.nn.Module):
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
-		# 2d dropout is equivalent to dropout over 1x1 kernel
+		# this is the equivalent to dropout over 1x1 kernel
 		# Drop here to drop the same features for all modules
 		features = self._dropout2d(self._dropout(features))
 		features_list = features.unsqueeze(1).unbind(0)
 
+		find_inst = [ torch.tensor(inst, dtype=torch.long, device=DEVICE) for inst in find_inst ]
+
 		maps = list()
 		for f, inst in zip(features_list, find_inst):
 			f = f.expand(len(inst), -1, -1, -1)
-			inst = cudalize(torch.tensor(inst, dtype=torch.long))
 			m = self._find[inst](f).prod(0, keepdim=True)
 			maps.append(m)
 		maps = torch.cat(maps)
 
-		root_pred = cudalize(torch.empty(yesno.size(0), len(ANSWER_INDEX)))
+		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
 		yesno_maps = maps[yesno]
 		if yesno_maps.size(0) > 0:

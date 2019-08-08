@@ -7,6 +7,7 @@ from time import time
 
 
 USE_CUDA = torch.cuda.is_available()
+DEVICE = 'cuda' if USE_CUDA else 'cpu'
 def cudalize(*x):
 	x = [ xi.cuda() for xi in x ] if USE_CUDA else x
 	return x[0] if len(x) == 1 else x

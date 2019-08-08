@@ -81,8 +81,10 @@ class Find(InstanceModule):
 			ks = self._dropout(self._conv.weight[c])
 			fs = self._dropout(features.contiguous().view(1,B*C,H,W))
 			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W)
-			if self._competition == 'softmax':
+			if self._competition in [None, 'softmax']:
 				masks = masks.relu()
+			else:
+				masks = torch.sigmoid(masks)
 			return masks
 
 	def loss(self):
