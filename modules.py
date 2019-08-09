@@ -122,7 +122,7 @@ class Describe(InstanceModule):
 
 		# Describe
 		attended = attended.unsqueeze(1).unbind(0)
-		instance = to_numpy(self._get_instance())
+		instance = self._get_instance()
 		preds = list()
 		for att, inst in zip(attended, instance):
 			preds.append(self._descr[inst](att))
@@ -137,9 +137,9 @@ class Measure(InstanceModule):
 		self._measure = list()
 		for i in range(len(DESC_INDEX)):
 			layers =  nn.Sequential(
-				nn.Linear(MASK_WIDTH**2, HIDDEN_SIZE),
+				nn.Linear(MASK_WIDTH**2, HIDDEN_UNITS),
 				nn.ReLU(),
-				nn.Linear(HIDDEN_SIZE, len(ANSWER_INDEX))
+				nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 			)
 			setattr(self, '_measure_%d' % i, layers)
 			self._measure.append(layers)
@@ -148,7 +148,7 @@ class Measure(InstanceModule):
 		B = mask.size(0)
 		mask = self._dropout(mask)
 		mask = mask.view(B, -1).unsqueeze(1).unbind(0)
-		instance = to_numpy(self._get_instance())
+		instance = self._get_instance()
 		preds = list()
 		for m, inst in zip(mask, instance):
 			preds.append(self._measure[inst](m))

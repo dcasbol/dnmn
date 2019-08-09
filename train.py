@@ -27,7 +27,8 @@ def run_find(module, batch_data):
 	)
 
 def run_describe(module, batch_data):
-	mask, features, instance, label, distr = cudalize(*batch_data)
+	mask, features, label, distr = cudalize(*batch_data[:2]+batch_data[3:])
+	instance = batch_data[2]
 	output = module[instance](mask, features)
 	return dict(
 		output = output,
@@ -36,7 +37,9 @@ def run_describe(module, batch_data):
 	)
 
 def run_measure(module, batch_data):
-	mask, instance, label, distr = cudalize(*batch_data)
+	mask = cudalize(batch_data[0])
+	label, distr = cudalize(*batch_data[2:])
+	instance = batch_data[1]
 	output = module[instance](mask)
 	return dict(
 		output = output,
