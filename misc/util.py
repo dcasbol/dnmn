@@ -1,9 +1,9 @@
 import torch
 import json
 import numpy as np
+import time
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
-import time
 
 
 USE_CUDA = torch.cuda.is_available()

@@ -31,6 +31,8 @@ class InstanceModule(nn.Module):
 class Find(InstanceModule):
 	"""This module corresponds to the original 'attend' in the NMN paper."""
 
+	NAME = 'find'
+
 	def __init__(self, competition, **kwargs):
 		super(Find, self).__init__(**kwargs)
 
@@ -97,6 +99,7 @@ class Describe(InstanceModule):
 	""" From 1st NMN article: It first computes an average over image features
 	weighted by the attention, then passes this averaged feature vector through
 	a single fully-connected layer. """
+	NAME = 'describe'
 
 	def __init__(self, normalize_attention=False, **kwargs):
 		super(Describe, self).__init__(**kwargs)
@@ -132,14 +135,16 @@ class Describe(InstanceModule):
 
 class Measure(InstanceModule):
 
+	NAME = 'measure'
+
 	def __init__(self, **kwargs):
 		super(Measure, self).__init__(**kwargs)
 		self._measure = list()
 		for i in range(len(DESC_INDEX)):
 			layers =  nn.Sequential(
-				nn.Linear(MASK_WIDTH**2, HIDDEN_UNITS),
+				nn.Linear(MASK_WIDTH**2, HIDDEN_SIZE),
 				nn.ReLU(),
-				nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+				nn.Linear(HIDDEN_SIZE, len(ANSWER_INDEX))
 			)
 			setattr(self, '_measure_%d' % i, layers)
 			self._measure.append(layers)
@@ -157,11 +162,14 @@ class Measure(InstanceModule):
 
 class QuestionEncoder(nn.Module):
 
-	def __init__(self, dropout=False):
+	NAME = 'encoder'
+
+	def __init__(self, dropout=False, embed_size=None):
 		super(QuestionEncoder, self).__init__()
-		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE,
+		embed_size = embed_size or EMBEDDING_SIZE
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), embed_size,
 			padding_idx=NULL_ID)
-		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
+		self._lstm = nn.LSTM(embed_size, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 		self._dropout = {
 			False : lambda x: x,
