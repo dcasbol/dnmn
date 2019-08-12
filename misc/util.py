@@ -3,7 +3,7 @@ import json
 import numpy as np
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
-from time import time
+import time
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -134,27 +134,27 @@ class Chronometer(object):
 		self._running = False
 
 	def read(self):
-		return self._t + time() - self._t0 if self._running else self._t
+		return self._t + time.time() - self._t0 if self._running else self._t
 
 	def read_str(self):
 		return time.strftime('%H:%M:%S', time.localtime(self.read()))
 
 	def reset(self):
 		self._t = 0.
-		self._t0 = time()
+		self._t0 = time.time()
 
 	def start(self):
 		assert not self._running, "Chronometer already started"
-		self._t0 = time()
+		self._t0 = time.time()
 		self._running = True
 
 	def stop(self):
 		assert self._running, "Chronometer already stopped"
-		self._t += time() - self._t0
+		self._t += time.time() - self._t0
 		self._running = False
 
 	def set_t0(self, t0):
-		self._t0 = time()
+		self._t0 = time.time()
 
 
 class PercentageCounter(object):
@@ -166,7 +166,7 @@ class PercentageCounter(object):
 
 	def update(self, batch_idx):
 		perc = (batch_idx*self._batch_size*100)//self._dataset_len
-		if perc == last_perc:
+		if perc == self._last_perc:
 			return False
 		self._last_perc = perc
 		return True
