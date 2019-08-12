@@ -1,9 +1,6 @@
 import argparse
-import json
-import time
 import torch
 import torch.nn as nn
-import numpy as np
 import misc.util as util
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
