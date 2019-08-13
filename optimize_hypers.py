@@ -13,7 +13,7 @@ SPACE = [
 	skopt.space.Real(1e-5, 0.1, name='learning_rate', prior='log-uniform'),
 	skopt.space.Integer(0, 1, name='dropout_int'),
 	skopt.space.Integer(0, 4, name='embed_size_idx'),
-	skopt.space.Real(0., 1., name='weight_decay', prior='log-uniform')
+	skopt.space.Real(1e-5, 1., name='weight_decay', prior='log-uniform')
 ]
 
 class HyperOptimizer(object):
@@ -37,18 +37,18 @@ class HyperOptimizer(object):
 		)[self._sel]
 
 		self._res = None
-		self._x0, self._y0 = None
+		self._x0 = self._y0 = None
 		if os.path.exists(self._path_res):
 			print('Found previous skopt result. Resuming.')
 			self._res = skopt.load(self._path_res)
 			self._x0 = self._res.x_iters
 			self._y0 = self._res.func_vals
 
-	def _eval(batch_size_exp, learning_rate, dropout_int, embed_size_idx, weight_decay):
+	def _eval(self, batch_size_exp, learning_rate, dropout_int, embed_size_idx, weight_decay):
 
 		self._num_evals += 1
 
-		batch_size = 2**batch_size_exp
+		batch_size = int(2**batch_size_exp)
 		dropout = bool(dropout_int)
 		embed_size = [60, 125, 250, 500, 1000][embed_size_idx]
 
@@ -84,7 +84,7 @@ class HyperOptimizer(object):
 
 	def _save(self, res):
 		del res.specs['args']['func']
-		skopt.dump(result, self._path_res)
+		skopt.dump(res, self._path_res)
 		if self._num_evals == 1:
 			skopt.load(self._path_res)
 			print('Saved OK')

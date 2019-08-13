@@ -94,6 +94,10 @@ class Runner(object):
 				loss_perc += loss.item()
 				N_perc    += output.size(0)
 
+				if loss_perc != loss_perc:
+					print('Encountered nan. Aborted')
+					return
+
 				if self._perc_cnt.update(i):
 					mean_loss  = loss_perc/N_perc
 					loss_perc  = 0.
@@ -165,5 +169,5 @@ class Runner(object):
 
 	@property
 	def best_acc(self):
-		return self._best_acc
+		return self._best_acc*100
 	
