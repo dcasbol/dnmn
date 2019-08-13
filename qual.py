@@ -33,31 +33,17 @@ class RevMask(nn.Module):
 	def loss(self, pred, instance):
 		return self._loss_fn(pred, instance)
 
-
-def run_module(module, batch_data):
-	result = dict()
-	if isinstance(module, Find):
-		features, instance, label_str, input_set, input_id = batch_data
-		features, instance = cudalize(features, instance)
-		output, hmap = module[instance](features)
-		label = cudalize(torch.ones_like(output, dtype=torch.float))
-		result = dict(hmap=hmap, label_str=label_str, input_set=input_set, input_id=input_id)
-	elif isinstance(module, Describe):
-		mask, features, instance, label, distr = cudalize(*batch_data)
-		output = module[instance](mask, features)
-	elif isinstance(module, Measure):
-		mask, instance, label, distr = cudalize(*batch_data)
-		output = module[instance](mask)
-	else:
-		question, length, label, distr = cudalize(*batch_data)
-		output = module(question, length)
-
-	result['output'] = output
-	result['label']  = label
-	if not isinstance(module, Find):
-		result['distr'] = distr
-	return result
-
+def run_find(module, batch_data):
+	features, instance, label_str, input_set, input_id = batch_data
+	features, instance = cudalize(features, instance)
+	output = module[instance](features)
+	return dict(
+		output    = output,
+		hmap      = output,
+		label_str = label_str,
+		input_set = input_set,
+		input_id  = input_id
+	)
 
 def get_args():
 
@@ -98,7 +84,7 @@ if __name__ == '__main__':
 	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
 	if args.module == 'find':
-		module  = Find(competition='pre')
+		module  = Find(competition='softmax')
 		dataset = VQAFindDataset(metadata=True)
 	elif args.module == 'describe':
 		module  = Describe()
@@ -159,15 +145,15 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
-			result = run_module(module, batch_data)
+			result = run_find(module, batch_data)
 			output = result['output']
 
 			image, instance = cudalize(*batch_data[:2])
 			pred = rev(image, result['hmap'])
 
 			pred_loss = rev.loss(pred, instance)
-			mask_loss = loss_fn(output, result['label'])
-			loss = 0.5*pred_loss + mask_loss
+			mask_loss = module.loss()
+			loss = mask_loss + 1e-5*pred_loss
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
