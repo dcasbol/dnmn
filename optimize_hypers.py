@@ -83,7 +83,11 @@ class HyperOptimizer(object):
 		return -test.best_acc
 
 	def _save(self, res):
-		del res.specs['args']['func']
+		args = res.specs['args']
+		if 'func' in args:
+			del args['func']
+		if 'callback' in args:
+			del args['callback']
 		skopt.dump(res, self._path_res)
 		if self._num_evals == 1:
 			skopt.load(self._path_res)
