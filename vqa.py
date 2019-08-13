@@ -19,7 +19,8 @@ class VQADataset(Dataset):
 	one layout is extracted.
 	"""
 
-	def __init__(self, root_dir='./', set_names='train2014', features=True):
+	def __init__(self, root_dir='./', set_names='train2014', features=True,
+		start=None, stop=None):
 		super(VQADataset, self).__init__()
 		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:
@@ -32,6 +33,13 @@ class VQADataset(Dataset):
 		self._load_from_cache(set_names)
 		self._id_list = list(self._by_id.keys())
 		self._id_list.sort() # Ensure same order in all systems
+
+		if start is not None:
+			start = int(start*len(self._id_list))
+		if stop is not None:
+			stop = int(stop*len(self._id_list))
+		if start is not None or stop is not None:
+			self._id_list = self._id_list[slice(start, stop)]
 
 		with np.load(NORMALIZERS_FILE) as zdata:
 			self._mean = zdata['mean'].astype(np.float32)
