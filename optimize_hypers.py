@@ -1,7 +1,8 @@
 import os
 import argparse
 import skopt
-from hypers.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner #NMNRunner
+from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
+from runners.runners import NMNRunner
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Hyperparameter optimization')
@@ -33,7 +34,7 @@ class HyperOptimizer(object):
 			find     = FindRunner,
 			measure  = MeasureRunner,
 			describe = DescribeRunner,
-			#nmn      = NMNRunner
+			nmn      = NMNRunner
 		)[self._sel]
 
 		self._res = None
