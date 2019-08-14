@@ -71,8 +71,10 @@ class HyperOptimizer(object):
 		)
 		test.run()
 
+		res_suffix = '{}-ep{}'.format(suffix, test.best_epoch)
+
 		self._best_acc = max(self._best_acc, test.best_acc)
-		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, suffix))
+		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
 		print('Best acc is', self._best_acc)
 
 		json_fn = '{}-{}_log.json'.format(self._sel, suffix)

@@ -86,3 +86,24 @@ class EncoderRunner(Runner):
 			label  = label,
 			distr  = distr
 		)
+
+class NMNRunner(Runner):
+
+	def __init__(self, dropout=False, **kwargs):
+		self._model = NMN(dropout=dropout)
+		self._dataset = VQANMNDataset()
+		super(NMNRunner, self).__init__(**kwargs)
+
+	def _get_nmn_data(self, batch_data):
+		keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
+		return [ batch_dict[k] for k in keys ]
+
+	def _forward(self, batch_data):
+		batch_data = cudalize_dict(batch_data, exclude=['find_inst'])
+		nmn_data = self._get_nmn_data(batch_data)
+		pred = self._model(*nmn_data)
+		return dict(
+			output = pred,
+			label  = batch_data['label'],
+			distr  = batch_dict['distr']
+		)

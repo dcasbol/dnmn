@@ -16,6 +16,7 @@ class Runner(object):
 		self._validate  = validate
 		self._best_acc  = 0.
 		self._n_worse   = 0
+		self._best_epoch = -1
 
 		modname = self._model.NAME
 		suffix = '' if suffix == '' else '-' + suffix
@@ -45,6 +46,13 @@ class Runner(object):
 
 		if modname == 'find':
 			self._loss_fn = lambda a, b: self._model.loss()
+		elif modname == 'nmn':
+			def cross_entropy(x, y):
+				# L(x) = -y*log(x) -(1-y)*log(1-x)
+				x = x[torch.arange(x.size(0)), y]
+				ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+				return ce
+			self._loss_fn = cross_entropy
 		else:
 			self._loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
 
@@ -71,9 +79,9 @@ class Runner(object):
 
 	def run(self):
 		self._raw_clock.start()
-		for epoch in range(self._first_epoch, self._max_epochs):
+		for self._epoch in range(self._first_epoch, self._max_epochs):
 
-			print('Epoch', epoch)
+			print('Epoch', self._epoch)
 			loss_perc = 0.
 			N_perc    = 0
 
@@ -102,7 +110,7 @@ class Runner(object):
 					mean_loss  = loss_perc/N_perc
 					loss_perc  = 0.
 					N_perc     = 0
-					self._log_routine(epoch, mean_loss)
+					self._log_routine(mean_loss)
 					self._validation_routine()
 
 			if self._evaluate(): break
@@ -110,11 +118,11 @@ class Runner(object):
 		print('End of training. It took {} training seconds'.format(self._clock.read()))
 		print('{} seconds in total'.format(self._raw_clock.read()))	
 
-	def _log_routine(self, epoch, mean_loss):
+	def _log_routine(self, mean_loss):
 		self._logger.log(
 			raw_time = self._raw_clock.read(),
 			time     = self._clock.read(),
-			epoch    = epoch + self._perc_cnt.float(),
+			epoch    = self._epoch + self._perc_cnt.float(),
 			loss     = mean_loss
 		)
 		raw_tstr = self._raw_clock.read_str()
@@ -158,6 +166,7 @@ class Runner(object):
 		acc = sum(self._logger._log['top_1'][-10:])/10
 		if acc > self._best_acc:
 			self._best_acc = acc
+			self._best_epoch = self._epoch
 			self._n_worse = 0
 			if self._save:
 				torch.save(self._model.state_dict(), self._pt_new)
@@ -170,4 +179,8 @@ class Runner(object):
 	@property
 	def best_acc(self):
 		return self._best_acc*100
+	
+	@property
+	def best_epoch(self):
+		return self._best_epoch
 	
