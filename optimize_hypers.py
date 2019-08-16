@@ -10,10 +10,9 @@ def get_args():
 	return parser.parse_args()
 
 SPACE = [
-	skopt.space.Integer(4, 10, name='batch_size_exp'),
+	skopt.space.Integer(16, 512, name='batch_size'),
 	skopt.space.Real(1e-5, 0.1, name='learning_rate', prior='log-uniform'),
-	skopt.space.Integer(0, 1, name='dropout_int'),
-	skopt.space.Integer(0, 4, name='embed_size_idx'),
+	skopt.space.Real(0, 0.9, name='dropout'),
 	skopt.space.Real(1e-5, 1., name='weight_decay', prior='log-uniform')
 ]
 
@@ -45,19 +44,16 @@ class HyperOptimizer(object):
 			self._x0 = self._res.x_iters
 			self._y0 = self._res.func_vals
 
-	def _eval(self, batch_size_exp, learning_rate, dropout_int, embed_size_idx, weight_decay):
+	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
 
 		self._num_evals += 1
 
-		batch_size = int(2**batch_size_exp)
-		dropout = bool(dropout_int)
-		embed_size = [60, 125, 250, 500, 1000][embed_size_idx]
+		batch_size = int(batch_size)
 
-		suffix = 'hpo-bs{bs}-lr{lr:.2g}-{do}do-emb{emb}-wd{wd:.2g}'.format(
+		suffix = 'hpo-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
 			bs  = batch_size,
 			lr  = learning_rate,
-			do  = dropout_int*5,
-			emb = embed_size,
+			do  = dropout,
 			wd  = weight_decay
 		)
 
@@ -66,7 +62,6 @@ class HyperOptimizer(object):
 			batch_size    = batch_size,
 			learning_rate = learning_rate,
 			dropout       = dropout,
-			embed_size    = embed_size,
 			weight_decay  = weight_decay,
 			suffix        = suffix,
 			validate      = True
@@ -109,7 +104,9 @@ class HyperOptimizer(object):
 		skopt.gp_minimize(obj_func, SPACE,
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
-			callback = callback
+			callback = callback,
+			n_random_starts = 5,
+			n_calls = 20
 		)
 
 		print('Hyperparameter Optimization ended.')

@@ -136,17 +136,17 @@ class Runner(object):
 		N = top1 = inset = wacc = 0
 
 		self._model.eval()
-		for batch_data in self._val_loader:
-			result = self._forward(batch_data)
-			output = result['output'].softmax(1)
-			label  = result['label']
-			distr  = result['distr']
-			B = label.size(0)
-			N += B
-			top1  += util.top1_accuracy(output, label) * B
-			inset += util.inset_accuracy(output, distr) * B
-			wacc  += util.weighted_accuracy(output, distr) * B
-			break
+		with torch.no_grad():
+			for batch_data in self._val_loader:
+				result = self._forward(batch_data)
+				output = result['output'].softmax(1)
+				label  = result['label']
+				distr  = result['distr']
+				B = label.size(0)
+				N += B
+				top1  += util.top1_accuracy(output, label) * B
+				inset += util.inset_accuracy(output, distr) * B
+				wacc  += util.weighted_accuracy(output, distr) * B
 		self._model.train()
 		
 		self._logger.log(

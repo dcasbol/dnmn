@@ -171,9 +171,13 @@ class QuestionEncoder(nn.Module):
 			padding_idx=NULL_ID)
 		self._lstm = nn.LSTM(embed_size, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+		p = 0.5
+		if type(dropout) == float:
+			p = dropout
+			dropout = True
 		self._dropout = {
 			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
+			True  : lambda x: F.dropout(x, p=p, training=self.training)
 		}[dropout]
 
 	def forward(self, question, length):
