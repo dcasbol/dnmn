@@ -1,8 +1,10 @@
 from modules import Find, Describe, Measure, QuestionEncoder
+from model import NMN
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset, VQAEncoderDataset
-from hypers.base import Runner
+from vqa import VQANMNDataset
+from runners.base import Runner
 from misc.visualization import MapVisualizer
-from misc.util import cudalize
+from misc.util import cudalize, cudalize_dict
 
 class FindRunner(Runner):
 
@@ -96,7 +98,7 @@ class NMNRunner(Runner):
 
 	def _get_nmn_data(self, batch_data):
 		keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
-		return [ batch_dict[k] for k in keys ]
+		return [ batch_data[k] for k in keys ]
 
 	def _forward(self, batch_data):
 		batch_data = cudalize_dict(batch_data, exclude=['find_inst'])
@@ -105,7 +107,7 @@ class NMNRunner(Runner):
 		return dict(
 			output = pred,
 			label  = batch_data['label'],
-			distr  = batch_dict['distr']
+			distr  = batch_data['distr']
 		)
 
 	def _log_routine(self, mean_loss):
