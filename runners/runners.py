@@ -29,7 +29,7 @@ class FindRunner(Runner):
 		)
 		return self._result
 
-	def _log_routine(self, epoch, mean_loss):
+	def _log_routine(self, mean_loss):
 		super(FindRunner, self)._log_routine(epoch, mean_loss)
 		if self._visualize > 0:
 			keys   = ['hmap', 'label_str', 'input_set', 'input_id']
@@ -107,3 +107,7 @@ class NMNRunner(Runner):
 			label  = batch_data['label'],
 			distr  = batch_dict['distr']
 		)
+
+	def _log_routine(self, mean_loss):
+		super(NMNRunner, self)._log_routine(mean_loss)
+		self._model.show_times()

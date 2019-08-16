@@ -40,6 +40,7 @@ class VQADataset(Dataset):
 			stop = int(stop*len(self._id_list))
 		if start is not None or stop is not None:
 			self._id_list = self._id_list[slice(start, stop)]
+		print('{} samples in dataset.'.format(len(self._id_list)))
 
 		with np.load(NORMALIZERS_FILE) as zdata:
 			self._mean = zdata['mean'].astype(np.float32)
@@ -232,6 +233,7 @@ class VQARootModuleDataset(VQADataset):
 				if is_yesno(self._by_id[qid]['question']) == yesno_questions:
 					new_id_list.append(qid)
 			self._id_list = new_id_list
+			print('Filtered dataset has {} samples'.format(len(self._id_list)))
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
 	def _compose_hmap(self, datum):
