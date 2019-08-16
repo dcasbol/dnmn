@@ -5,7 +5,7 @@ from runners.runners import NMNRunner
 def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
-	parser.add_argument('selection', choices=['find', 'describe', 'measure', 'encoder'])
+	parser.add_argument('selection', choices=['find', 'describe', 'measure', 'encoder', 'nmn'])
 	parser.add_argument('--max-epochs', type=int,
 		help='Max. training epochs')
 	parser.add_argument('--batch-size', type=int)
