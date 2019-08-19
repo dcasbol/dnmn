@@ -102,6 +102,7 @@ class HyperOptimizer(object):
 			return self._save(res)
 
 		skopt.gp_minimize(obj_func, SPACE,
+			acq_func = 'LCB',
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,

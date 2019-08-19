@@ -172,7 +172,7 @@ class QuestionEncoder(nn.Module):
 		self._lstm = nn.LSTM(embed_size, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 		p = 0.5
-		if type(dropout) == float:
+		if type(dropout) != bool:
 			p = dropout
 			dropout = True
 		self._dropout = {

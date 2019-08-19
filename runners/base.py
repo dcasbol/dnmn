@@ -41,7 +41,7 @@ class Runner(object):
 				describe = VQADescribeDataset,
 				measure  = VQAMeasureDataset,
 				encoder  = VQAEncoderDataset,
-			)[modname](set_names='val2014', stop=0.1)
+			)[modname](set_names='val2014', stop=0.05)
 			kwargs = dict(collate_fn=encoder_collate_fn) if modname == 'encoder' else {}
 			self._val_loader = DataLoader(valset,
 				batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
