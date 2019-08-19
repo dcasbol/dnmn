@@ -38,6 +38,8 @@ def run_find(module, batch_data):
 	features, instance = cudalize(features, instance)
 	output = module[instance](features)
 	return dict(
+		instance  = instance,
+		features  = features,
 		output    = output,
 		hmap      = output,
 		label_str = label_str,
@@ -111,12 +113,13 @@ if __name__ == '__main__':
 		kwargs['collate_fn'] = encoder_collate_fn
 	loader = DataLoader(dataset, **kwargs)
 
+	args.validate = True
 	if args.validate:
 		valset = dict(
 			describe = VQADescribeDataset,
 			measure  = VQAMeasureDataset,
 			encoder  = VQAEncoderDataset,
-		)[args.module](set_names='val2014')
+		)[args.module](set_names='val2014', stop=0.05)
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
 		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
 
@@ -148,19 +151,14 @@ if __name__ == '__main__':
 			result = run_find(module, batch_data)
 			output = result['output']
 
-			image, instance = cudalize(*batch_data[:2])
-			pred = rev(image, result['hmap'])
-
-			pred_loss = rev.loss(pred, instance)
-			mask_loss = module.loss()
-			loss = mask_loss + 1e-5*pred_loss
+			loss = module.loss()
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc and not last_iter: continue
+			if perc == last_perc: continue
 			last_perc = perc
 
 			B = output.size(0)
@@ -168,44 +166,29 @@ if __name__ == '__main__':
 			logger.log(
 				epoch = epoch + perc/100,
 				loss = loss.item()/B,
-				time = clock.read(),
-				mask_loss = mask_loss.item()/B,
-				util_loss = pred_loss.item()/B,
-				inst_acc = inst_acc
+				time = clock.read()
+			)
+
+			N = top1 = 0
+			with torch.no_grad():
+				for batch_data in val_loader:
+					result = run_find(module, batch_data)
+					pred = rev(result['features'], result['mask'])
+					B = pred.size(0)
+					N += B
+					top1 += util.top1_accuracy(pred, result['instance']) * B
+
+			logger.log(
+				top_1 = top1/N
 			)
 
 			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			ploss_a = mask_loss.item()/B
-			ploss_b = pred_loss.item()/B
-			ploss = 'mask: {}; pred: {}; acc: {}'.format(ploss_a, ploss_b, inst_acc)
+			ploss = 'acc: {}'.format(top1/N)
 			print('{} {: 3d}% - {}'.format(tstr, perc, ploss))
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
 				values = [ result[k] for k in keys ]
 				vis.update(*values)
-
-			if args.validate:
-				N = top1 = inset = wacc = 0
-
-				module.eval()
-				for batch_data in val_loader:
-					result = run_module(module, batch_data)
-					output = result['output'].softmax(1)
-					label  = result['label']
-					distr  = result['distr']
-					B = label.size(0)
-					N += B
-					top1  += util.top1_accuracy(output, label) * B
-					inset += util.inset_accuracy(output, distr) * B
-					wacc  += util.weighted_accuracy(output, distr) * B
-					if not last_iter:
-						break
-				module.train()
-				
-				log['top-1'].append(top1/N)
-				log['in set'].append(inset/N)
-				log['weighted'].append(wacc/N)
-				[ print(k, ':', vs[-1]) for k, vs in log.items() if k != 'epoch' ]
 
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
