@@ -83,7 +83,6 @@ if __name__ == '__main__':
 	PT_NEW       = FULL_NAME + '-new.pt'
 
 	assert args.module == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
-	assert not (args.module == 'find' and args.validate), "Can't validate Find module"
 
 	if args.module == 'find':
 		module  = Find(competition='softmax')
@@ -113,13 +112,13 @@ if __name__ == '__main__':
 		kwargs['collate_fn'] = encoder_collate_fn
 	loader = DataLoader(dataset, **kwargs)
 
-	args.validate = True
 	if args.validate:
 		valset = dict(
 			describe = VQADescribeDataset,
 			measure  = VQAMeasureDataset,
 			encoder  = VQAEncoderDataset,
-		)[args.module](set_names='val2014', stop=0.05)
+			find     = VQAFindDataset
+		)[args.module](set_names='val2014', stop=0.05, metadata=True)
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
 		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
 
@@ -162,7 +161,6 @@ if __name__ == '__main__':
 			last_perc = perc
 
 			B = output.size(0)
-			inst_acc = util.top1_accuracy(pred, instance)
 			logger.log(
 				epoch = epoch + perc/100,
 				loss = loss.item()/B,
@@ -173,7 +171,7 @@ if __name__ == '__main__':
 			with torch.no_grad():
 				for batch_data in val_loader:
 					result = run_find(module, batch_data)
-					pred = rev(result['features'], result['mask'])
+					pred = rev(result['features'], result['hmap'])
 					B = pred.size(0)
 					N += B
 					top1 += util.top1_accuracy(pred, result['instance']) * B
