@@ -122,8 +122,14 @@ if __name__ == '__main__':
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
 		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
 
+	clock = Chronometer()
+	logger = Logger()
+	first_epoch = 0
 	if args.restore:
+		logger.load(LOG_FILENAME)
 		module.load_state_dict(torch.load(PT_RESTORE, map_location='cpu'))
+		clock.set_t0(logger.last('time'))
+		first_epoch = int(logger.last('epoch') + 0.5)
 	module = cudalize(module)
 	rev = cudalize(RevMask(module))
 
@@ -137,10 +143,8 @@ if __name__ == '__main__':
 	# --------------------
 	# ---   Training   ---
 	# --------------------
-	logger = Logger()
-	clock = Chronometer()
 	last_perc = -1
-	for epoch in range(args.epochs):
+	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
