@@ -34,7 +34,7 @@ class Runner(object):
 			kwargs['collate_fn'] = dict(
 				encoder = encoder_collate_fn,
 				nmn     = nmn_collate_fn
-			)
+			)[modname]
 		self._loader = DataLoader(self._dataset, **kwargs)
 
 		if validate:
@@ -45,7 +45,12 @@ class Runner(object):
 				encoder  = VQAEncoderDataset,
 				find     = VQAFindDataset
 			)[modname](set_names='val2014', stop=0.2, **kwargs)
-			kwargs = dict(collate_fn=encoder_collate_fn) if modname == 'encoder' else {}
+			kwargs = {}
+			if modname in ['encoder', 'nmn']:
+				kwargs['collate_fn'] = dict(
+					encoder = encoder_collate_fn,
+					nmn     = nmn_collate_fn
+				)[modname]
 			self._val_loader = DataLoader(valset,
 				batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
 
