@@ -19,7 +19,7 @@ def attend(features, hmap):
 	B,C,H,W = features.size()
 	features = features.view(B,C,-1)
 	hmap = hmap.view(B,1,-1)
-	total = mask.sum(2)
+	total = hmap.sum(2)
 	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
 	return dict(
 		features_flat = features,
@@ -44,9 +44,11 @@ class RevMask(nn.Module):
 		return self._loss_fn(pred, instance)
 
 def weighted_var(features, hmap, attended, total):
+	B, C = attended.size()[:2]
+	attended = attended.view(B,C,1)
 	var = (features-attended).pow(2)
 	wvar = (var*hmap).sum(2) / (total + 1e-10)
-	return wvar
+	return wvar.mean().item()
 
 def run_find(module, batch_data, metadata):
 	if metadata:
@@ -206,8 +208,8 @@ if __name__ == '__main__':
 				B = pred.size(0)
 				N += B
 				top1 += util.top1_accuracy(pred, result['instance']) * B
-				args = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
-				wvar += weighted_var(*args)
+				a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
+				wvar += weighted_var(*a) * B
 
 		logger.log(
 			top_1 = top1/N,
@@ -215,7 +217,7 @@ if __name__ == '__main__':
 		)
 
 		tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-		ploss = 'acc: {}'.format(top1/N)
+		ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
 		print('{} - {}'.format(tstr, ploss))
 		if args.visualize > 0:
 			keys   = ['hmap', 'label_str', 'input_set', 'input_id']
