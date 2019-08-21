@@ -48,7 +48,7 @@ def weighted_var(features, hmap, attended, total):
 	attended = attended.view(B,C,1)
 	var = (features-attended).pow(2)
 	wvar = (var*hmap).sum(2) / (total + 1e-10)
-	return wvar.mean().item()
+	return wvar.mean()
 
 def run_find(module, batch_data, metadata):
 	if metadata:
@@ -178,7 +178,11 @@ if __name__ == '__main__':
 			result = run_find(module, batch_data, metadata)
 			output = result['output']
 
-			loss = module.loss()
+			att = attend(result['features'], result['hmap'])
+			a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
+			wvar = weighted_var(*a)
+
+			loss = module.loss() + wvar
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -209,7 +213,7 @@ if __name__ == '__main__':
 				N += B
 				top1 += util.top1_accuracy(pred, result['instance']) * B
 				a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
-				wvar += weighted_var(*a) * B
+				wvar += weighted_var(*a).item() * B
 
 		logger.log(
 			top_1 = top1/N,
