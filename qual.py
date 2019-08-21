@@ -42,19 +42,24 @@ def weighted_var(features, hmap):
 	wvar = (var*hmap).sum(2) / (hmap.sum(2) + 1e-10)
 	return wvar
 
-def run_find(module, batch_data):
-	features, instance, label_str, input_set, input_id = batch_data
+def run_find(module, batch_data, metadata):
+	if metadata:
+		features, instance, label_str, input_set, input_id = batch_data
+	else:
+		features, instance = batch_data
 	features, instance = cudalize(features, instance)
 	output = module[instance](features)
-	return dict(
+	result = dict(
 		instance  = instance,
 		features  = features,
 		output    = output,
-		hmap      = output,
-		label_str = label_str,
-		input_set = input_set,
-		input_id  = input_id
+		hmap      = output
 	)
+	if metadata:
+		result['label_str'] = label_str
+		result['input_set'] = input_set
+		result['input_id']  = input_id
+	return result
 
 def get_args():
 
@@ -92,10 +97,11 @@ if __name__ == '__main__':
 	PT_NEW       = FULL_NAME + '-new.pt'
 
 	assert args.module == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
+	metadata = args.visualize > 0
 
 	if args.module == 'find':
 		module  = Find(competition='softmax')
-		dataset = VQAFindDataset(metadata=True)
+		dataset = VQAFindDataset(metadata=metadata)
 	elif args.module == 'describe':
 		module  = Describe()
 		dataset = VQADescribeDataset()
@@ -127,7 +133,7 @@ if __name__ == '__main__':
 			measure  = VQAMeasureDataset,
 			encoder  = VQAEncoderDataset,
 			find     = VQAFindDataset
-		)[args.module](set_names='val2014', stop=0.05, metadata=True)
+		)[args.module](set_names='val2014', stop=0.2, metadata=metadata)
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
 		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
 
@@ -160,7 +166,7 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
-			result = run_find(module, batch_data)
+			result = run_find(module, batch_data, metadata)
 			output = result['output']
 
 			loss = module.loss()
@@ -170,36 +176,37 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
-			if perc == last_perc: continue
-			last_perc = perc
+			if perc != last_perc:
+				last_perc = perc
+				print('{: 3d}%'.format(perc))
 
-			B = output.size(0)
-			logger.log(
-				epoch = epoch + perc/100,
-				loss = loss.item()/B,
-				time = clock.read()
-			)
+		B = output.size(0)
+		logger.log(
+			epoch = epoch,
+			loss = loss.item()/B,
+			time = clock.read()
+		)
 
-			N = top1 = 0
-			with torch.no_grad():
-				for batch_data in val_loader:
-					result = run_find(module, batch_data)
-					pred = rev(result['features'], result['hmap'])
-					B = pred.size(0)
-					N += B
-					top1 += util.top1_accuracy(pred, result['instance']) * B
+		N = top1 = 0
+		with torch.no_grad():
+			for batch_data in val_loader:
+				result = run_find(module, batch_data, metadata)
+				pred = rev(result['features'], result['hmap'])
+				B = pred.size(0)
+				N += B
+				top1 += util.top1_accuracy(pred, result['instance']) * B
 
-			logger.log(
-				top_1 = top1/N
-			)
+		logger.log(
+			top_1 = top1/N
+		)
 
-			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-			ploss = 'acc: {}'.format(top1/N)
-			print('{} {: 3d}% - {}'.format(tstr, perc, ploss))
-			if args.visualize > 0:
-				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
-				values = [ result[k] for k in keys ]
-				vis.update(*values)
+		tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
+		ploss = 'acc: {}'.format(top1/N)
+		print('{} - {}'.format(tstr, ploss))
+		if args.visualize > 0:
+			keys   = ['hmap', 'label_str', 'input_set', 'input_id']
+			values = [ result[k] for k in keys ]
+			vis.update(*values)
 
 		if args.save:
 			torch.save(module.state_dict(), PT_NEW)
