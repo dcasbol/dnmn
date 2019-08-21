@@ -15,6 +15,19 @@ from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX
 
 
+def attend(features, hmap):
+	B,C,H,W = features.size()
+	features = features.view(B,C,-1)
+	hmap = hmap.view(B,1,-1)
+	total = mask.sum(2)
+	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
+	return dict(
+		features_flat = features,
+		hmap_flat = hmap,
+		total = total,
+		attended = attended
+	)
+
 class RevMask(nn.Module):
 
 	def __init__(self, find_module):
@@ -22,24 +35,17 @@ class RevMask(nn.Module):
 		self._classifier = find_module._conv
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
 
-	def forward(self, image, mask):
-		B,C,H,W = image.size()
-		image = image.view(B,C,-1)
-		mask = mask.view(B,1,-1)
-		total = mask.sum(2)
-		attended = ((mask*image).sum(2) / (total + 1e-10)).view(B,C,1,1)
+	def forward(self, attended):
+		B, C = attended.size()[:2]
+		attended = attended.view(B,C,1,1)
 		return self._classifier(attended).view(B,-1)
 
 	def loss(self, pred, instance):
 		return self._loss_fn(pred, instance)
 
-def weighted_var(features, hmap):
-	B,C,H,W = features.size()
-	features = features.view(B,C,-1)
-	hmap     = hmap.view(B,1,-1)
-	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
+def weighted_var(features, hmap, attended, total):
 	var = (features-attended).pow(2)
-	wvar = (var*hmap).sum(2) / (hmap.sum(2) + 1e-10)
+	wvar = (var*hmap).sum(2) / (total + 1e-10)
 	return wvar
 
 def run_find(module, batch_data, metadata):
@@ -133,9 +139,9 @@ if __name__ == '__main__':
 			measure  = VQAMeasureDataset,
 			encoder  = VQAEncoderDataset,
 			find     = VQAFindDataset
-		)[args.module](set_names='val2014', stop=0.2, metadata=metadata)
+		)[args.module](set_names='val2014', stop=0.05, metadata=metadata)
 		kwargs = dict(collate_fn=encoder_collate_fn) if args.module == 'encoder' else {}
-		val_loader = DataLoader(valset, batch_size = 100, shuffle = False, **kwargs)
+		val_loader = DataLoader(valset, batch_size = 200, shuffle = False, **kwargs)
 
 	clock = Chronometer()
 	logger = Logger()
@@ -161,6 +167,7 @@ if __name__ == '__main__':
 	last_perc = -1
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
+		N = total_loss = 0
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
 
@@ -176,28 +183,35 @@ if __name__ == '__main__':
 			clock.stop()
 			# ---   end timed block   ---
 
+			B = output.size(0)
+			N += B
+			total_loss += loss.item()
+
 			if perc != last_perc:
 				last_perc = perc
-				print('{: 3d}%'.format(perc))
+				print('{: 3d}% - {}'.format(perc, total_loss/N))
 
-		B = output.size(0)
 		logger.log(
 			epoch = epoch,
-			loss = loss.item()/B,
+			loss = total_loss/N,
 			time = clock.read()
 		)
 
-		N = top1 = 0
+		N = top1 = wvar = 0
 		with torch.no_grad():
 			for batch_data in val_loader:
 				result = run_find(module, batch_data, metadata)
-				pred = rev(result['features'], result['hmap'])
+				att = attend(result['features'], result['hmap'])
+				pred = rev(att['attended'])
 				B = pred.size(0)
 				N += B
 				top1 += util.top1_accuracy(pred, result['instance']) * B
+				args = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
+				wvar += weighted_var(*args)
 
 		logger.log(
-			top_1 = top1/N
+			top_1 = top1/N,
+			wvar  = wvar/N
 		)
 
 		tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
