@@ -51,3 +51,5 @@ if __name__ == '__main__':
 	)[args.selection](**kwargs)
 
 	runner.run()
+	print('Best validation accuracy:', runner.best_acc)
+	print('Achieved at epoch', runner.best_epoch)

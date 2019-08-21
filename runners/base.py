@@ -1,7 +1,7 @@
 import torch
 import misc.util as util
 from torch.utils.data import DataLoader
-from vqa import VQADescribeDataset, VQAMeasureDataset
+from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, PercentageCounter
@@ -30,18 +30,21 @@ class Runner(object):
 			shuffle     = True,
 			num_workers = 4
 		)
-		if modname == 'encoder':
-			kwargs['collate_fn'] = encoder_collate_fn
-		if modname == 'nmn':
-			kwargs['collate_fn'] = nmn_collate_fn
+		if modname in ['encoder', 'nmn']:
+			kwargs['collate_fn'] = dict(
+				encoder = encoder_collate_fn,
+				nmn     = nmn_collate_fn
+			)
 		self._loader = DataLoader(self._dataset, **kwargs)
 
 		if validate:
+			kwargs = dict(metadata=True) if modname == 'find' and validate else {}
 			valset = dict(
 				describe = VQADescribeDataset,
 				measure  = VQAMeasureDataset,
 				encoder  = VQAEncoderDataset,
-			)[modname](set_names='val2014', stop=0.05)
+				find     = VQAFindDataset
+			)[modname](set_names='val2014', stop=0.2, **kwargs)
 			kwargs = dict(collate_fn=encoder_collate_fn) if modname == 'encoder' else {}
 			self._val_loader = DataLoader(valset,
 				batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
@@ -105,16 +108,18 @@ class Runner(object):
 				N_perc    += output.size(0)
 
 				if loss_perc != loss_perc:
-					print('Encountered nan. Aborted')
+					print('Encountered nan. Training aborted.')
 					return
 
 				if self._perc_cnt.update(i):
-					mean_loss  = loss_perc/N_perc
-					loss_perc  = 0.
-					N_perc     = 0
-					self._log_routine(mean_loss)
-					self._validation_routine()
+					mean_loss = loss_perc/N_perc
+					print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
 
+			mean_loss = loss_perc/N_perc
+			loss_perc = 0.
+			N_perc    = 0
+			self._log_routine(mean_loss)
+			self._validation_routine()
 			if self._evaluate(): break
 
 		print('End of training. It took {} training seconds'.format(self._clock.read()))
@@ -124,12 +129,13 @@ class Runner(object):
 		self._logger.log(
 			raw_time = self._raw_clock.read(),
 			time     = self._clock.read(),
-			epoch    = self._epoch + self._perc_cnt.float(),
+			epoch    = self._epoch,
 			loss     = mean_loss
 		)
 		raw_tstr = self._raw_clock.read_str()
 		tstr     = self._clock.read_str()
-		print('{}/{} {} - {}'.format(raw_tstr, tstr, self._perc_cnt, mean_loss))
+		print('End of epoch', self._epoch)
+		print('{}/{} - {}'.format(raw_tstr, tstr, mean_loss))
 
 	def _validation_routine(self):
 		if not self._validate: return
@@ -154,7 +160,7 @@ class Runner(object):
 			in_set   = inset/N,
 			weighted = wacc/N
 		)
-		self._logger.print(exclude=['raw_time', 'time', 'epoch'])
+		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 
 	def _evaluate(self):
 		self._logger.save(self._log_filename)
@@ -165,7 +171,7 @@ class Runner(object):
 				print('Model saved')
 			return False
 
-		acc = sum(self._logger._log['top_1'][-10:])/10
+		acc = self._logger.last('top_1')
 		if acc > self._best_acc:
 			self._best_acc = acc
 			self._best_epoch = self._epoch

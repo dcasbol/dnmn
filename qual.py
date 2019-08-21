@@ -33,6 +33,15 @@ class RevMask(nn.Module):
 	def loss(self, pred, instance):
 		return self._loss_fn(pred, instance)
 
+def weighted_var(features, hmap):
+	B,C,H,W = features.size()
+	features = features.view(B,C,-1)
+	hmap     = hmap.view(B,1,-1)
+	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
+	var = (features-attended).pow(2)
+	wvar = (var*hmap).sum(2) / (hmap.sum(2) + 1e-10)
+	return wvar
+
 def run_find(module, batch_data):
 	features, instance, label_str, input_set, input_id = batch_data
 	features, instance = cudalize(features, instance)

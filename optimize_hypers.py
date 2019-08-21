@@ -58,7 +58,7 @@ class HyperOptimizer(object):
 		)
 
 		test = self._runner_cl(
-			max_epochs    = 40,
+			max_epochs    = 30,
 			batch_size    = batch_size,
 			learning_rate = learning_rate,
 			dropout       = dropout,
@@ -102,7 +102,6 @@ class HyperOptimizer(object):
 			return self._save(res)
 
 		skopt.gp_minimize(obj_func, SPACE,
-			acq_func = 'LCB',
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,
