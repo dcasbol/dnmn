@@ -87,8 +87,8 @@ class DescribeRunnerUncached(Runner):
 
 		return dict(
 			output = self._model[root_inst](maps, features),
-			label  = batch_data['label'],
-			distr  = batch_data['distr']
+			label  = cudalize(batch_data['label']),
+			distr  = cudalize(batch_data['distr'])
 		)
 
 class MeasureRunner(Runner):
