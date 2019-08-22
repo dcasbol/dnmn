@@ -102,7 +102,7 @@ if __name__ == '__main__':
 	FULL_NAME    = args.module + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
-	PT_NEW       = FULL_NAME + '-new.pt'
+	PT_NEW       = FULL_NAME + '-ep{:02d}-wvar{:.4g}-new.pt'
 
 	assert args.module == 'find' or args.visualize < 1, 'Only find module is subject to visualization.'
 	metadata = args.visualize > 0
@@ -178,11 +178,7 @@ if __name__ == '__main__':
 			result = run_find(module, batch_data, metadata)
 			output = result['output']
 
-			att = attend(result['features'], result['hmap'])
-			a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
-			wvar = weighted_var(*a)
-
-			loss = module.loss() + wvar
+			loss = module.loss()
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -229,7 +225,7 @@ if __name__ == '__main__':
 			vis.update(*values)
 
 		if args.save:
-			torch.save(module.state_dict(), PT_NEW)
+			torch.save(module.state_dict(), PT_NEW.format(epoch, wvar/N))
 			print('Module saved')
 		logger.save(LOG_FILENAME)
 
