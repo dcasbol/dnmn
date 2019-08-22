@@ -8,6 +8,7 @@ from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX
 from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
+from misc.util import to_tens
 from misc.parse import parse_tree, process_question, parse_to_layout
 from functools import reduce
 
@@ -299,8 +300,6 @@ def encoder_collate_fn(data):
 	questions, lengths, labels, distrs = zip(*data)
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
-	to_tens = lambda x, t: torch.tensor(x,
-		dtype=getattr(torch, t), requires_grad=False)
 	questions = to_tens(padded, 'long').transpose(0,1)
 	lengths   = to_tens(lengths, 'long')
 	labels    = to_tens(labels, 'long')
@@ -347,8 +346,6 @@ def nmn_collate_fn(data):
 	T = max(lengths)
 	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
 
-	to_tens = lambda x, t: torch.tensor(x,
-		dtype=getattr(torch, t), requires_grad=False)
 	batch = dict(
 		question  = to_tens(padded, 'long').transpose(0,1),
 		length    = to_tens(lengths, 'long'),

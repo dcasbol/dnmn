@@ -18,6 +18,9 @@ def cudalize_dict(d, exclude=[]):
 def to_numpy(x):
 	return x.detach().cpu().numpy()
 
+def to_tens(x, t):
+	return torch.tensor(x, dtype=getattr(torch, t), requires_grad=False, device=DEVICE)
+
 def ziplist(*args):
 	""" Original zip returns list of tuples """
 	return [ [ a[i] for a in args] for i in range(len(args[0])) ]

@@ -25,34 +25,20 @@ class Runner(object):
 		self._pt_restore   = full_name + '.pt'
 		self._pt_new       = full_name + '-new.pt'
 
-		kwargs = dict(
+		loader_class = self._loader_class()
+		self._loader = loader_class(
 			batch_size  = batch_size,
 			shuffle     = True,
 			num_workers = 4
 		)
-		if modname in ['encoder', 'nmn']:
-			kwargs['collate_fn'] = dict(
-				encoder = encoder_collate_fn,
-				nmn     = nmn_collate_fn
-			)[modname]
-		self._loader = DataLoader(self._dataset, **kwargs)
 
 		if validate:
 			kwargs = dict(metadata=True) if modname == 'find' and validate else {}
-			valset = dict(
-				describe = VQADescribeDataset,
-				measure  = VQAMeasureDataset,
-				encoder  = VQAEncoderDataset,
-				find     = VQAFindDataset
-			)[modname](set_names='val2014', stop=0.2, **kwargs)
-			kwargs = {}
-			if modname in ['encoder', 'nmn']:
-				kwargs['collate_fn'] = dict(
-					encoder = encoder_collate_fn,
-					nmn     = nmn_collate_fn
-				)[modname]
-			self._val_loader = DataLoader(valset,
-				batch_size = VAL_BATCH_SIZE, shuffle = False, **kwargs)
+			self._val_loader = loader_class(
+				batch_size = VAL_BATCH_SIZE,
+				shuffle    = False,
+				**kwargs
+			)
 
 		if modname == 'find':
 			self._loss_fn = lambda a, b: self._model.loss()
@@ -69,7 +55,7 @@ class Runner(object):
 		self._logger    = Logger()
 		self._clock     = Chronometer()
 		self._raw_clock = Chronometer()
-		self._perc_cnt  = PercentageCounter(batch_size, len(self._dataset))
+		self._perc_cnt  = PercentageCounter(batch_size, len(self._loader))
 
 		self._max_epochs = max_epochs
 		self._first_epoch = 0
@@ -83,6 +69,9 @@ class Runner(object):
 		self._model = cudalize(self._model)
 		self._opt = torch.optim.Adam(self._model.parameters(),
 			lr=learning_rate, weight_decay=weight_decay)
+
+	def _loader_class(self):
+		raise NotImplementedError
 
 	def _forward(self, batch_data):
 		raise NotImplementedError
