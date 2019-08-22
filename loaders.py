@@ -25,7 +25,7 @@ class EncoderLoader(BaseLoader):
 
 class NMNLoader(BaseLoader):
 	def __init__(self, **kwargs):
-		super(EncoderLoader, self).__init__(collate_fn=nmn_collate_fn, **kwargs)
+		super(NMNLoader, self).__init__(collate_fn=nmn_collate_fn, **kwargs)
 	def _dataset(self, **kwargs):
 		return VQANMNDataset(**kwargs)
 

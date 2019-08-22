@@ -19,7 +19,7 @@ def to_numpy(x):
 	return x.detach().cpu().numpy()
 
 def to_tens(x, t):
-	return torch.tensor(x, dtype=getattr(torch, t), requires_grad=False, device=DEVICE)
+	return torch.tensor(x, dtype=getattr(torch, t), requires_grad=False, device='cpu')
 
 def ziplist(*args):
 	""" Original zip returns list of tuples """

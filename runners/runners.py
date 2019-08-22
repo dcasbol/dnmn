@@ -1,3 +1,4 @@
+import torch
 from modules import Find, Describe, Measure, QuestionEncoder
 from model import NMN
 from runners.base import Runner
