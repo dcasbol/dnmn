@@ -3,7 +3,7 @@ from modules import Find, Describe, Measure, QuestionEncoder
 from model import NMN
 from runners.base import Runner
 from misc.visualization import MapVisualizer
-from misc.util import cudalize, cudalize_dict, to_tens
+from misc.util import cudalize, cudalize_dict, to_tens, DEVICE
 from loaders import EncoderLoader, FindLoader, DescribeLoader, MeasureLoader, NMNLoader
 
 
@@ -75,8 +75,9 @@ class DescribeRunnerUncached(Runner):
 	def _forward(self, batch_data):
 		features  = cudalize(batch_data['features'])
 		root_inst = cudalize(batch_data['root_inst'])
-		find_inst = [ to_tens(inst, 'long') for inst in batch_data['find_inst'] ]
+		find_inst = [ to_tens(inst, 'long', DEVICE) for inst in batch_data['find_inst'] ]
 
+		features_list = features.unsqueeze(1).unbind(0)
 		maps = list()
 		for f, inst in zip(features_list, find_inst):
 			f = f.expand(len(inst), -1, -1, -1)
