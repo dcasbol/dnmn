@@ -68,6 +68,7 @@ class DescribeRunnerUncached(Runner):
 		self._find = Find(competition=None)
 		self._find.load_state_dict(torch.load(find_pt, map_location='cpu'))
 		self._find = cudalize(self._find)
+		self._find.eval()
 
 	def _loader_class(self):
 		return NMNLoader
@@ -77,13 +78,14 @@ class DescribeRunnerUncached(Runner):
 		root_inst = cudalize(batch_data['root_inst'])
 		find_inst = [ to_tens(inst, 'long', DEVICE) for inst in batch_data['find_inst'] ]
 
-		features_list = features.unsqueeze(1).unbind(0)
-		maps = list()
-		for f, inst in zip(features_list, find_inst):
-			f = f.expand(len(inst), -1, -1, -1)
-			m = self._find[inst](f).prod(0, keepdim=True)
-			maps.append(m)
-		maps = torch.cat(maps)
+		with torch.no_grad():
+			features_list = features.unsqueeze(1).unbind(0)
+			maps = list()
+			for f, inst in zip(features_list, find_inst):
+				f = f.expand(len(inst), -1, -1, -1)
+				m = self._find[inst](f).prod(0, keepdim=True)
+				maps.append(m)
+			maps = torch.cat(maps)
 
 		return dict(
 			output = self._model[root_inst](maps, features),

@@ -166,6 +166,7 @@ class PercentageCounter(object):
 		self._last_perc   = -1
 		self._batch_size  = batch_size
 		self._dataset_len = dataset_len
+		print('PercentageCounter initialized with len={}'.format(dataset_len))
 
 	def update(self, batch_idx):
 		perc = (batch_idx*self._batch_size*100)//self._dataset_len

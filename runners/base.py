@@ -36,9 +36,9 @@ class Runner(object):
 			kwargs = dict(metadata=True) if modname == 'find' and validate else {}
 			self._val_loader = loader_class(
 				set_names  = 'val2014',
+				stop       = 0.2,
 				batch_size = VAL_BATCH_SIZE,
 				shuffle    = False,
-				stop       = 0.2,
 				**kwargs
 			)
 
