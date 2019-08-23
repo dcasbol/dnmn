@@ -57,7 +57,7 @@ class Runner(object):
 		self._logger    = Logger()
 		self._clock     = Chronometer()
 		self._raw_clock = Chronometer()
-		self._perc_cnt  = PercentageCounter(batch_size, len(self._loader))
+		self._perc_cnt  = PercentageCounter(batch_size, self._loader.dataset_len)
 
 		self._max_epochs = max_epochs
 		self._first_epoch = 0
