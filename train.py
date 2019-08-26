@@ -25,6 +25,7 @@ def get_args():
 		help='(find) Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
 		help='Run validation every 1% of the dataset')
+	parser.add_argument('--find-pt', type=str)
 	return parser.parse_args()
 
 
@@ -39,6 +40,9 @@ if __name__ == '__main__':
 			"Only find module is subject to visualization."
 		assert args.competition is None,\
 			"Competition only applies to find module."
+
+	if args.selection == 'describe_uncached':
+		assert args.find_pt is not None, "You must specify find module."
 
 	kwargs = { k: v for k, v in vars(args).items() if v is not None }
 	del kwargs['selection']
