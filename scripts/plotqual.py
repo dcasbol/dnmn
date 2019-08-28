@@ -1,4 +1,5 @@
 import json
+import numpy as np
 from glob import glob
 
 prefix = 'describe-qual-ep-'
@@ -31,6 +32,13 @@ with open('find-qual_log.json') as fd:
 
 wvar_list = [ wvar[epoch] for epoch in epoch_list ]
 result['wvar'] = wvar_list
+
+whiten = True
+if whiten:
+	keys = [ k for k in result.keys() if k != 'epoch' ]
+	for k in keys:
+		values = result[k]
+		result[k] = (np.array(values) - np.mean(values)) / np.stddev(values)
 
 with open('test.json', 'w') as fd:
 	json.dump(result, fd)
