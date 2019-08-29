@@ -33,12 +33,13 @@ with open('find-qual_log.json') as fd:
 wvar_list = [ wvar[epoch] for epoch in epoch_list ]
 result['wvar'] = wvar_list
 
-whiten = True
+whiten = False
 if whiten:
 	keys = [ k for k in result.keys() if k != 'epoch' ]
 	for k in keys:
 		values = result[k]
-		result[k] = (np.array(values) - np.mean(values)) / np.stddev(values)
+		new_values = (np.array(values) - np.mean(values)) / np.std(values)
+		result[k] = new_values.tolist()
 
 with open('test.json', 'w') as fd:
 	json.dump(result, fd)
