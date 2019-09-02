@@ -5,6 +5,7 @@ import numpy as np
 from vqa import VQAFindDataset
 from modules import Find
 from misc.util import max_divisor_batch_size, cudalize, to_numpy
+from misc.util import Chronometer
 from torch.utils.data import DataLoader
 
 def get_paths(set_name, img_id, instance):
@@ -20,6 +21,22 @@ def show_progress(i, total):
 		print('\rProcessing... {}%    '.format(perc), end='')
 	return perc
 show_progress.last = -1
+
+def make_set(set_name):
+	kwargs = dict(stop=0.2) if set_name == 'val2014' else {}
+	dataset = VQAFindDataset(set_names=set_name, filter_data=False, metadata=True, **kwargs)
+
+	batch_size = DEFAULT_BATCH_SIZE
+	if args.adjust_batch:
+		batch_size = max_divisor_batch_size(len(dataset), DEFAULT_BATCH_SIZE)
+
+	if batch_size > 1:
+		print('Batch size set to {} for {!r}'.format(batch_size, set_name))
+	else:
+		batch_size = DEFAULT_BATCH_SIZE
+		print('Batch size set to default ({}) for {!r}'.format(batch_size, set_name))
+
+	return dataset, batch_size
 
 def filtered_generation(find, dataset, batch_size):
 
@@ -95,21 +112,20 @@ if __name__ == '__main__':
 		assert not os.path.exists('./cache/hmaps/' + args.dataset),\
 			"Please remove cache/hmaps dir before proceeding."
 
-	dataset = VQAFindDataset(set_names=args.dataset, filter_data=False, metadata=True)
-	batch_size = max_divisor_batch_size(len(dataset), 256) if args.adjust_batch else DEFAULT_BATCH_SIZE
-	if batch_size > 1:
-		print('Batch size set to', batch_size)
-	else:
-		batch_size = DEFAULT_BATCH_SIZE
-		print('Bad luck! Batch size set to default:', batch_size)
+	trainset, batch_size_train = make_set('train2014')
+	valset, batch_size_val = make_set('val2014')
 
 	find = Find(competition=None)
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
 	find = cudalize(find)
 
+	raw_clock = Chronometer()
 	gen = filtered_generation if args.skip_existing else full_generation
-	n_generated = gen(find, dataset, batch_size)
+	raw_clock.start()
+	n_train = gen(find, trainset, batch_size)
+	n_val = gen(find, valset, batch_size)
+	raw_clock.stop()
 
 	print('\nFinalized')
-	print(n_generated, 'maps generated')
+	print('{} maps generated, lasted {} seconds'.format(n_train+n_val, raw_clock.read())

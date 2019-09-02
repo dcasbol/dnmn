@@ -99,7 +99,7 @@ if __name__ == '__main__':
 	args = get_args()
 
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
-	FULL_NAME    = args.module + SUFFIX
+	FULL_NAME    = args.module + '-subep' + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
 	PT_NEW       = FULL_NAME + '-ep{:02d}-wvar{:.4g}-new.pt'
@@ -189,45 +189,46 @@ if __name__ == '__main__':
 			N += B
 			total_loss += loss.item()
 
-			if perc != last_perc:
-				last_perc = perc
-				print('{: 3d}% - {}'.format(perc, total_loss/N))
+			if perc == last_perc: continue
+			last_perc = perc
+			print('{: 3d}% - {}'.format(perc, total_loss/N))
 
-		logger.log(
-			epoch = epoch,
-			loss = total_loss/N,
-			time = clock.read()
-		)
+			if perc % 10 != 0: continue
+			logger.log(
+				epoch = epoch,
+				loss = total_loss/N,
+				time = clock.read()
+			)
 
-		N = top1 = wvar = 0
-		with torch.no_grad():
-			for batch_data in val_loader:
-				result = run_find(module, batch_data, metadata)
-				att = attend(result['features'], result['hmap'])
-				pred = rev(att['attended'])
-				B = pred.size(0)
-				N += B
-				top1 += util.top1_accuracy(pred, result['instance']) * B
-				a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
-				wvar += weighted_var(*a).item() * B
+			N = top1 = wvar = 0
+			with torch.no_grad():
+				for batch_data in val_loader:
+					result = run_find(module, batch_data, metadata)
+					att = attend(result['features'], result['hmap'])
+					pred = rev(att['attended'])
+					B = pred.size(0)
+					N += B
+					top1 += util.top1_accuracy(pred, result['instance']) * B
+					a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
+					wvar += weighted_var(*a).item() * B
 
-		logger.log(
-			top_1 = top1/N,
-			wvar  = wvar/N
-		)
+			logger.log(
+				top_1 = top1/N,
+				wvar  = wvar/N
+			)
 
-		tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
-		ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
-		print('{} - {}'.format(tstr, ploss))
-		if args.visualize > 0:
-			keys   = ['hmap', 'label_str', 'input_set', 'input_id']
-			values = [ result[k] for k in keys ]
-			vis.update(*values)
+			tstr = time.strftime('%H:%M:%S', time.localtime(clock.read()))
+			ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
+			print('{} - {}'.format(tstr, ploss))
+			if args.visualize > 0:
+				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
+				values = [ result[k] for k in keys ]
+				vis.update(*values)
 
-		if args.save:
-			torch.save(module.state_dict(), PT_NEW.format(epoch, wvar/N))
-			print('Module saved')
-		logger.save(LOG_FILENAME)
+			if args.save:
+				torch.save(module.state_dict(), PT_NEW.format(epoch, wvar/N))
+				print('Module saved')
+			logger.save(LOG_FILENAME)
 
 	total = clock.read()
 	print('End of training. It took {} seconds'.format(total))
