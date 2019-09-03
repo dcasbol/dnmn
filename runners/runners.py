@@ -60,11 +60,10 @@ class DescribeRunner(Runner):
 			distr  = distr
 		)
 
-class DescribeRunnerUncached(Runner):
+class UncachedRunner(Runner):
 
-	def __init__(self, dropout=False, find_pt='find.pt', **kwargs):
-		self._model = Describe(dropout=dropout)
-		super(DescribeRunnerUncached, self).__init__(**kwargs)
+	def __init__(self, find_pt='find.pt', **kwargs):
+		super(UncachedRunner, self).__init__(**kwargs)
 		self._find = Find(competition=None)
 		self._find.load_state_dict(torch.load(find_pt, map_location='cpu'))
 		self._find = cudalize(self._find)
@@ -92,6 +91,18 @@ class DescribeRunnerUncached(Runner):
 			label  = cudalize(batch_data['label']),
 			distr  = cudalize(batch_data['distr'])
 		)
+
+class DescribeRunnerUncached(UncachedRunner):
+
+	def __init__(self, dropout=False, **kwargs):
+		self._model = Describe(dropout=dropout)
+		super(DescribeRunnerUncached, self).__init__(**kwargs)
+
+class MeasureRunnerUncached(UncachedRunner):
+
+	def __init__(self, dropout=False, **kwargs):
+		self._model = Measure(dropout=dropout)
+		super(MeasureRunnerUncached, self).__init__(**kwargs)
 
 class MeasureRunner(Runner):
 

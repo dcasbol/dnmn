@@ -1,12 +1,13 @@
 import argparse
 from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
-from runners.runners import NMNRunner, DescribeRunnerUncached
+from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
 
 def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
 	parser.add_argument('selection',
-		choices=['find', 'describe', 'measure', 'encoder', 'nmn', 'describe_uncached'])
+		choices=['find', 'describe', 'measure', 'encoder', 'nmn',
+			'describe_uncached', 'measure_uncached'])
 	parser.add_argument('--max-epochs', type=int,
 		help='Max. training epochs')
 	parser.add_argument('--batch-size', type=int)
@@ -53,7 +54,8 @@ if __name__ == '__main__':
 		measure  = MeasureRunner,
 		describe = DescribeRunner,
 		nmn      = NMNRunner,
-		describe_uncached = DescribeRunnerUncached
+		describe_uncached = DescribeRunnerUncached,
+		measure_uncached  = MeasureRunnerUncached
 	)[args.selection](**kwargs)
 
 	runner.run()
