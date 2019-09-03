@@ -149,7 +149,7 @@ class Measure(InstanceModule):
 			setattr(self, '_measure_%d' % i, layers)
 			self._measure.append(layers)
 
-	def forward(self, mask):
+	def forward(self, mask, *dummy_args):
 		B = mask.size(0)
 		mask = self._dropout(mask)
 		mask = mask.view(B, -1).unsqueeze(1).unbind(0)
