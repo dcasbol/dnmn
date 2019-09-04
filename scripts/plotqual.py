@@ -1,45 +1,68 @@
+import os
+import re
 import json
+import argparse
 import numpy as np
 from glob import glob
 
-prefix = 'describe-qual-ep-'
-i0 = len(prefix)
+def get_args():
+	parser = argparse.ArgumentParser(description='Generate plot info for assessing Find utility.')
+	parser.add_argument('--find-log', default='find-qual_log.json')
+	parser.add_argument('--describe-logs-dir', default='./')
+	parser.add_argument('--output-log', default='test.json')
+	parser.add_argument('--whiten', action='store_true')
+	parser.add_argument('--prefix', default='describe-qual-ep-')
+	return parser.parse_args()
 
-fn_list = glob(prefix+'*.json')
-fn_list.sort()
+def main(args):
 
-acc_list = list()
-epoch_list = list()
-max_epoch_list = list()
+	i0 = len(args.prefix)
 
-for fn in fn_list:
-	with open(fn) as fd:
-		data = json.load(fd)
-	max_acc = max(data['top_1'])
-	if data['top_1'][-1] < max_acc:
-		acc_list.append(max_acc)
-		epoch_list.append(int(fn[i0:i0+2]))
-		max_epoch_list.append(data['epoch'][-4])
+	pattern = os.path.join(args.describe_logs_dir, '%s*_log.json' % prefix)
+	fn_list = glob(pattern)
+	fn_list.sort()
 
-result = dict(
-	epoch = epoch_list,
-	top_1 = acc_list,
-	max_epoch = max_epoch_list
-)
+	acc_list = list()
+	epoch_list = list()
+	max_epoch_list = list()
 
-with open('find-qual_log.json') as fd:
-	wvar = json.load(fd)['wvar']
+	for fn in fn_list:
+		with open(fn) as fd:
+			data = json.load(fd)
+		if len(data['epoch']) < 4: continue
+		max_acc = max(data['top_1'])
+		if data['top_1'][-1] < max_acc:
+			acc_list.append(max_acc)
+			max_epoch_list.append(data['epoch'][-4])
 
-wvar_list = [ wvar[epoch] for epoch in epoch_list ]
-result['wvar'] = wvar_list
+			basename = os.path.basename(fn)[i0:]
+			m = re.search('^(\d+\.\d+)', basename)
+			epoch = float(m.group(1))
+			epoch_list.append(epoch)
 
-whiten = False
-if whiten:
-	keys = [ k for k in result.keys() if k != 'epoch' ]
-	for k in keys:
-		values = result[k]
-		new_values = (np.array(values) - np.mean(values)) / np.std(values)
-		result[k] = new_values.tolist()
+	if len(epoch_list) == 0: return
 
-with open('test.json', 'w') as fd:
-	json.dump(result, fd)
+	result = dict(
+		epoch = epoch_list,
+		top_1 = acc_list,
+		max_epoch = max_epoch_list
+	)
+
+	with open(args.find_log) as fd:
+		wvar = json.load(fd)['wvar']
+
+	wvar_list = [ wvar[epoch] for epoch in epoch_list ]
+	result['wvar'] = wvar_list
+
+	if args.whiten:
+		for k in [ k for k in result.keys() if k != 'epoch' ]:
+			values = result[k]
+			new_values = (np.array(values) - np.mean(values)) / np.std(values)
+			result[k] = new_values.tolist()
+
+	with open(args.output_log, 'w') as fd:
+		json.dump(result, fd)
+
+
+if __name__ == '__main__':
+	main(get_args())
