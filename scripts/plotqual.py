@@ -18,7 +18,7 @@ def main(args):
 
 	i0 = len(args.prefix)
 
-	pattern = os.path.join(args.describe_logs_dir, '%s*_log.json' % prefix)
+	pattern = os.path.join(args.describe_logs_dir, '%s*_log.json' % args.prefix)
 	fn_list = glob(pattern)
 	fn_list.sort()
 
@@ -36,7 +36,7 @@ def main(args):
 			max_epoch_list.append(data['epoch'][-4])
 
 			basename = os.path.basename(fn)[i0:]
-			m = re.search('^(\d+\.\d+)', basename)
+			m = re.search('^(\d+(\.\d+)?)', basename)
 			epoch = float(m.group(1))
 			epoch_list.append(epoch)
 
@@ -47,12 +47,6 @@ def main(args):
 		top_1 = acc_list,
 		max_epoch = max_epoch_list
 	)
-
-	with open(args.find_log) as fd:
-		wvar = json.load(fd)['wvar']
-
-	wvar_list = [ wvar[epoch] for epoch in epoch_list ]
-	result['wvar'] = wvar_list
 
 	if args.whiten:
 		for k in [ k for k in result.keys() if k != 'epoch' ]:
