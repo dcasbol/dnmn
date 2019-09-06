@@ -18,13 +18,13 @@ SPACE = [
 
 class HyperOptimizer(object):
 
-	def __init__(self, selection, best_pt):
+	def __init__(self, selection):
 		self._sel = selection
 		self._path_dir = 'hyperopt/{}'.format(selection)
 		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
 		self._num_evals = 0
 		self._best_acc = 0.
-		self._best_pt = best_pt
+		self._best_pt = '{}-hpo-best.pt'
 
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
