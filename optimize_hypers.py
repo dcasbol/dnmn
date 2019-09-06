@@ -25,6 +25,7 @@ class HyperOptimizer(object):
 		self._num_evals = 0
 		self._best_acc = 0.
 		self._best_pt = '{}-hpo-best.pt'
+		self._test_obj = None
 
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
@@ -71,11 +72,9 @@ class HyperOptimizer(object):
 			validate      = True
 		)
 		test.run()
+		self._test_obj = test if test.best_acc > self._best_acc else None
 
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
-
-		if test.bet_acc > self._best_acc:
-			test.save_model(self._best_pt)
 
 		self._best_acc = max(self._best_acc, test.best_acc)
 		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
@@ -95,6 +94,9 @@ class HyperOptimizer(object):
 		if 'callback' in args:
 			del args['callback']
 		skopt.dump(res, self._path_res)
+		if self._test_obj is not None:
+			self._test_obj.save_model(self._best_pt)
+			self._test_obj = None
 
 	def run(self):
 
