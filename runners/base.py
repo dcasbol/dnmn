@@ -14,7 +14,7 @@ class Runner(object):
 
 		self._save      = save
 		self._validate  = validate
-		self._best_acc  = 0.
+		self._best_acc  = None
 		self._n_worse   = 0
 		self._best_epoch = -1
 
@@ -173,8 +173,8 @@ class Runner(object):
 			acc = - self._logger.last('wvar')
 		else:
 			acc = self._logger.last('top_1')
-			
-		if acc > self._best_acc:
+
+		if self._best_acc is None or acc > self._best_acc:
 			self._best_acc = acc
 			self._best_epoch = self._epoch
 			self._n_worse = 0
