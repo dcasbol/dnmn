@@ -1,8 +1,12 @@
+import os
+import torch
 from glob import glob
 from loaders import FindLoader
 from modules import Find
 from misc.constants import *
 from misc.util import cudalize, Logger
+from misc.visualization import MapVisualizer
+import time
 
 def weighted_var_masked(features, hmap, attended, total):
 	B, C = attended.size()[:2]
@@ -27,36 +31,42 @@ def common_features(features, hmap):
 def filler(features, hmap):
 	B,C,H,W = features.size()
 	features_flat = features.view(B,C,H*W)
-	indices = features_flat.max(2)[1]
+	hmap_flat     = hmap.view(B,H*W)
+	indices = hmap_flat.max(1)[1]
 	ih = indices // W
 	iw = indices % W
-	feature_presence = features > 0
 	idx_C = torch.arange(C)
-	masks = [ _rec_filler(idx_B, feature_presence[i], ih[i], iw[i]) for i in range(B) ]
+	sel = {(ih, iw)}
+	masks = [ _rec_filler(idx_C, features[i], features[i,idx_C,ih,iw], 0, 0, sel) for i in range(B) ]
 	masks = [ _set_to_mask(H, W, m) for m in masks ]
-	return torch.cat(masks)
+	masks = torch.cat(masks).view(B,1,H,W)
 
-def _rec_filler(idx_C, presence, ih, iw, sel=set(), ref=None):
+	idx_B = torch.arange(B)
+	refs = features[idx_B,idx_C,ih,iw].view(B,C,1,1)
+	softmask = (features*refs).sum(1, keepdim=True)
+	return masks, softmask
 
-	new_ref = presence[idx_C, ih, iw]
+def _rec_filler(idx_C, features, ref_vec, ih, iw, sel=set()):
 
-	if ref is None:
-		ref = new_ref
+	if (ih, iw) in sel: return
+
+	new_ref = features[idx_C, ih, iw]
+
+	if torch.matmul(ref_vec, new_ref) / (torch.norm(ref_vec)*torch.norm(new_ref)) > 0.3:
 		sel.add((ih,iw))
-	elif (ref == new_ref).all():
-		ref.add((ih,iw))
 
-	if ih > 0:
-		_rec_filler(idx_C, presence, ih-1, iw)
-	if ih < presence.size(1)-1:
-		_rec_filler(idx_C, presence, ih+1, iw)
+	H,W = features.size()[1:3]
 
-	if iw > 0:
-		_rec_filler(idx_C, presence, ih, iw-1)
-	if iw < presence.size(2)-1:
-		_rec_filler(idx_C, presence, ih, iw+1)
+	if ih >= iw and ih < H-1:
+		_rec_filler(idx_C, features, ref_vec, ih+1, iw, sel)
 
-	return ref
+	if iw >= ih and iw < W-1:
+		_rec_filler(idx_C, features, ref_vec, ih, iw+1, sel)
+
+	if ih == iw and ih < H-1 and iw < W-1:
+		_rec_filler(idx_C, features, ref_vec, ih+1, iw+1, sel)
+
+	return sel
 
 def _set_to_mask(H, W, coord_set):
 	mask = torch.zeros(1,H,W, dtype=torch.uint8)
@@ -88,12 +98,16 @@ if __name__ == '__main__':
 	val_loader = FindLoader(
 		set_names  = 'val2014',
 		stop       = 0.2,
-		batch_size = VAL_BATCH_SIZE,
-		shuffle    = False
+		batch_size = 1,
+		shuffle    = False,
+		metadata   = True
 	)
 
 	find = Find(competition=None)
+	find.eval()
 	logger = Logger()
+
+	vis = MapVisualizer(1)
 
 	prefix = 'find-qual-ep'
 	i0 = len(prefix)
@@ -106,24 +120,23 @@ if __name__ == '__main__':
 
 		epoch = int(os.path.basename(fn)[i0:i0+2])
 
-		find.load_state_dict(torch.load(find_pt, map_location='cpu'))
+		find.load_state_dict(torch.load(fn, map_location='cpu'))
 		find = cudalize(find)
 
 		N = n_common_total = weighted_total = 0
 
 		with torch.no_grad():
 			for batch_data in val_loader:
-				result = run_find(find, batch_data, False)
-				n_common, weighted = common_features(result['features'], result['hmap'])
-				B = result['features'].size(0)
-				N += B
-				n_common_total += n_common * B
-				weighted_total += weighted * B
-
-		logger.log(
-			epoch = epoch,
-			n_common = n_common_total/N,
-			weighted = weighted_total/N
-		)
-
-	logger.save('measure.json')
+				result = run_find(find, batch_data, True)
+				masks, softmask = filler(result['features'], result['hmap'])
+				hmap = result['hmap']
+				hmap = hmap / (hmap.max() + 1e-10)
+				softmask = softmask / (softmask.max() + 1e-10)
+				mean = (softmask + hmap) / 2.
+				label_str, input_set, input_id = [ result[k] for k in ['label_str', 'input_set', 'input_id'] ]
+				cmap_list = ['viridis', 'plasma', 'hot']
+				name_list = [ ' (%s)' % name for name in ['hmap', 'cos-sim', 'mean'] ]
+				for m, cmap, name in zip([hmap, softmask, mean], cmap_list, name_list):
+					vis._cmap = cmap
+					vis.update(m, [label_str[0]+name], input_set, input_id)
+					time.sleep(1)
