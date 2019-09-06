@@ -1,3 +1,5 @@
+import os
+import torch
 from glob import glob
 from loaders import FindLoader
 from modules import Find
@@ -14,14 +16,14 @@ def weighted_var_masked(features, hmap, attended, total):
 
 def common_features(features, hmap):
 	B,C,H,W = features.size()
-	masks = (hmap > 0).view(B,1,-1).unbind(0)
+	masks = (hmap > 0).view(B,-1).unbind(0)
 	features_list = features.view(B,C,-1).unbind(0)
-	selections = [ f[m] for f, m in zip(features_list, masks) ]
+	selections = [ f[:,m] for f, m in zip(features_list, masks) ]
 	present    = [ (s > 0).float() for s in selections ]
 	n_common = [ p.prod(1).sum() for p in present ]
-	n_common = torch.cat(n_common).mean()
+	n_common = torch.as_tensor(n_common).mean()
 	weighted = [ p.mean(1).sum() for p in present ]
-	weighted = torch.cat(weighted).mean()
+	weighted = torch.as_tensor(weighted).mean()
 	return n_common.item(), weighted.item()
 
 def run_find(module, batch_data, metadata):
@@ -63,10 +65,11 @@ if __name__ == '__main__':
 	fn_list.sort()
 
 	for fn in fn_list:
+		print('Applying to {!r}'.format(fn))
 
 		epoch = int(os.path.basename(fn)[i0:i0+2])
 
-		find.load_state_dict(torch.load(find_pt, map_location='cpu'))
+		find.load_state_dict(torch.load(fn, map_location='cpu'))
 		find = cudalize(find)
 
 		N = n_common_total = weighted_total = 0
@@ -86,4 +89,4 @@ if __name__ == '__main__':
 			weighted = weighted_total/N
 		)
 
-	logger.save('measure.json')
+		logger.save('measure.json')
