@@ -169,7 +169,11 @@ class Runner(object):
 				print('Model saved')
 			return False
 
-		acc = self._logger.last('top_1')
+		if self._model.NAME == 'find':
+			acc = - self._logger.last('wvar')
+		else:
+			acc = self._logger.last('top_1')
+			
 		if acc > self._best_acc:
 			self._best_acc = acc
 			self._best_epoch = self._epoch

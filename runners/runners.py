@@ -7,6 +7,24 @@ from misc.util import cudalize, cudalize_dict, to_tens, DEVICE
 from loaders import EncoderLoader, FindLoader, DescribeLoader, MeasureLoader, NMNLoader
 
 
+def _attend(features, hmap):
+	B,C,H,W = features.size()
+	features = features.view(B,C,-1)
+	hmap = hmap.view(B,1,-1)
+	total = hmap.sum(2)
+	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
+	return dict(
+		features_flat = features,
+		hmap_flat = hmap,
+		total = total,
+		attended = attended.view(B,C,1)
+	)
+
+def _weighted_var(features_flat, hmap_flat, attended, total):
+	var = (features-attended).pow(2)
+	wvar = (var*hmap).sum(2) / (total + 1e-10)
+	return wvar.mean()
+
 class FindRunner(Runner):
 
 	def __init__(self, competition='softmax', visualize=0, dropout=0, **kwargs):
@@ -50,37 +68,14 @@ class FindRunner(Runner):
 		with torch.no_grad():
 			for batch_data in self._val_loader:
 				result = self._forward(batch_data)
-				att = self._attend(result['features'], result['hmap'])
-				wvar += self._weighted_var()
-
+				B = result['features'].size(0)
+				N += B
+				attended_kwargs = _attend(result['features'], result['hmap'])
+				wvar += _weighted_var(**attended_kwargs) * B
 		self._model.train()
 		
-		self._logger.log(
-			top_1    = top1/N,
-			in_set   = inset/N,
-			weighted = wacc/N
-		)
+		self._logger.log(wvar = wvar/N)
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
-
-	def _attend(self, features, hmap):
-		B,C,H,W = features.size()
-		features = features.view(B,C,-1)
-		hmap = hmap.view(B,1,-1)
-		total = hmap.sum(2)
-		attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
-		return dict(
-			features_flat = features,
-			hmap_flat = hmap,
-			total = total,
-			attended = attended
-		)
-
-	def _weighted_var(self, features, hmap, attended, total):
-		B, C = attended.size()[:2]
-		attended = attended.view(B,C,1)
-		var = (features-attended).pow(2)
-		wvar = (var*hmap).sum(2) / (total + 1e-10)
-		return wvar.mean()
 
 class DescribeRunner(Runner):
 
