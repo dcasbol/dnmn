@@ -3,16 +3,14 @@ import argparse
 import numpy as np
 from glob import iglob
 
-IMAGE_PAT = "/home/david/DataSets/vqa/Images/train2014/conv/*.jpg.npz"
+IMAGE_PAT = "/home/david/DataSets/vqa/Images/train2014/conv/*.jpg.npy"
 
 def compute_normalizers(fn_pattern):
 	mean = np.zeros((512,), dtype=np.float32)
 	mmt2 = np.zeros((512,), dtype=np.float32)
 	count = 0
 	for fn in iglob(fn_pattern):
-		with np.load(fn) as zdata:
-			assert len(zdata.keys()) == 1
-			image_data = list(zdata.values())[0]
+		with np.load(fn) as image_data:
 			sq_image_data = np.square(image_data)
 			mean += np.sum(image_data, axis=(0,1))
 			mmt2 += np.sum(sq_image_data, axis=(0,1))
@@ -33,7 +31,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	vqa_path = os.path.expanduser(args.datasetpath)
-	fn_pattern = os.path.join(vqa_path, 'Images/train2014/conv/*.jpg.npz')
+	fn_pattern = os.path.join(vqa_path, 'Images/train2014/conv/*.jpg.npy')
 	fn_save = os.path.join(vqa_path, 'Images/normalizers.npz')
 
 	mean, std = compute_normalizers(fn_pattern)

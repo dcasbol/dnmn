@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 def get_paths(set_name, img_id, instance):
 	dirname = './cache/hmaps/{}/{}'.format(set_name, instance)
-	basename = '{}-{}-{}.npz'.format(set_name, img_id, instance)
+	basename = '{}-{}-{}.npy'.format(set_name, img_id, instance)
 	filename = os.path.join(dirname, basename)
 	return dirname, filename
 

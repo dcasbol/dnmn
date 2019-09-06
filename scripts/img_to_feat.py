@@ -19,7 +19,7 @@ def get_tgt_fn(fn):
 	dirname, base = os.path.split(fn)
 	assert dirname[-4:] == '/raw', 'not reading from raw images dir'
 	tgt_dir = dirname[:-3]+'conv'
-	tgt_fn = tgt_dir+'/'+base+'.npz'
+	tgt_fn = tgt_dir+'/'+base+'.npy'
 	if not os.path.exists(tgt_dir):
 		os.mkdir(tgt_dir)
 	return dirname, tgt_fn
@@ -51,7 +51,7 @@ def main():
 		fn_batch = img_generator.filepaths[idx:idx+BATCH_SIZE]
 		for i, fn in enumerate(fn_batch):
 			dirname, tgt_fn = get_tgt_fn(fn)
-			np.savez_compressed(tgt_fn, features[i])
+			np.save(tgt_fn, features[i])
 		if dirname != curr_dir:
 			curr_dir = dirname
 			print('processing', curr_dir)
