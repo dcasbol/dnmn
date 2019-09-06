@@ -108,8 +108,7 @@ class Runner(object):
 					return
 
 				if self._perc_cnt.update(i):
-					mean_loss = loss_perc/N_perc
-					print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
+					self._preview(loss_perc/N_perc)
 
 			mean_loss = loss_perc/N_perc
 			loss_perc = 0.
@@ -119,7 +118,10 @@ class Runner(object):
 			if self._evaluate(): break
 
 		print('End of training. It took {} training seconds'.format(self._clock.read()))
-		print('{} seconds in total'.format(self._raw_clock.read()))	
+		print('{} seconds in total'.format(self._raw_clock.read()))
+
+	def _preview(self, mean_loss):
+		print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
 
 	def _log_routine(self, mean_loss):
 		self._logger.log(
@@ -163,7 +165,7 @@ class Runner(object):
 
 		if not self._validate:
 			if self._save:
-				torch.save(self._model.state_dict(), self._pt_new)
+				self.save_model(self._pt_new)
 				print('Model saved')
 			return False
 
@@ -179,6 +181,10 @@ class Runner(object):
 			self._n_worse += 1
 
 		return self._n_worse >= 3
+
+	def save_model(self, pt_filename):
+		torch.save(self._model.state_dict(), pt_filename)
+		print('Model saved at {!r}'.format(pt_filename))
 
 	@property
 	def best_acc(self):

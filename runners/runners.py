@@ -9,10 +9,8 @@ from loaders import EncoderLoader, FindLoader, DescribeLoader, MeasureLoader, NM
 
 class FindRunner(Runner):
 
-	def __init__(self, competition='softmax', visualize=0, dropout=False, **kwargs):
+	def __init__(self, competition='softmax', visualize=0, dropout=0, **kwargs):
 		self._model   = Find(competition=competition, dropout=dropout)
-		if 'validate' in kwargs:
-			assert not kwargs['validate'], "Can't validate Find just yet"
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
 		if visualize > 0:
@@ -27,23 +25,65 @@ class FindRunner(Runner):
 		output = self._model[instance](features)
 		self._result = dict(
 			output    = output,
+			label     = instance,
 			hmap      = output,
 			label_str = label_str,
 			input_set = input_set,
-			input_id  = input_id
+			input_id  = input_id,
+			features  = features,
 		)
 		return self._result
 
-	def _log_routine(self, mean_loss):
-		super(FindRunner, self)._log_routine(epoch, mean_loss)
+	def _preview(self, mean_loss):
+		super(FindRunner, self)._preview(mean_loss)
 		if self._visualize > 0:
 			keys   = ['hmap', 'label_str', 'input_set', 'input_id']
 			values = [ self._result[k] for k in keys ]
 			self._vis.update(*values)
 
+	def _validation_routine(self):
+		if not self._validate: return
+		N = wvar = 0
+
+		self._model.eval()
+		with torch.no_grad():
+			for batch_data in self._val_loader:
+				result = self._forward(batch_data)
+				att = self._attend(result['features'], result['hmap'])
+				wvar += self._weighted_var()
+
+		self._model.train()
+		
+		self._logger.log(
+			top_1    = top1/N,
+			in_set   = inset/N,
+			weighted = wacc/N
+		)
+		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
+
+	def _attend(self, features, hmap):
+		B,C,H,W = features.size()
+		features = features.view(B,C,-1)
+		hmap = hmap.view(B,1,-1)
+		total = hmap.sum(2)
+		attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
+		return dict(
+			features_flat = features,
+			hmap_flat = hmap,
+			total = total,
+			attended = attended
+		)
+
+	def _weighted_var(self, features, hmap, attended, total):
+		B, C = attended.size()[:2]
+		attended = attended.view(B,C,1)
+		var = (features-attended).pow(2)
+		wvar = (var*hmap).sum(2) / (total + 1e-10)
+		return wvar.mean()
+
 class DescribeRunner(Runner):
 
-	def __init__(self, dropout=False, **kwargs):
+	def __init__(self, dropout=0, **kwargs):
 		self._model = Describe(dropout=dropout)
 		super(DescribeRunner, self).__init__(**kwargs)
 
@@ -94,19 +134,19 @@ class UncachedRunner(Runner):
 
 class DescribeRunnerUncached(UncachedRunner):
 
-	def __init__(self, dropout=False, **kwargs):
+	def __init__(self, dropout=0, **kwargs):
 		self._model = Describe(dropout=dropout)
 		super(DescribeRunnerUncached, self).__init__(**kwargs)
 
 class MeasureRunnerUncached(UncachedRunner):
 
-	def __init__(self, dropout=False, **kwargs):
+	def __init__(self, dropout=0, **kwargs):
 		self._model = Measure(dropout=dropout)
 		super(MeasureRunnerUncached, self).__init__(**kwargs)
 
 class MeasureRunner(Runner):
 
-	def __init__(self, dropout=False, **kwargs):
+	def __init__(self, dropout=0, **kwargs):
 		self._model = Measure(dropout=dropout)
 		super(MeasureRunner, self).__init__(**kwargs)
 
@@ -126,7 +166,7 @@ class MeasureRunner(Runner):
 
 class EncoderRunner(Runner):
 
-	def __init__(self, dropout=False, embed_size=None, **kwargs):
+	def __init__(self, dropout=0, embed_size=None, **kwargs):
 		self._model = QuestionEncoder(dropout=dropout, embed_size=embed_size)
 		super(EncoderRunner, self).__init__(**kwargs)
 
@@ -144,7 +184,7 @@ class EncoderRunner(Runner):
 
 class NMNRunner(Runner):
 
-	def __init__(self, dropout=False, **kwargs):
+	def __init__(self, dropout=0, **kwargs):
 		self._model = NMN(dropout=dropout)
 		super(NMNRunner, self).__init__(**kwargs)
 
