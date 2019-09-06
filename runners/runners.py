@@ -20,19 +20,20 @@ class FindRunner(Runner):
 		return FindLoader
 
 	def _forward(self, batch_data):
-		features, instance, label_str, input_set, input_id = batch_data
-		features, instance = cudalize(features, instance)
+		features, instance = cudalize(*batch_data[:2])
 		output = self._model[instance](features)
-		self._result = dict(
+		result = dict(
 			output    = output,
 			label     = instance,
 			hmap      = output,
-			label_str = label_str,
-			input_set = input_set,
-			input_id  = input_id,
-			features  = features,
+			features  = features
 		)
-		return self._result
+		if len(batch_data) > 2:
+			result['label_str'] = batch_data[2]
+			result['input_set'] = batch_data[3]
+			result['input_id']  = batch_data[4]
+		self._result = result
+		return result
 
 	def _preview(self, mean_loss):
 		super(FindRunner, self)._preview(mean_loss)
