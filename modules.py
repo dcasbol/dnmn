@@ -8,13 +8,13 @@ from misc.util import to_numpy
 
 class InstanceModule(nn.Module):
 
-	def __init__(self, dropout=False):
+	def __init__(self, dropout=0):
 		super(InstanceModule, self).__init__()
 		self._instance = None
 		self._dropout = {
 			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=0.5, training=self.training)
-		}[dropout]
+			True  : lambda x: F.dropout(x, p=dropout, training=self.training)
+		}[dropout>0]
 
 	def __getitem__(self, instance):
 		assert self._instance is None
@@ -164,21 +164,17 @@ class QuestionEncoder(nn.Module):
 
 	NAME = 'encoder'
 
-	def __init__(self, dropout=False, embed_size=None):
+	def __init__(self, dropout=0, embed_size=None):
 		super(QuestionEncoder, self).__init__()
 		embed_size = embed_size or EMBEDDING_SIZE
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), embed_size,
 			padding_idx=NULL_ID)
 		self._lstm = nn.LSTM(embed_size, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
-		p = 0.5
-		if type(dropout) != bool:
-			p = dropout
-			dropout = True
 		self._dropout = {
 			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=p, training=self.training)
-		}[dropout]
+			True  : lambda x: F.dropout(x, p=dropout, training=self.training)
+		}[dropout>0]
 
 	def forward(self, question, length):
 		B = length.size(0)

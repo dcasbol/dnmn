@@ -18,12 +18,13 @@ SPACE = [
 
 class HyperOptimizer(object):
 
-	def __init__(self, selection):
+	def __init__(self, selection, best_pt):
 		self._sel = selection
 		self._path_dir = 'hyperopt/{}'.format(selection)
 		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
 		self._num_evals = 0
 		self._best_acc = 0.
+		self._best_pt = best_pt
 
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
@@ -43,14 +44,17 @@ class HyperOptimizer(object):
 			self._res = skopt.load(self._path_res)
 			self._x0 = self._res.x_iters
 			self._y0 = self._res.func_vals
+			self._best_acc = -self._res.fun
+			self._num_evals = len(self._y0)
 
 	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
 
 		self._num_evals += 1
 
-		batch_size = int(batch_size)
+		batch_size = int(batch_size) # Numpy int is problematic
 
-		suffix = 'hpo-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
+		suffix = 'hpo({n:02d})-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
+			n   = self._num_evals-1,
 			bs  = batch_size,
 			lr  = learning_rate,
 			do  = dropout,
@@ -68,7 +72,10 @@ class HyperOptimizer(object):
 		)
 		test.run()
 
-		res_suffix = '{}-ep{}'.format(suffix, test.best_epoch)
+		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
+
+		if test.bet_acc > self._best_acc:
+			test.save_model(self._best_pt)
 
 		self._best_acc = max(self._best_acc, test.best_acc)
 		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
@@ -88,9 +95,6 @@ class HyperOptimizer(object):
 		if 'callback' in args:
 			del args['callback']
 		skopt.dump(res, self._path_res)
-		if self._num_evals == 1:
-			skopt.load(self._path_res)
-			print('Saved OK')
 
 	def run(self):
 
@@ -110,6 +114,7 @@ class HyperOptimizer(object):
 		)
 
 		print('Hyperparameter Optimization ended.')
+		print('Best result:', self._best_acc)
 
 if __name__ == '__main__':
 

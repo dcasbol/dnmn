@@ -10,6 +10,7 @@ class MapVisualizer(object):
 		self._period = visualization_period
 		assert self._period > 0
 		self._count = 0
+		self._cmap = 'hot'
 		plt.figure()
 		plt.ion()
 		plt.show()
@@ -24,7 +25,7 @@ class MapVisualizer(object):
 
 		plt.subplot(1,2,1)
 		img = to_numpy(hmaps[0,0])
-		im = plt.imshow(img, cmap='hot', vmin=np.amin(img), vmax=np.amax(img))
+		im = plt.imshow(img, cmap=self._cmap, vmin=np.amin(img), vmax=np.amax(img))
 		plt.colorbar(im, orientation='horizontal', pad=0.05)
 		plt.axis('off')
 
