@@ -7,7 +7,6 @@ from glob import glob
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Generate plot info for assessing Find utility.')
-	parser.add_argument('--find-log', default='find-qual_log.json')
 	parser.add_argument('--describe-logs-dir', default='./')
 	parser.add_argument('--output-log', default='test.json')
 	parser.add_argument('--whiten', action='store_true')
