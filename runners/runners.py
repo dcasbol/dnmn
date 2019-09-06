@@ -204,7 +204,3 @@ class NMNRunner(Runner):
 			label  = batch_data['label'],
 			distr  = batch_data['distr']
 		)
-
-	def _log_routine(self, mean_loss):
-		super(NMNRunner, self)._log_routine(mean_loss)
-		self._model.show_times()
