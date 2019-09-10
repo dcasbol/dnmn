@@ -22,7 +22,8 @@ def _attend(features, hmap):
 
 def _weighted_var(features_flat, hmap_flat, attended, total):
 	var = (features_flat-attended).pow(2)
-	wvar = (var*hmap_flat).sum(2) / (total + 1e-10)
+	att_flat = hmap_flat + 1e-10
+	wvar = (var*att_flat).sum(2) / att_flat.sum(2)
 	return wvar.mean().item()
 
 class FindRunner(Runner):
