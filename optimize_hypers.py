@@ -23,8 +23,8 @@ class HyperOptimizer(object):
 		self._path_dir = 'hyperopt/{}'.format(selection)
 		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
 		self._num_evals = 0
-		self._best_acc = 0.
 		self._best_pt = '{}-hpo-best.pt'.format(selection)
+		self._best_acc = None
 		self._test_obj = None
 
 		if not os.path.exists(self._path_dir):
@@ -45,7 +45,7 @@ class HyperOptimizer(object):
 			self._res = skopt.load(self._path_res)
 			self._x0 = self._res.x_iters
 			self._y0 = self._res.func_vals
-			self._best_acc = -self._res.fun
+			self._best_acc = self._res.fun
 			self._num_evals = len(self._y0)
 
 	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
@@ -72,11 +72,15 @@ class HyperOptimizer(object):
 			validate      = True
 		)
 		test.run()
-		self._test_obj = test if test.best_acc > self._best_acc else None
+
+		if self._best_acc is None or test.best_acc > self._best_acc:
+			self._test_obj = test
+			self._best_acc = test.best_acc
+		else:
+			self._test_obj = None
 
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
 
-		self._best_acc = max(self._best_acc, test.best_acc)
 		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
 		print('Best acc is', self._best_acc)
 
@@ -107,7 +111,7 @@ class HyperOptimizer(object):
 		def callback(res):
 			return self._save(res)
 
-		skopt.gp_minimize(obj_func, SPACE,
+		res = skopt.gp_minimize(obj_func, SPACE,
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,
@@ -116,7 +120,9 @@ class HyperOptimizer(object):
 		)
 
 		print('Hyperparameter Optimization ended.')
-		print('Best result:', self._best_acc)
+		print('Best result:', res.fun)
+		print('Found at eval. index:', res.x_iters.index(res.x))
+		print('x:', res.x)
 
 if __name__ == '__main__':
 
