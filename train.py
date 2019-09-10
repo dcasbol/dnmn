@@ -34,9 +34,7 @@ if __name__ == '__main__':
 
 	args = get_args()
 
-	if args.selection == 'find':
-		assert not args.validate, "Can't validate Find module"
-	else:
+	if args.selection != 'find':
 		assert args.visualize is None,\
 			"Only find module is subject to visualization."
 		assert args.competition is None,\
