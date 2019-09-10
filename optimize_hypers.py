@@ -24,7 +24,7 @@ class HyperOptimizer(object):
 		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
 		self._num_evals = 0
 		self._best_acc = 0.
-		self._best_pt = '{}-hpo-best.pt'
+		self._best_pt = '{}-hpo-best.pt'.format(selection)
 		self._test_obj = None
 
 		if not os.path.exists(self._path_dir):

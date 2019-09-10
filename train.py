@@ -19,7 +19,7 @@ def get_args():
 	parser.add_argument('--learning-rate', type=float,
 		help='Specify learning rate')
 	parser.add_argument('--weight-decay', type=float, help='Weight decay')
-	parser.add_argument('--dropout', action='store_true')
+	parser.add_argument('--dropout', type=float)
 	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'],
 		help='(find) Activation competition: pre/post sigmoidal or ReLU+softmax.')
 	parser.add_argument('--visualize', type=int,
