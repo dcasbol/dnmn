@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from vqa import VQAFindDataset
 from modules import Find
 from misc.constants import *
-from misc.util import cudalize, Logger, Chronometer
+from misc.util import cudalize, Logger, Chronometer, lookahead
 from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX
 
@@ -134,8 +134,8 @@ if __name__ == '__main__':
 	last_perc = -1
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
-		N = total_loss = 0
-		for i, batch_data in enumerate(loader):
+		N = total_loss = total_mloss = total_rloss = 0
+		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
 
 			# ---   begin timed block   ---
@@ -146,8 +146,9 @@ if __name__ == '__main__':
 			att = attend(result['features'], result['hmap'])
 			pred = rev(att['attended'])
 			loss_rev = rev.loss(pred, result['instance'])
+			loss_mod = module.loss()
 
-			loss = loss_rev + module.loss()
+			loss = loss_rev + loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -157,6 +158,8 @@ if __name__ == '__main__':
 			B = output.size(0)
 			N += B
 			total_loss += loss.item()
+			total_mloss += loss_mod.item()
+			total_rloss += loss_rev.item()
 
 			if perc == last_perc: continue
 			last_perc = perc
@@ -167,10 +170,12 @@ if __name__ == '__main__':
 				values = [ result[k] for k in keys ]
 				vis.update(*values)
 
-			if perc % 10 != 0: continue
+			if not last_iter: continue
 			logger.log(
 				epoch = epoch,
 				loss = total_loss/N,
+				mloss = total_mloss/N,
+				rloss = total_rloss/N,
 				time = clock.read()
 			)
 
