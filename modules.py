@@ -58,12 +58,15 @@ class Find(InstanceModule):
 			kernel = self._dropout(self._conv.weight)
 			h_all = F.conv2d(features, kernel)
 			if self._competition == 'temp':
-				H,W = h_all.size()[-2:]
-				hmap = h_all[B_idx, c].unsqueeze(1)
-				min_val = hmap.view(B,-1).min(1)
-				hmap -= min_val
-				self._loss = 0.
-				return hmap
+				hmap = h_all[B_idx, c].unsqueeze(1) # [B,1,H,W]
+				B,_,H,W = hmap.size()
+				hmap_flat = hmap.view(B,-1)
+				min_val = hmap_flat.min(1, keepdim=True)
+				hmap_flat -= min_val - 1e-10
+				max_val = hmap_flat.max(1, keepdim=True)
+				hmap_norm = hmap_flat / max_val
+				self._loss = -hmap_norm.mean()
+				return hmap_flat.view(B,1,H,W)
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(h_all)
 				mask = mask_all[B_idx, c].unsqueeze(1)

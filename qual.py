@@ -147,9 +147,9 @@ if __name__ == '__main__':
 			att = attend(result['features'], result['hmap'])
 			pred = rev(att['attended'])
 			loss_rev = rev.loss(pred, result['instance'])
-			#loss_mod = module.loss()
+			loss_mod = module.loss()
 
-			loss = loss_rev #+ loss_mod
+			loss = loss_rev + 1e-3*loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
