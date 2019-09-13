@@ -40,6 +40,7 @@ class Find(InstanceModule):
 			"Invalid competition mode: {}".format(competition)
 
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
+		self._conv.weight.data.fill_(0.5)
 		self._competition = competition
 		self._loss_func = {
 			'pre'     : nn.BCEWithLogitsLoss,
