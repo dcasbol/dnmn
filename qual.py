@@ -96,6 +96,7 @@ if __name__ == '__main__':
 	metadata = args.visualize > 0
 
 	module  = Find(competition='softmax')
+	module._competition = 'temp'
 	dataset = VQAFindDataset(metadata=metadata)
 
 	loss_fn = nn.BCELoss
@@ -146,9 +147,9 @@ if __name__ == '__main__':
 			att = attend(result['features'], result['hmap'])
 			pred = rev(att['attended'])
 			loss_rev = rev.loss(pred, result['instance'])
-			loss_mod = module.loss()
+			#loss_mod = module.loss()
 
-			loss = loss_rev + loss_mod
+			loss = loss_rev #+ loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()

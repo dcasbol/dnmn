@@ -57,6 +57,13 @@ class Find(InstanceModule):
 			features = self._dropout(features)
 			kernel = self._dropout(self._conv.weight)
 			h_all = F.conv2d(features, kernel)
+			if self._competition == 'temp':
+				H,W = h_all.size()[-2:]
+				hmap = h_all[B_idx, c].unsqueeze(1)
+				min_val = hmap.view(B,-1).min(1)
+				hmap -= min_val
+				self._loss = 0.
+				return hmap
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(h_all)
 				mask = mask_all[B_idx, c].unsqueeze(1)
@@ -118,8 +125,8 @@ class Describe(InstanceModule):
 		feat_flat = features.view(B,C,-1)
 		mask = mask.view(B,1,-1) + 1e-10
 		if self._norm:
-			mask -= mask.min(2, keepdim=True).values
-			mask /= mask.max(2, keepdim=True).values + 1e-10
+			mask -= mask.min(2, keepdim=True).values - 1e-10
+			mask /= mask.max(2, keepdim=True).values
 		attended = (mask*feat_flat).sum(2) / mask.sum(2)
 		attended = self._dropout(attended)
 
