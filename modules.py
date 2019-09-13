@@ -116,11 +116,11 @@ class Describe(InstanceModule):
 
 		# Attend
 		feat_flat = features.view(B,C,-1)
-		mask = mask.view(B,1,-1)
+		mask = mask.view(B,1,-1) + 1e-10
 		if self._norm:
 			mask -= mask.min(2, keepdim=True).values
 			mask /= mask.max(2, keepdim=True).values + 1e-10
-		attended = (mask*feat_flat).sum(2) / (mask.sum(2) + 1e-10)
+		attended = (mask*feat_flat).sum(2) / mask.sum(2)
 		attended = self._dropout(attended)
 
 		# Describe

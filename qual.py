@@ -88,7 +88,7 @@ if __name__ == '__main__':
 	args = get_args()
 
 	SUFFIX = '' if args.suffix == '' else '-' + args.suffix
-	FULL_NAME    = 'find-qual-subep' + SUFFIX
+	FULL_NAME    = 'find-qual' + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
 	PT_NEW       = FULL_NAME + '-ep{:02d}-wvar{:.4g}-new.pt'
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 			total_mloss += loss_mod.item()
 			total_rloss += loss_rev.item()
 
-			if perc == last_perc: continue
+			if perc == last_perc and not last_iter: continue
 			last_perc = perc
 			print('{: 3d}% - {}'.format(perc, total_loss/N))
 

@@ -184,7 +184,7 @@ class Runner(object):
 		else:
 			self._n_worse += 1
 
-		return self._n_worse >= 3
+		return self._n_worse >= max(5, (self._epoch+1)//2)
 
 	def save_model(self, pt_filename):
 		torch.save(self._model.state_dict(), pt_filename)
