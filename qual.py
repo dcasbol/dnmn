@@ -135,7 +135,7 @@ if __name__ == '__main__':
 	last_perc = -1
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
-		N = total_loss = total_mloss = total_rloss = 0
+		N = total_loss = total_mloss = total_rloss = total_top1 = 0
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
 
@@ -161,6 +161,7 @@ if __name__ == '__main__':
 			total_loss += loss.item()
 			total_mloss += loss_mod.item()
 			total_rloss += loss_rev.item()
+			total_top1 += util.top1_accuracy(pred, result['instance']) * B
 
 			if perc == last_perc and not last_iter: continue
 			last_perc = perc
