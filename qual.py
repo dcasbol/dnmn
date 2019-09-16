@@ -149,7 +149,7 @@ if __name__ == '__main__':
 			loss_rev = rev.loss(pred, result['instance'])
 			loss_mod = module.loss()
 
-			loss = loss_rev + 1e-3*loss_mod
+			loss = loss_rev + loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
 			if perc == last_perc and not last_iter: continue
 			last_perc = perc
-			print('{: 3d}% - {}'.format(perc, total_loss/N))
+			print('{: 3d}% - {} - {} - {}'.format(perc, total_loss/N, total_rloss/N, total_mloss/N))
 
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
