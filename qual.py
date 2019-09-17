@@ -91,12 +91,11 @@ if __name__ == '__main__':
 	FULL_NAME    = 'find-qual' + SUFFIX
 	LOG_FILENAME = FULL_NAME + '_log.json'
 	PT_RESTORE   = FULL_NAME + '.pt'
-	PT_NEW       = FULL_NAME + '-ep{:02d}-wvar{:.4g}-new.pt'
+	PT_NEW       = FULL_NAME + '-ep{:02d}-new.pt'
 
 	metadata = args.visualize > 0
 
-	module  = Find(competition='softmax')
-	module._competition = 'temp'
+	module  = Find()
 	dataset = VQAFindDataset(metadata=metadata)
 
 	loss_fn = nn.BCELoss
@@ -133,6 +132,7 @@ if __name__ == '__main__':
 	# ---   Training   ---
 	# --------------------
 	last_perc = -1
+	yeast = 1.
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		N = total_loss = total_mloss = total_rloss = total_top1 = 0
@@ -149,7 +149,7 @@ if __name__ == '__main__':
 			loss_rev = rev.loss(pred, result['instance'])
 			loss_mod = module.loss()
 
-			loss = loss_rev + loss_mod
+			loss = loss_rev + yeast*loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -173,12 +173,14 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if not last_iter: continue
+			yeast = (total_rloss/total_mloss)*0.2
 			logger.log(
 				epoch = epoch,
 				loss = total_loss/N,
 				mloss = total_mloss/N,
 				rloss = total_rloss/N,
-				time = clock.read()
+				time = clock.read(),
+				top_1_train = total_top1/N,
 			)
 
 			N = top1 = wvar = 0
@@ -202,7 +204,7 @@ if __name__ == '__main__':
 			print('{} - {}'.format(clock.read_str(), ploss))
 
 			if args.save:
-				torch.save(module.state_dict(), PT_NEW.format(epoch, wvar/N))
+				torch.save(module.state_dict(), PT_NEW.format(epoch))
 				print('Module saved')
 			logger.save(LOG_FILENAME)
 

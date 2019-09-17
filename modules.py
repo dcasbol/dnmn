@@ -42,14 +42,15 @@ class Find(InstanceModule):
 
 	def forward(self, features):
 		c = self._get_instance()
+		B,D,H,W = features.size()
 		kernel = self._dropout(self._conv.weight[c])
-		hmap   = F.conv2d(features, kernel)
-		B,_,H,W = hmap.size()
+		group_feats = features.view(1,B*D,H,W)
+		hmap = F.conv2d(group_feats, kernel, groups=B)
 		hmap_flat = hmap.view(B,-1)
 		max_val = hmap_flat.max(1, keepdim=True).values
 		hmap_norm = hmap_flat / (max_val+1e-10)
 		self._loss = -hmap_norm.mean(1).sum()
-		return hmap
+		return hmap.view(B,1,H,W)
 
 	def loss(self):
 		assert self._loss is not None, "Call to loss must be preceded by a forward call."
