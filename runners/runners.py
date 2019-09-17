@@ -28,8 +28,8 @@ def _weighted_var(features_flat, hmap_flat, attended, total):
 
 class FindRunner(Runner):
 
-	def __init__(self, competition='softmax', visualize=0, dropout=0, **kwargs):
-		self._model   = Find(competition=competition, dropout=dropout)
+	def __init__(self, visualize=0, dropout=0, **kwargs):
+		self._model   = Find(dropout=dropout)
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
 		if visualize > 0:

@@ -20,8 +20,6 @@ def get_args():
 		help='Specify learning rate')
 	parser.add_argument('--weight-decay', type=float, help='Weight decay')
 	parser.add_argument('--dropout', type=float)
-	parser.add_argument('--competition', choices=['post', 'pre', 'softmax'],
-		help='(find) Activation competition: pre/post sigmoidal or ReLU+softmax.')
 	parser.add_argument('--visualize', type=int,
 		help='(find) Visualize a masking example every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
@@ -37,8 +35,6 @@ if __name__ == '__main__':
 	if args.selection != 'find':
 		assert args.visualize is None,\
 			"Only find module is subject to visualization."
-		assert args.competition is None,\
-			"Competition only applies to find module."
 
 	if args.selection == 'describe_uncached':
 		assert args.find_pt is not None, "You must specify find module for uncached training."

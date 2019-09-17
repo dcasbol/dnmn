@@ -33,77 +33,23 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	"""
-	TO DO:
-		- Remove competition selection --> not needed now
-		- Optimize kernel application -> preselect kernels BEFORE conv
-	"""
-
-	def __init__(self, competition, **kwargs):
+	def __init__(self, **kwargs):
 		super(Find, self).__init__(**kwargs)
-
-		assert competition in {'pre', 'post', 'softmax', None},\
-			"Invalid competition mode: {}".format(competition)
-
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.5)
-		self._competition = competition
-		self._loss_func = {
-			'pre'     : nn.BCEWithLogitsLoss,
-			'post'    : nn.BCELoss,
-			'softmax' : nn.CrossEntropyLoss,
-			None      : lambda reduction: None
-		}[competition](reduction = 'sum')
+		self._loss_func = nn.CrossEntropyLoss(reduction = 'sum')
 		self._loss = None
 
 	def forward(self, features):
 		c = self._get_instance()
-		B = c.size(0)
-		if self.training and self._competition is not None:
-			B_idx = torch.arange(B)
-			features = self._dropout(features)
-			if self._competition == 'temp':
-				kernel = self._dropout(self._conv.weight[c])
-				hmap   = F.conv2d(features, kernel)
-				B,_,H,W = hmap.size()
-				hmap_flat = hmap.view(B,-1)
-				max_val = hmap_flat.max(1, keepdim=True).values
-				hmap_norm = hmap_flat / (max_val+1e-10)
-				self._loss = -hmap_norm.mean(1).sum()
-				return hmap
-			kernel = self._dropout(self._conv.weight)
-			h_all = F.conv2d(features, kernel)
-			if self._competition == 'post':
-				mask_all = torch.sigmoid(h_all)
-				mask = mask_all[B_idx, c].unsqueeze(1)
-				mask_against = (mask_all.sum(1, keepdim=True) - mask) / (B-1)
-				mask_train = mask / (1. + mask_against)
-				mask_train = mask_train.view(B,-1).mean(1)
-				self._loss = self._loss_func(mask_train, torch.ones_like(mask_train))
-				return mask
-			elif self._competition == 'pre':
-				h = h_all[B_idx, c].unsqueeze(1)
-				mask = torch.sigmoid(h)
-				h_against = (h_all.relu().sum(1, keepdim=True) - h.relu()) / (B-1)
-				h_train = (h-h_against).view(B,-1).mean(1)
-				self._loss = self._loss_func(h_train, torch.ones_like(h_train))
-				return mask
-			elif self._competition == 'softmax':
-				h_all = h_all.relu()
-				mask  = h_all[B_idx, c].unsqueeze(1)
-				gap   = h_all.view(B,h_all.size(1),-1).mean(2)
-				self._loss = self._loss_func(gap, c)
-				return mask
-		else:
-			B,C,H,W = features.size()
-			ks = self._dropout(self._conv.weight[c])
-			fs = self._dropout(features.contiguous().view(1,B*C,H,W))
-			masks = F.conv2d(fs, ks, groups=B).view(B,1,H,W)
-			if self._competition in [None, 'softmax']:
-				masks = masks.relu()
-			else:
-				masks = torch.sigmoid(masks)
-			return masks
+		kernel = self._dropout(self._conv.weight[c])
+		hmap   = F.conv2d(features, kernel)
+		B,_,H,W = hmap.size()
+		hmap_flat = hmap.view(B,-1)
+		max_val = hmap_flat.max(1, keepdim=True).values
+		hmap_norm = hmap_flat / (max_val+1e-10)
+		self._loss = -hmap_norm.mean(1).sum()
+		return hmap
 
 	def loss(self):
 		assert self._loss is not None, "Call to loss must be preceded by a forward call."
