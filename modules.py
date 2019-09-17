@@ -33,6 +33,12 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
+	"""
+	TO DO:
+		- Remove competition selection --> not needed now
+		- Optimize kernel application -> preselect kernels BEFORE conv
+	"""
+
 	def __init__(self, competition, **kwargs):
 		super(Find, self).__init__(**kwargs)
 
@@ -56,16 +62,17 @@ class Find(InstanceModule):
 		if self.training and self._competition is not None:
 			B_idx = torch.arange(B)
 			features = self._dropout(features)
-			kernel = self._dropout(self._conv.weight)
-			h_all = F.conv2d(features, kernel)
 			if self._competition == 'temp':
-				hmap = h_all[B_idx, c].unsqueeze(1).relu() # [B,1,H,W]
+				kernel = self._dropout(self._conv.weight[c])
+				hmap   = F.conv2d(features, kernel)
 				B,_,H,W = hmap.size()
 				hmap_flat = hmap.view(B,-1)
 				max_val = hmap_flat.max(1, keepdim=True).values
 				hmap_norm = hmap_flat / (max_val+1e-10)
 				self._loss = -hmap_norm.mean(1).sum()
 				return hmap
+			kernel = self._dropout(self._conv.weight)
+			h_all = F.conv2d(features, kernel)
 			if self._competition == 'post':
 				mask_all = torch.sigmoid(h_all)
 				mask = mask_all[B_idx, c].unsqueeze(1)
