@@ -101,7 +101,7 @@ class UncachedRunner(Runner):
 
 	def __init__(self, find_pt='find.pt', **kwargs):
 		super(UncachedRunner, self).__init__(**kwargs)
-		self._find = Find(competition=None)
+		self._find = Find()
 		self._find.load_state_dict(torch.load(find_pt, map_location='cpu'))
 		self._find = cudalize(self._find)
 		self._find.eval()

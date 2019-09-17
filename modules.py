@@ -44,8 +44,8 @@ class Find(InstanceModule):
 		c = self._get_instance()
 		B,D,H,W = features.size()
 		kernel = self._dropout(self._conv.weight[c])
-		group_feats = features.view(1,B*D,H,W)
-		hmap = F.conv2d(group_feats, kernel, groups=B)
+		group_feats = features.contiguous().view(1,B*D,H,W)
+		hmap = F.conv2d(group_feats, kernel, groups=B).relu()
 		hmap_flat = hmap.view(B,-1)
 		max_val = hmap_flat.max(1, keepdim=True).values
 		hmap_norm = hmap_flat / (max_val+1e-10)

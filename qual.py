@@ -173,8 +173,9 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if not last_iter: continue
-			yeast = (total_rloss/total_mloss)*0.2
+			yeast = abs(total_rloss/total_mloss)*0.2
 			logger.log(
+				yeast = yeast,
 				epoch = epoch,
 				loss = total_loss/N,
 				mloss = total_mloss/N,
