@@ -26,7 +26,7 @@ if len(args.condition) > 0:
 findset = VQAFindDataset(metadata=True)
 loader = DataLoader(findset, batch_size=1, shuffle=args.shuffle)
 
-find = Find(competition=None)
+find = Find()
 find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
 find.eval()
 

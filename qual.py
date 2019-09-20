@@ -173,7 +173,7 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if not last_iter: continue
-			yeast = abs(total_rloss/total_mloss)*0.2
+			yeast = 0.5*abs(total_rloss/total_mloss)
 			logger.log(
 				yeast = yeast,
 				epoch = epoch,
@@ -184,7 +184,7 @@ if __name__ == '__main__':
 				top_1_train = total_top1/N,
 			)
 
-			N = top1 = wvar = 0
+			N = top1 = wvar = val_loss = 0
 			with torch.no_grad():
 				for batch_data in val_loader:
 					result = run_find(module, batch_data, metadata)
@@ -195,10 +195,12 @@ if __name__ == '__main__':
 					top1 += util.top1_accuracy(pred, result['instance']) * B
 					a = [ att[k] for k in ['features_flat', 'hmap_flat', 'attended', 'total'] ]
 					wvar += weighted_var(*a).item() * B
+					val_loss += rev.loss(pred, result['instance']).item()
 
 			logger.log(
 				top_1 = top1/N,
-				wvar  = wvar/N
+				wvar  = wvar/N,
+				val_loss = val_loss/N
 			)
 
 			ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
