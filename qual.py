@@ -136,6 +136,7 @@ if __name__ == '__main__':
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
 		N = total_loss = total_mloss = total_rloss = total_top1 = 0
+		total_anti = 0
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
 
@@ -144,12 +145,22 @@ if __name__ == '__main__':
 			result = run_find(module, batch_data, metadata)
 			output = result['output']
 
-			att = attend(result['features'], result['hmap'])
+			hmap = result['hmap']
+			att = attend(result['features'], hmap)
 			pred = rev(att['attended'])
 			loss_rev = rev.loss(pred, result['instance'])
 			loss_mod = module.loss()
 
-			loss = loss_rev + yeast*loss_mod
+			# Reversed mask
+			B,_,H,W = hmap.size()
+			hmap_flat = hmap.view(B,-1)
+			max_vals  = hmap_flat.max(1).values.view(B,1,1,1)
+			hmap_inv  = max_vals - hmap
+			att = attend(result['features'], hmap_inv)
+			pred_inv = rev(att['attended'])
+			loss_rev_inv = rev.loss(pred_inv, result['instance'])
+
+			loss = loss_rev - loss_rev_inv + yeast*loss_mod
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
@@ -162,6 +173,7 @@ if __name__ == '__main__':
 			total_mloss += loss_mod.item()
 			total_rloss += loss_rev.item()
 			total_top1 += util.top1_accuracy(pred, result['instance']) * B
+			total_anti += util.top1_accuracy(pred_inv, result['instance']) * B
 
 			if perc == last_perc and not last_iter: continue
 			last_perc = perc
@@ -182,9 +194,11 @@ if __name__ == '__main__':
 				rloss = total_rloss/N,
 				time = clock.read(),
 				top_1_train = total_top1/N,
+				anti_train = total_anti/N
 			)
 
 			N = top1 = wvar = val_loss = 0
+			anti = 0
 			with torch.no_grad():
 				for batch_data in val_loader:
 					result = run_find(module, batch_data, metadata)
@@ -197,10 +211,21 @@ if __name__ == '__main__':
 					wvar += weighted_var(*a).item() * B
 					val_loss += rev.loss(pred, result['instance']).item()
 
+					# Reversed mask
+					hmap = result['hmap']
+					B,_,H,W = hmap.size()
+					hmap_flat = hmap.view(B,-1)
+					max_vals  = hmap_flat.max(1).values.view(B,1,1,1)
+					hmap_inv  = max_vals - hmap
+					att = attend(result['features'], hmap_inv)
+					pred_inv = rev(att['attended'])
+					anti += util.top1_accuracy(pred_inv, result['instance']) * B
+
 			logger.log(
 				top_1 = top1/N,
 				wvar  = wvar/N,
-				val_loss = val_loss/N
+				val_loss = val_loss/N,
+				anti = anti/N
 			)
 
 			ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
