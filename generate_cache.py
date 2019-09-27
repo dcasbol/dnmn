@@ -33,7 +33,7 @@ def generate_and_save(find, set_name, batch_data, clock):
 	maps = list()
 	for f, inst in zip(features_list, find_inst):
 		f = f.expand(len(inst), -1, -1, -1)
-		m = self._find[inst](f).prod(0, keepdim=True)
+		m = find[inst](f).prod(0, keepdim=True)
 		maps.append(m)
 	clock.stop()
 
@@ -42,6 +42,7 @@ def generate_and_save(find, set_name, batch_data, clock):
 		np.save(fn, to_numpy(m))
 
 	clock.start()
+	hmap = torch.cat(maps)
 	attended = attend_features(features, hmap)
 	clock.stop()
 
@@ -69,7 +70,7 @@ if __name__ == '__main__':
 	kwargs = dict(stop=0.2) if args.dataset == 'val2014' else {}
 	dataset = VQANMNDataset(set_names=args.dataset, answers=False, **kwargs)
 
-	find = Find(competition=None)
+	find = Find()
 	find.load_state_dict(torch.load(args.find_module, map_location='cpu'))
 	find.eval()
 	find = cudalize(find)
@@ -79,8 +80,8 @@ if __name__ == '__main__':
 	raw_clock.start()
 
 	n_generated = 0
-	n_batches = len(dataset)//batch_size
-	loader = DataLoader(dataset, batch_size=batch_size, collate_fn=nmn_collate_fn)
+	n_batches = len(dataset)//args.batch_size
+	loader = DataLoader(dataset, batch_size=args.batch_size, collate_fn=nmn_collate_fn)
 
 	for i, batch_data in enumerate(loader):
 		show_progress(i, n_batches)
@@ -91,5 +92,5 @@ if __name__ == '__main__':
 	print('\nFinalized')
 	print('{} maps generated, lasted {} seconds ({})'.format(
 		n_generated, raw_clock.read(), raw_clock.read_str()
-	)
-	print('Inference time: {} ({})', clock.read(), clock.read_str())
+	))
+	print('Inference time: {} ({})'.format(clock.read(), clock.read_str()))
