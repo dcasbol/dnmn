@@ -100,6 +100,14 @@ def lookahead(iterable):
 		last = val
 	yield last, True
 
+def attend_features(features, hmap, flatten=True):
+	if flatten:
+		B,C,H,W  = features.size()
+		features = features.view(B,C,-1)
+		hmap     = hmap.view(B,1,-1)
+	hmap += 1e-10
+	return (hmap*features).sum(2) / hmap.sum(2)
+
 
 class Logger(object):
 

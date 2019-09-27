@@ -5,12 +5,12 @@ import numpy as np
 from vqa import VQANMNDataset, nmn_collate_fn
 from modules import Find
 from misc.util import cudalize, to_numpy, to_tens, DEVICE
-from misc.util import Chronometer
+from misc.util import Chronometer, attend_features
 from torch.utils.data import DataLoader
 
-def get_path(set_name, qid):
-	dirname = './cache/hmaps/{}'.format(set_name)
-	basename = '{}-{}.npy'.format(set_name, qid)
+def get_path(set_name, qid, cached_data='hmaps'):
+	dirname = './cache/{}/{}'.format(cached_data, set_name)
+	basename = '{}-{}-{}.npy'.format(cached_data, set_name, qid)
 	filename = os.path.join(dirname, basename)
 	return filename
 
@@ -39,7 +39,17 @@ def generate_and_save(find, set_name, batch_data, clock):
 
 	for m, qid in zip(maps, batch_data['question_id']):
 		fn = get_path(set_name, qid)
-		np.save(fn, m)
+		np.save(fn, to_numpy(m))
+
+	clock.start()
+	attended = attend_features(features, hmap)
+	clock.stop()
+
+	attended = to_numpy(attended)
+
+	for a, qid in zip(attended, batch_data['question_id']):
+		fn = get_path(set_name, qid, cached_data='attended')
+		np.save(fn, a)
 
 	return len(maps)
 
@@ -51,9 +61,10 @@ if __name__ == '__main__':
 	parser.add_argument('--batch-size', type=int, default=256)
 	args = parser.parse_args()
 
-	assert not os.path.exists('./cache/hmaps/' + args.dataset),\
-		"Please remove cache/hmaps dir before proceeding."
-	os.makedirs('./cache/hmaps/{}'.format(args.dataset))
+	for name in ['hmaps', 'attended']:
+		assert not os.path.exists('./cache/{}/{}'.format(name, args.dataset)),\
+			"Please remove cache/{} dir before proceeding.".format(name)
+		os.makedirs('./cache/{}/{}'.format(name, args.dataset))
 
 	kwargs = dict(stop=0.2) if args.dataset == 'val2014' else {}
 	dataset = VQANMNDataset(set_names=args.dataset, answers=False, **kwargs)
