@@ -1,16 +1,14 @@
 import os
 import json
 import torch
-import random
 import numpy as np
 from misc.constants import *
-from misc.indices import QUESTION_INDEX, DESC_INDEX, FIND_INDEX, ANSWER_INDEX
+from misc.indices import QUESTION_INDEX, FIND_INDEX, ANSWER_INDEX
 from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
 from misc.util import to_tens
 from misc.parse import parse_tree, process_question, parse_to_layout
-from functools import reduce
 
 
 class VQADataset(Dataset):
@@ -20,7 +18,7 @@ class VQADataset(Dataset):
 	one layout is extracted.
 	"""
 
-	def __init__(self, root_dir='./', set_names='train2014', features=True,
+	def __init__(self, root_dir='./', set_names='train2014',
 		start=None, stop=None):
 		super(VQADataset, self).__init__()
 		self._root_dir = os.path.expanduser(root_dir)
@@ -28,7 +26,6 @@ class VQADataset(Dataset):
 			set_names = [set_names]
 		for name in set_names:
 			assert name in {'train2014', 'val2014', 'test2015'}, '{!r} is not a valid set'.format(name)
-		self._features = features
 		self._set_names = set_names
 
 		self._load_from_cache(set_names)
@@ -68,11 +65,7 @@ class VQADataset(Dataset):
 		return len(self._id_list)
 
 	def __getitem__(self, i):
-		# Get question data and load image features
-		datum = self._get_datum(i)
-		if not self._features:
-			return datum
-		return datum, self._get_features(datum)
+		return self._get_datum(i)
 
 	def _load_from_cache(self, set_names):
 		import os
@@ -183,30 +176,12 @@ class VQAFindDataset(VQADataset):
 
 		print(n_filtered, 'filtered out,', n_included, 'included')
 
-	def get(self, i, load_features=True):
-		prev_features = self._features
-		self._features = load_features
-		datum = super(VQAFindDataset, self).__getitem__(self._imap[i])
-		self._features = prev_features
-		if load_features:
-			datum, features = datum
-
-		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
-		target = datum['layouts_indices']
-		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
-		target_str = FIND_INDEX.get(target)
-		
-		output = (features, target) if load_features else (target,)
-		if self._metadata:
-			output += (target_str, datum['input_set'], datum['input_id'])
-
-		return output
-
 	def __len__(self):
 		return len(self._imap)
 
 	def __getitem__(self, i):
-		datum, features = super(VQAFindDataset, self).__getitem__(self._imap[i])
+		datum    = self._get_datum(self._imap[i])
+		features = self._get_features(datum)
 
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		target = datum['layouts_indices']
@@ -224,7 +199,8 @@ class VQARootModuleDataset(VQADataset):
 
 	def __init__(self, *args, exclude=None, **kwargs):
 		super(VQARootModuleDataset, self).__init__(*args, **kwargs)
-		self._interdir = os.path.join(self._root_dir, INTER_HMAP_FILE)
+		self._hmap_pat = os.path.join(self._root_dir, CACHE_HMAP_FILE)
+		self._att_pat = os.path.join(self._root_dir, CACHE_ATT_FILE)
 		assert exclude in {None, 'yesno', 'others'}, "Invalid value for 'exclude': {}".format(exclude)
 
 		if exclude is not None:
@@ -237,52 +213,48 @@ class VQARootModuleDataset(VQADataset):
 			print('Filtered dataset has {} samples'.format(len(self._id_list)))
 			assert len(self._id_list) > 0, "No samples were found with exclude = {!r}".format(exclude)
 
-	def _compose_hmap(self, datum):
-		names   = datum['layouts_names']
-		indices = datum['layouts_indices']
+	def _get_hmap(self, datum):
+		hmap_fn = self._hmap_pat.format(
+			set = datum['input_set'],
+			qid = datum['question_id']
+		)
+		return np.load(hmap_fn)
 
-		# Get hmaps
-		hmap_list = list()
-		for name, index in zip(names, indices):
-			if name != 'find': continue
-
-			fn = self._interdir.format(
-				set = datum['input_set'],
-				cat = FIND_INDEX.get(index),
-				id  = datum['input_id']
-			)
-			hmap = list(np.load(fn).values())[0]
-			hmap_list.append(hmap)
-
-		# Compose them with ANDs
-		mask = reduce(lambda x,y: x*y, hmap_list)
-		return mask
+	def _get_attended(self, datum):
+		att_fn = self._att_pat.format(
+			set = datum['input_set'],
+			qid = datum['question_id']
+		)
+		return np.load(att_fn)
 
 	def __getitem__(self, i):
-
-		datum = super(VQARootModuleDataset, self).__getitem__(i)
-		if self._features:
-			datum, features = datum
-
-		mask = self._compose_hmap(datum)
+		datum = self._get_datum(i)
 		label = majority_label(datum['answers'])
 		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 		instance = datum['layouts_indices'][0]
 
-		if self._features:
-			return mask, features, instance, label, distr
-		return mask, instance, label, distr
+		return instance, label, distr, datum
 
 
 class VQADescribeDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQADescribeDataset, self).__init__(*args, **kwargs,
-			features=True, exclude='yesno')
+			features=False, exclude='yesno')
+
+	def __getitem__(self, i):
+		instance, label, distr, datum = super(VQADescribeDataset, self).__getitem__(i)
+		att = self._get_attended(datum)
+		return att, instance, label, distr
 
 class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQAMeasureDataset, self).__init__(*args, **kwargs,
 			features=False, exclude='others')
+
+	def __getitem__(self, i):
+		instance, label, distr, datum = super(VQAMeasureDataset, self).__getitem__(i)
+		hmap = self._get_hmap(datum)
+		return hmap, instance, label, distr
 
 class VQAEncoderDataset(VQADataset):
 
@@ -290,7 +262,7 @@ class VQAEncoderDataset(VQADataset):
 		super(VQAEncoderDataset, self).__init__(*args, **kwargs, features=False)
 
 	def __getitem__(self, i):
-		datum = self._by_id[self._id_list[i]]
+		datum = self._get_datum(i)
 		question = datum['question']
 		label = majority_label(datum['answers'])
 		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
@@ -313,7 +285,8 @@ class VQANMNDataset(VQADataset):
 		self._skip_answers = 'test2015' in self._set_names or not answers
 
 	def __getitem__(self, i):
-		datum, features = super(VQANMNDataset, self).__getitem__(i)
+		datum    = self._get_datum(i)
+		features = self._get_features(datum)
 
 		names   = datum['layouts_names']
 		indices = datum['layouts_indices']

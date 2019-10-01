@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
-from misc.util import to_numpy
+from misc.util import to_numpy, attend_features
 
 
 class InstanceModule(nn.Module):
@@ -37,7 +37,6 @@ class Find(InstanceModule):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.5)
-		self._loss_func = nn.CrossEntropyLoss(reduction = 'sum')
 		self._loss = None
 
 	def forward(self, features):
@@ -46,10 +45,11 @@ class Find(InstanceModule):
 		kernel = self._dropout(self._conv.weight[c])
 		group_feats = features.contiguous().view(1,B*D,H,W)
 		hmap = F.conv2d(group_feats, kernel, groups=B).relu()
-		hmap_flat = hmap.view(B,-1)
-		max_val = hmap_flat.max(1, keepdim=True).values
-		hmap_norm = hmap_flat / (max_val+1e-10)
-		self._loss = -hmap_norm.mean(1).sum()
+		if self.training:
+			hmap_flat = hmap.view(B,-1)
+			max_val = hmap_flat.max(1, keepdim=True).values
+			hmap_norm = hmap_flat / (max_val+1e-10)
+			self._loss = -hmap_norm.mean(1).sum()
 		return hmap.view(B,1,H,W)
 
 	def loss(self):
@@ -73,20 +73,13 @@ class Describe(InstanceModule):
 			self._descr.append(layer)
 		self._norm = normalize_attention
 
-	def forward(self, mask, features):
-		B,C,H,W = features.size()
-		features = self._dropout(features)
+	def forward(self, hmap_or_attended, features=None):
+		if features is None:
+			attended = attend_features(features, hmap_or_attended)
+		else:
+			attended = hmap_or_attended
 
-		# Attend
-		feat_flat = features.view(B,C,-1)
-		mask = mask.view(B,1,-1) + 1e-10
-		if self._norm:
-			mask -= mask.min(2, keepdim=True).values - 1e-10
-			mask /= mask.max(2, keepdim=True).values
-		attended = (mask*feat_flat).sum(2) / mask.sum(2)
 		attended = self._dropout(attended)
-
-		# Describe
 		attended = attended.unsqueeze(1).unbind(0)
 		instance = self._get_instance()
 		preds = list()
@@ -127,12 +120,10 @@ class QuestionEncoder(nn.Module):
 
 	NAME = 'encoder'
 
-	def __init__(self, dropout=0, embed_size=None):
+	def __init__(self, dropout=0):
 		super(QuestionEncoder, self).__init__()
-		embed_size = embed_size or EMBEDDING_SIZE
-		self._wemb = nn.Embedding(len(QUESTION_INDEX), embed_size,
-			padding_idx=NULL_ID)
-		self._lstm = nn.LSTM(embed_size, HIDDEN_UNITS)
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE)
+		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
 		self._dropout = {
 			False : lambda x: x,

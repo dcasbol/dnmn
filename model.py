@@ -22,8 +22,8 @@ class NMN(torch.nn.Module):
 
 	def __init__(self, dropout=0):
 		super(NMN, self).__init__()
-		self._find = Find(competition=None)
-		self._describe = Describe(normalize_attention=False)
+		self._find = Find()
+		self._describe = Describe()
 		self._measure = Measure(dropout=dropout)
 		self._encoder = QuestionEncoder(dropout=dropout)
 

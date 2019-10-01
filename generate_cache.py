@@ -9,8 +9,8 @@ from misc.util import Chronometer, attend_features
 from torch.utils.data import DataLoader
 
 def get_path(set_name, qid, cached_data='hmaps'):
-	dirname = './cache/{}/{}'.format(cached_data, set_name)
-	basename = '{}-{}-{}.npy'.format(cached_data, set_name, qid)
+	dirname = './cache/{}/{}'.format(set_name, cached_data)
+	basename = '{}-{}-{}.npy'.format(set_name, cached_data, qid)
 	filename = os.path.join(dirname, basename)
 	return filename
 
@@ -62,10 +62,10 @@ if __name__ == '__main__':
 	parser.add_argument('--batch-size', type=int, default=256)
 	args = parser.parse_args()
 
+	assert not os.path.exists('./cache/{}'.format(args.dataset)),\
+		"Please remove cache/{} dir before proceeding.".format(args.dataset)
 	for name in ['hmaps', 'attended']:
-		assert not os.path.exists('./cache/{}/{}'.format(name, args.dataset)),\
-			"Please remove cache/{} dir before proceeding.".format(name)
-		os.makedirs('./cache/{}/{}'.format(name, args.dataset))
+		os.makedirs('./cache/{}/{}'.format(args.dataset, name))
 
 	kwargs = dict(stop=0.2) if args.dataset == 'val2014' else {}
 	dataset = VQANMNDataset(set_names=args.dataset, answers=False, **kwargs)

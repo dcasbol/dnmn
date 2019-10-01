@@ -163,8 +163,8 @@ class MeasureRunner(Runner):
 
 class EncoderRunner(Runner):
 
-	def __init__(self, dropout=0, embed_size=None, **kwargs):
-		self._model = QuestionEncoder(dropout=dropout, embed_size=embed_size)
+	def __init__(self, dropout=0, **kwargs):
+		self._model = QuestionEncoder(dropout=dropout)
 		super(EncoderRunner, self).__init__(**kwargs)
 
 	def _loader_class(self):

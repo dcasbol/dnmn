@@ -5,6 +5,8 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, PercentageCounter
+from modules import Find
+from model import NMN
 
 class Runner(object):
 
@@ -20,7 +22,7 @@ class Runner(object):
 
 		modname = self._model.NAME
 		suffix = '' if suffix == '' else '-' + suffix
-		full_name    = modname + suffix
+		full_name = modname + suffix
 		self._log_filename = full_name + '_log.json'
 		self._pt_restore   = full_name + '.pt'
 		self._pt_new       = full_name + '-new.pt'
@@ -33,7 +35,7 @@ class Runner(object):
 		)
 
 		if validate:
-			kwargs = dict(metadata=True) if modname == 'find' and validate else {}
+			kwargs = dict(metadata=True) if modname == Find.NAME and validate else {}
 			self._val_loader = loader_class(
 				set_names  = 'val2014',
 				stop       = 0.2,
@@ -42,9 +44,9 @@ class Runner(object):
 				**kwargs
 			)
 
-		if modname == 'find':
+		if modname == Find.NAME:
 			self._loss_fn = lambda a, b: self._model.loss()
-		elif modname == 'nmn':
+		elif modname == NMN.NAME:
 			def cross_entropy(x, y):
 				# L(x) = -y*log(x) -(1-y)*log(1-x)
 				x = x[torch.arange(x.size(0)), y]
@@ -169,7 +171,7 @@ class Runner(object):
 				print('Model saved')
 			return False
 
-		if self._model.NAME == 'find':
+		if self._model.NAME == Find.NAME:
 			acc = - self._logger.last('wvar')
 		else:
 			acc = self._logger.last('top_1')
