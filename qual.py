@@ -159,6 +159,8 @@ if __name__ == '__main__':
 			att = attend(result['features'], hmap_inv)
 			pred_inv = rev(att['attended'])
 			loss_rev_inv = rev.loss(pred_inv, result['instance'])
+			max_loss = torch.tensor(B*7., dtype=torch.float, device='cuda')
+			loss_rev_inv = torch.min(loss_rev_inv, max_loss)
 
 			loss = loss_rev - loss_rev_inv + yeast*loss_mod
 			opt.zero_grad()
