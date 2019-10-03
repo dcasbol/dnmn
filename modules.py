@@ -36,7 +36,7 @@ class Find(InstanceModule):
 	def __init__(self, **kwargs):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
-		self._conv.weight.data.fill_(0.5)
+		self._conv.weight.data.fill_(0.01)
 		self._loss = None
 
 	def forward(self, features):
@@ -75,9 +75,9 @@ class Describe(InstanceModule):
 
 	def forward(self, hmap_or_attended, features=None):
 		if features is None:
-			attended = attend_features(features, hmap_or_attended)
-		else:
 			attended = hmap_or_attended
+		else:
+			attended = attend_features(features, hmap_or_attended)
 
 		attended = self._dropout(attended)
 		attended = attended.unsqueeze(1).unbind(0)
