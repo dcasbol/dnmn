@@ -281,7 +281,7 @@ def encoder_collate_fn(data):
 class VQANMNDataset(VQADataset):
 
 	def __init__(self, *args, answers=True, **kwargs):
-		super(VQANMNDataset, self).__init__(*args, **kwargs, features=True)
+		super(VQANMNDataset, self).__init__(*args, **kwargs)
 		self._skip_answers = 'test2015' in self._set_names or not answers
 
 	def __getitem__(self, i):
