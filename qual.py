@@ -110,7 +110,7 @@ if __name__ == '__main__':
 		num_workers = 4
 	)
 
-	valset = VQAFindDataset(set_names='val2014', stop=0.05, metadata=metadata)
+	valset = VQAFindDataset(set_names='val2014', stop=0.2, metadata=metadata)
 	val_loader = DataLoader(valset, batch_size = 200, shuffle = False)
 
 	clock = Chronometer()
@@ -124,8 +124,8 @@ if __name__ == '__main__':
 	module = cudalize(module)
 	rev = cudalize(RevMask())
 
-	params = list(module.parameters()) + list(rev.parameters())
-	opt = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wd)
+	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
+	opt_pred = torch.optim.Adam(rev.parameters(), lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
@@ -145,6 +145,7 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
+			
 			result = run_find(module, batch_data, metadata, args.dropout)
 			output = result['output']
 
@@ -169,6 +170,12 @@ if __name__ == '__main__':
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
+
+			loss = loss_rev + loss_rev_inv
+			opt_pred.zero_grad()
+			loss.backward()
+			opt_pred.step()
+
 			clock.stop()
 			# ---   end timed block   ---
 
