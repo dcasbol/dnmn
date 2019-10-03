@@ -1,6 +1,7 @@
 import argparse
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import misc.util as util
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset
@@ -45,12 +46,13 @@ def weighted_var(features, hmap, attended, total):
 	wvar = (var*hmap).sum(2) / (total + 1e-10)
 	return wvar.mean()
 
-def run_find(module, batch_data, metadata):
+def run_find(module, batch_data, metadata, dropout=0):
 	if metadata:
 		features, instance, label_str, input_set, input_id = batch_data
 	else:
 		features, instance = batch_data
 	features, instance = cudalize(features, instance)
+	features = F.dropout(features, p=dropout)
 	output = module[instance](features)
 	result = dict(
 		instance  = instance,
@@ -77,9 +79,10 @@ def get_args():
 		help='Add suffix to files. Useful when training others simultaneously.')
 	parser.add_argument('--lr', type=float, default=1e-3,
 		help='Specify learning rate')
-	parser.add_argument('--wd', type=float, default=1e-4, help='Weight decay')
+	parser.add_argument('--wd', type=float, default=1e-5, help='Weight decay')
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')
+	parser.add_argument('--dropout', type=float, default=0)
 	return parser.parse_args()
 
 
@@ -101,7 +104,7 @@ if __name__ == '__main__':
 	loss_fn = nn.BCELoss
 	loss_fn = loss_fn(reduction='sum')
 
-	loader = DataLoader(dataset, 
+	loader = DataLoader(dataset,
 		batch_size  = args.batch_size,
 		shuffle     = True,
 		num_workers = 4
@@ -142,7 +145,7 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
-			result = run_find(module, batch_data, metadata)
+			result = run_find(module, batch_data, metadata, args.dropout)
 			output = result['output']
 
 			hmap = result['hmap']
