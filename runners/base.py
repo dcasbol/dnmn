@@ -10,9 +10,9 @@ from model import NMN
 
 class Runner(object):
 
-	def __init__(self, max_epochs=100, batch_size=512, 
-		restore=False, save=False, validate=False, suffix='',
-		learning_rate=1e-3, weight_decay=1e-2):
+	def __init__(self, max_epochs=40, batch_size=128,
+		restore=False, save=False, validate=True, suffix='',
+		learning_rate=1e-3, weight_decay=1e-5):
 
 		self._save      = save
 		self._validate  = validate
