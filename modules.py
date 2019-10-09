@@ -37,7 +37,6 @@ class Find(InstanceModule):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.01)
-		self._loss = None
 
 	def forward(self, features):
 		c = self._get_instance()
@@ -45,18 +44,7 @@ class Find(InstanceModule):
 		kernel = self._dropout(self._conv.weight[c])
 		group_feats = features.contiguous().view(1,B*D,H,W)
 		hmap = F.conv2d(group_feats, kernel, groups=B).relu()
-		if self.training:
-			hmap_flat = hmap.view(B,-1)
-			max_val = hmap_flat.max(1, keepdim=True).values
-			hmap_norm = hmap_flat / (max_val+1e-10)
-			self._loss = -hmap_norm.mean(1).sum()
 		return hmap.view(B,1,H,W)
-
-	def loss(self):
-		assert self._loss is not None, "Call to loss must be preceded by a forward call."
-		loss = self._loss
-		self._loss = None
-		return loss
 
 class Describe(InstanceModule):
 	""" From 1st NMN article: It first computes an average over image features
@@ -135,3 +123,17 @@ class QuestionEncoder(nn.Module):
 		embed = self._wemb(question)
 		hidden = self._lstm(embed)[0][length-1, torch.arange(B)]
 		return self._final(self._dropout(hidden))
+
+
+class InstancePredictor(nn.Module):
+
+	def __init__(self):
+		super(InstancePredictor, self).__init__()
+		self._classifier = nn.Linear(IMG_DEPTH, len(FIND_INDEX))
+		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
+
+	def forward(self, attended):
+		return self._classifier(attended)
+
+	def loss(self, pred, instance):
+		return self._loss_fn(pred, instance)
