@@ -16,11 +16,12 @@ with open(args.jsonpath) as fd:
 	data = json.load(fd)
 
 # Some data is generated on-the-fly
-if 'anti' in data.keys():
+if 'anti' in data:
 	for suf in ['', '_train']:
 		acc_pred = data['top_1'+suf]
 		acc_anti = data['anti'+suf]
-		vals = [ ap-aa for ap, aa in zip(acc_pred, acc_anti) ]
+		acc_rnd  = data['anti'+suf] if 'anti'+suf in data else [0]*len(acc_pred)
+		vals = [ ap-aa-ar for ap, aa, ar in zip(acc_pred, acc_anti, acc_rnd) ]
 		data['acc'+suf] = vals
 
 if args.xkey not in data.keys() or len(args.ykeys) == 0:

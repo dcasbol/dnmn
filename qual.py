@@ -10,6 +10,7 @@ from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead
 from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX
+from torch.distributions import Categorical
 
 
 def attend(features, hmap):
@@ -101,9 +102,6 @@ if __name__ == '__main__':
 	module  = Find(dropout=args.dropout)
 	dataset = VQAFindDataset(metadata=metadata)
 
-	loss_fn = nn.BCELoss
-	loss_fn = loss_fn(reduction='sum')
-
 	loader = DataLoader(dataset,
 		batch_size  = args.batch_size,
 		shuffle     = True,
@@ -135,11 +133,10 @@ if __name__ == '__main__':
 	# ---   Training   ---
 	# --------------------
 	last_perc = -1
-	yeast = 1.
 	for epoch in range(first_epoch, args.epochs):
 		print('Epoch ', epoch)
-		N = total_loss = total_mloss = total_rloss = total_top1 = 0
-		total_anti = 0
+		N = total_loss = total_rloss = total_top1 = 0
+		total_anti = total_antirnd = 0
 		for (i, batch_data), last_iter in lookahead(enumerate(loader)):
 			perc = (i*args.batch_size*100)//len(dataset)
 
@@ -147,13 +144,11 @@ if __name__ == '__main__':
 			clock.start()
 			
 			result = run_find(module, batch_data, metadata, args.dropout)
-			output = result['output']
-
 			hmap = result['hmap']
+
 			att = attend(result['features'], hmap)
 			pred = rev(att['attended'])
 			loss_rev = rev.loss(pred, result['instance'])
-			loss_mod = module.loss()
 
 			# Reversed mask
 			B,_,H,W = hmap.size()
@@ -162,34 +157,44 @@ if __name__ == '__main__':
 			hmap_inv  = max_vals - hmap
 			att = attend(result['features'], hmap_inv)
 			pred_inv = rev(att['attended'])
-			loss_rev_inv = rev.loss(pred_inv, result['instance'])
-			max_loss = torch.tensor(B*7., dtype=torch.float, device='cuda')
-			loss_rev_inv = torch.min(loss_rev_inv, max_loss)
 
-			loss = loss_rev - loss_rev_inv #+ yeast*loss_mod
+			# Sampled pixel
+			hmap_inv_probs = (att['hmap_flat'] / att['total']).view(B,-1)
+			m = Categorical(hmap_inv_probs)
+			pix_idx = m.sample()
+			B_idx = torch.arange(B)
+			sampled_pix = att['features_flat'][B_idx,:,pix_idx]
+			pred_rnd = rev(sampled_pix)
+
+			loss_rev_inv = rev.loss(pred_inv, result['instance'])
+			loss_rev_rnd = rev.loss(pred_rnd, result['instance'])
+
+			loss_find = loss_rev - loss_rev_inv - loss_rev_rnd
 			opt.zero_grad()
-			loss.backward(retain_graph=True)
+			loss_find.backward(retain_graph=True)
 			opt.step()
 
-			loss = loss_rev + loss_rev_inv
+			loss_pred = loss_rev + loss_rev_inv + loss_rev_rnd
 			opt_pred.zero_grad()
-			loss.backward()
+			loss_pred.backward()
 			opt_pred.step()
 
 			clock.stop()
 			# ---   end timed block   ---
 
-			B = output.size(0)
 			N += B
-			total_loss += loss.item()
-			total_mloss += loss_mod.item()
+			total_loss += loss_find.item()
 			total_rloss += loss_rev.item()
 			total_top1 += util.top1_accuracy(pred, result['instance']) * B
 			total_anti += util.top1_accuracy(pred_inv, result['instance']) * B
+			total_antirnd += util.top1_accuracy(pred_rnd, result['instance']) * B
 
 			if perc == last_perc and not last_iter: continue
 			last_perc = perc
-			print('{: 3d}% - {} - {} - {}'.format(perc, total_loss/N, total_rloss/N, total_mloss/N))
+			print('{perc: 3d}% - {loss} - {rloss} - {anti} - {antirnd}'.format(
+				perc = perc, loss = total_loss/N, rloss = total_rloss/N,
+				anti = total_anti/N, antirnd = total_antirnd/N
+			))
 
 			if args.visualize > 0:
 				keys   = ['hmap', 'label_str', 'input_set', 'input_id']
@@ -197,20 +202,18 @@ if __name__ == '__main__':
 				vis.update(*values)
 
 			if not last_iter: continue
-			yeast = 0.5*abs(total_rloss/total_mloss)
 			logger.log(
-				yeast = yeast,
 				epoch = epoch,
 				loss = total_loss/N,
-				mloss = total_mloss/N,
 				rloss = total_rloss/N,
 				time = clock.read(),
 				top_1_train = total_top1/N,
-				anti_train = total_anti/N
+				anti_train = total_anti/N,
+				antirnd_train = total_antirnd/N
 			)
 
 			N = top1 = wvar = val_loss = 0
-			anti = 0
+			anti = antirnd = 0
 			with torch.no_grad():
 				for batch_data in val_loader:
 					result = run_find(module, batch_data, metadata)
@@ -233,14 +236,24 @@ if __name__ == '__main__':
 					pred_inv = rev(att['attended'])
 					anti += util.top1_accuracy(pred_inv, result['instance']) * B
 
+					# Sampled pixel
+					hmap_inv_probs = (att['hmap_flat'] / att['total']).view(B,-1)
+					m = Categorical(hmap_inv_probs)
+					pix_idx = m.sample()
+					B_idx = torch.arange(B)
+					sampled_pix = att['features_flat'][B_idx,:,pix_idx]
+					pred_rnd = rev(sampled_pix)
+					antirnd += util.top1_accuracy(pred_rnd, result['instance']) * B
+
 			logger.log(
 				top_1 = top1/N,
 				wvar  = wvar/N,
 				val_loss = val_loss/N,
-				anti = anti/N
+				anti = anti/N,
+				antirnd = antirnd/N
 			)
 
-			ploss = 'acc: {}, var: {}'.format(top1/N, wvar/N)
+			ploss = 'acc: {}'.format(top1/N)
 			print('{} - {}'.format(clock.read_str(), ploss))
 
 			if args.save:
