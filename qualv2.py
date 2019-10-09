@@ -36,7 +36,9 @@ class RevMask(nn.Module):
 	def forward(self, features, hmap):
 		B = features.size(0)
 		maps = self._classifier(features*hmap)
-		pred = maps.view(B, len(FIND_INDEX), -1).mean(2)
+		maps_flat = maps.view(B, len(FIND_INDEX), -1)
+		hmap_flat = hmap.view(B, 1, -1)
+		pred = (maps_flat*hmap_flat).sum(2) / (hmap_flat.sum(2) + 1e-10)
 		return pred
 
 	def loss(self, pred, instance):
