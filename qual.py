@@ -52,7 +52,7 @@ def run_find(module, batch_data, metadata, dropout=0):
 	else:
 		features, instance = batch_data
 	features, instance = cudalize(features, instance)
-	features = F.dropout(features, p=dropout)
+	#features = F.dropout(features, p=dropout)
 	output = module[instance](features)
 	result = dict(
 		instance  = instance,
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
 	metadata = args.visualize > 0
 
-	module  = Find()
+	module  = Find(dropout=args.dropout)
 	dataset = VQAFindDataset(metadata=metadata)
 
 	loss_fn = nn.BCELoss
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 	rev = cudalize(RevMask())
 
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
-	opt_pred = torch.optim.Adam(rev.parameters(), lr=args.lr, weight_decay=args.wd)
+	opt_pred = torch.optim.Adam(rev.parameters(), lr=args.lr, weight_decay=0.01)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
@@ -166,9 +166,9 @@ if __name__ == '__main__':
 			max_loss = torch.tensor(B*7., dtype=torch.float, device='cuda')
 			loss_rev_inv = torch.min(loss_rev_inv, max_loss)
 
-			loss = loss_rev - loss_rev_inv + yeast*loss_mod
+			loss = loss_rev - loss_rev_inv #+ yeast*loss_mod
 			opt.zero_grad()
-			loss.backward()
+			loss.backward(retain_graph=True)
 			opt.step()
 
 			loss = loss_rev + loss_rev_inv
