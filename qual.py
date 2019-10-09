@@ -47,13 +47,12 @@ def weighted_var(features, hmap, attended, total):
 	wvar = (var*hmap).sum(2) / (total + 1e-10)
 	return wvar.mean()
 
-def run_find(module, batch_data, metadata, dropout=0):
+def run_find(module, batch_data, metadata):
 	if metadata:
 		features, instance, label_str, input_set, input_id = batch_data
 	else:
 		features, instance = batch_data
 	features, instance = cudalize(features, instance)
-	#features = F.dropout(features, p=dropout)
 	output = module[instance](features)
 	result = dict(
 		instance  = instance,
@@ -143,7 +142,7 @@ if __name__ == '__main__':
 			# ---   begin timed block   ---
 			clock.start()
 			
-			result = run_find(module, batch_data, metadata, args.dropout)
+			result = run_find(module, batch_data, metadata)
 			hmap = result['hmap']
 
 			att = attend(result['features'], hmap)
@@ -159,7 +158,7 @@ if __name__ == '__main__':
 			pred_inv = rev(att['attended'])
 
 			# Sampled pixel
-			hmap_inv_probs = (att['hmap_flat'] / att['total']).view(B,-1)
+			hmap_inv_probs = att['hmap_flat'].view(B,-1) / att['total']
 			m = Categorical(hmap_inv_probs)
 			pix_idx = m.sample()
 			B_idx = torch.arange(B)
@@ -168,8 +167,11 @@ if __name__ == '__main__':
 
 			loss_rev_inv = rev.loss(pred_inv, result['instance'])
 			loss_rev_rnd = rev.loss(pred_rnd, result['instance'])
+			max_val = torch.tensor(B*4.0, device='cuda')
+			loss_rev_inv_clip = torch.min(max_val, loss_rev_inv)
+			loss_rev_rnd_clip = torch.min(max_val, loss_rev_rnd)
 
-			loss_find = loss_rev - loss_rev_inv - loss_rev_rnd
+			loss_find = loss_rev - loss_rev_inv_clip - loss_rev_rnd_clip
 			opt.zero_grad()
 			loss_find.backward(retain_graph=True)
 			opt.step()
@@ -237,7 +239,7 @@ if __name__ == '__main__':
 					anti += util.top1_accuracy(pred_inv, result['instance']) * B
 
 					# Sampled pixel
-					hmap_inv_probs = (att['hmap_flat'] / att['total']).view(B,-1)
+					hmap_inv_probs = att['hmap_flat'].view(B,-1) / att['total']
 					m = Categorical(hmap_inv_probs)
 					pix_idx = m.sample()
 					B_idx = torch.arange(B)
