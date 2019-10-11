@@ -33,17 +33,23 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	def __init__(self, **kwargs):
+	def __init__(self, activation='srelu', **kwargs):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.01)
+		self._act_fn = dict(
+			srelu = lambda x: F.softsign(x)*0.5 + 0.5 + x.relu(),
+			relu  = lambda x: x.relu(),
+			none  = lambda x: x
+		)[activation]
 
 	def forward(self, features):
 		c = self._get_instance()
 		B,D,H,W = features.size()
 		kernel = self._dropout(self._conv.weight[c])
 		group_feats = features.contiguous().view(1,B*D,H,W)
-		hmap = F.conv2d(group_feats, kernel, groups=B).relu()
+		hmap = F.conv2d(group_feats, kernel, groups=B)
+		hmap = self._act_fn(hmap)
 		return hmap.view(B,1,H,W)
 
 class Describe(InstanceModule):
