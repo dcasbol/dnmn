@@ -59,7 +59,7 @@ def run_find(module, batch_data, metadata=False):
 	twoinst = inst_2 > 0
 	inst_2 = inst_2[twoinst]
 	if inst_2.size(0) > 0:
-		features_2 = features[inst_2]
+		features_2 = features[twoinst]
 		out_2 = module[inst_2](features_2)
 		output[twoinst] *= out_2
 
@@ -73,7 +73,7 @@ def run_find(module, batch_data, metadata=False):
 def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
-	parser.add_argument('--epochs', type=int, default=1,
+	parser.add_argument('--epochs', type=int, default=30,
 		help='Max. training epochs')
 	parser.add_argument('--batch-size', type=int, default=128)
 	parser.add_argument('--save', action='store_true',
