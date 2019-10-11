@@ -105,7 +105,7 @@ def attend_features(features, hmap, flatten=True):
 		B,C,H,W  = features.size()
 		features = features.view(B,C,-1)
 		hmap     = hmap.view(B,1,-1)
-	hmap += 1e-10
+	hmap = hmap + 1e-10
 	return (hmap*features).sum(2) / hmap.sum(2)
 
 
