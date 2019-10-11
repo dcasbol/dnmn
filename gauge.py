@@ -9,7 +9,7 @@ from modules import Find
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead
 from misc.visualization import MapVisualizer
-from misc.indices import FIND_INDEX, DESC_INDEX
+from misc.indices import FIND_INDEX, ANSWER_INDEX
 from torch.distributions import Categorical
 
 
@@ -31,14 +31,14 @@ class GaugeModule(nn.Module):
 
 	def __init__(self):
 		super(GaugeModule, self).__init__()
-		self._classifier = nn.Conv2d(IMG_DEPTH, len(DESC_INDEX), 1)
+		self._classifier = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
 
 	def forward(self, features, hmap):
 		B,C,H,W = features.size()
 		features = features.view(B,C,-1)
 		hmap = hmap.view(B,1,-1)
-		hmap = hmap - hmap.min(2, keepdim=True).values
+		#hmap = hmap - hmap.min(2, keepdim=True).values
 		total = hmap.sum(2) + 1e-10
 		attended = (hmap*features).sum(2) / total
 		pred = self._classifier(attended)
@@ -54,16 +54,16 @@ def run_find(module, batch_data, metadata=False):
 	if metadata:
 		inst_str, input_set, input_id = batch_data[4:]
 
-	output = module[inst_1](features)
+	hmaps = module[inst_1](features)
 
 	twoinst = inst_2 > 0
 	inst_2 = inst_2[twoinst]
 	if inst_2.size(0) > 0:
 		features_2 = features[twoinst]
-		out_2 = module[inst_2](features_2)
-		output[twoinst] *= out_2
+		hmaps_2 = module[inst_2](features_2)
+		hmaps[twoinst] = hmaps[twoinst] * hmaps_2
 
-	result = (features, output, label)
+	result = (features, hmaps, label)
 	if metadata:
 		meta = (inst_str, input_set, input_id)
 		result = result + (meta,)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
 			# ---   begin timed block   ---
 			clock.start()
-			
+
 			result = run_find(module, batch_data, metadata)
 			features, hmap, label, meta = result
 

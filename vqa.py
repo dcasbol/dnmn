@@ -308,7 +308,7 @@ class VQAFindGaugeDataset(VQADataset):
 		if self._metadata:
 			target_str = FIND_INDEX.get(target_1)
 			if target_2 > 0:
-				target_str += ' ' + FIND_INDEX.get(target_2)
+				target_str += ' AND ' + FIND_INDEX.get(target_2)
 			output += (target_str, datum['input_set'], datum['input_id'])
 
 		return output
