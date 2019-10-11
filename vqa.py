@@ -141,7 +141,6 @@ class VQADataset(Dataset):
 				indexed_answers = [ ANSWER_INDEX[a['answer']] or UNK_ID for a in ann['answers'] ]
 				self._by_id[question_id]['answers'] = indexed_answers
 
-
 class VQAFindDataset(VQADataset):
 
 	def __init__(self, *args, filter_data=True, metadata=False, 
@@ -186,10 +185,10 @@ class VQAFindDataset(VQADataset):
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		target = datum['layouts_indices']
 		target = target[self._tmap[i]] if len(self._tmap) > 0 else target[-1]
-		target_str = FIND_INDEX.get(target)
 		
 		output = (features, target)
 		if self._metadata:
+			target_str = FIND_INDEX.get(target)
 			output += (target_str, datum['input_set'], datum['input_id'])
 
 		return output
@@ -277,6 +276,42 @@ def encoder_collate_fn(data):
 	labels    = to_tens(labels, 'long')
 	distrs    = to_tens(distrs, 'float')
 	return questions, lengths, labels, distrs
+
+class VQAFindGaugeDataset(VQADataset):
+
+	def __init__(self, *args, metadata=False, **kwargs):
+		super(VQAFindGaugeDataset, self).__init__(*args, **kwargs)
+		self._metadata = metadata
+
+	def __getitem__(self, i):
+		datum    = self._get_datum(i)
+		features = self._get_features(datum)
+
+		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
+		
+		target_list = list()
+		for name, idx in zip(datum['layouts_names'], datum['layouts_indices']):
+			if name != 'find': continue
+			target_list.append(idx)
+
+		n = len(target_list)
+		assert n > 0 and n < 3, 'FindSu sample found with {} instances'.format(n)
+		if len(target_list) == 2:
+			target_1, target_2 = target_list
+		else:
+			target_1 = target_list[0]
+			target_2 = 0
+
+		label = majority_label(datum['answers'])
+		
+		output = (features, target_1, target_2, label)
+		if self._metadata:
+			target_str = FIND_INDEX.get(target_1)
+			if target_2 > 0:
+				target_str += ' ' + FIND_INDEX.get(target_2)
+			output += (target_str, datum['input_set'], datum['input_id'])
+
+		return output
 
 class VQANMNDataset(VQADataset):
 
