@@ -52,6 +52,9 @@ class NMN(torch.nn.Module):
 			maps.append(m)
 		maps = torch.cat(maps)
 
+		# Temp - TESTING
+		# return self._describe[root_inst](maps, features).softmax(1)
+
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
 		yesno_maps = maps[yesno]
@@ -85,8 +88,10 @@ class NMN(torch.nn.Module):
 		module = getattr(self, name)
 		module.load_state_dict(torch.load(filename, map_location='cpu'))
 		setattr(self, name, cudalize(module))
+		print('Module {} loaded from {!r}'.format(module_name, filename))
 
 	def save_module(self, module_name, filename):
 		assert module_name in {'find', 'describe', 'measure', 'encoder'}
 		module = getattr(self, '_'+module_name)
 		torch.save(module.state_dict(), filename)
+		print('Module {} saved to {!r}'.format(module_name, filename))
