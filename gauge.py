@@ -29,16 +29,18 @@ def attend(features, hmap):
 
 class GaugeModule(nn.Module):
 
-	def __init__(self):
+	def __init__(self, positive_hmap=True):
 		super(GaugeModule, self).__init__()
 		self._classifier = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
+		self._positive_hmap = positive_hmap
 
 	def forward(self, features, hmap):
 		B,C,H,W = features.size()
 		features = features.view(B,C,-1)
 		hmap = hmap.view(B,1,-1)
-		#hmap = hmap - hmap.min(2, keepdim=True).values
+		if not self._positive_hmap:
+			hmap = hmap - hmap.min(2, keepdim=True).values
 		total = hmap.sum(2) + 1e-10
 		attended = (hmap*features).sum(2) / total
 		pred = self._classifier(attended)
@@ -86,6 +88,7 @@ def get_args():
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')
 	parser.add_argument('--dropout', type=float, default=0)
+	parser.add_argument('--activation', default='none')
 	return parser.parse_args()
 
 
@@ -101,8 +104,8 @@ if __name__ == '__main__':
 
 	metadata = args.visualize > 0
 
-	module  = cudalize(Find(dropout=args.dropout))
-	gauge   = cudalize(GaugeModule())
+	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
+	gauge   = cudalize(GaugeModule(positive_hmap=args.activation!='none'))
 	dataset = VQAFindGaugeDataset(metadata=metadata)
 
 	loader = DataLoader(dataset,
@@ -185,7 +188,7 @@ if __name__ == '__main__':
 				val_loss = val_loss/N
 			)
 
-			print('{} - acc: {perc: 6.2f}%'.format(clock.read_str(), 100*top1/N))
+			print('{} - acc: {: 10.6f}%'.format(clock.read_str(), 100*top1/N))
 
 			if args.save:
 				torch.save(module.state_dict(), PT_NEW.format(epoch))
