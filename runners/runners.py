@@ -181,9 +181,12 @@ class EncoderRunner(Runner):
 
 class NMNRunner(Runner):
 
-	def __init__(self, dropout=0, **kwargs):
+	def __init__(self, dropout=0, find_pt=None, **kwargs):
 		self._model = NMN(dropout=dropout)
 		super(NMNRunner, self).__init__(**kwargs)
+		if find_pt is not None:
+			self._model.load_module(Find.NAME, find_pt)
+			self._model._find.eval()
 
 	def _loader_class(self):
 		return NMNLoader
