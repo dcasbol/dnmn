@@ -8,23 +8,10 @@ from vqa import VQAFindGaugeDataset
 from modules import Find
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
+from misc.util import DEVICE, to_tens, to_numpy
 from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX, ANSWER_INDEX
 from torch.distributions import Categorical
-
-
-def attend(features, hmap):
-	B,C,H,W = features.size()
-	features = features.view(B,C,-1)
-	hmap = hmap.view(B,1,-1) + 1e-10
-	total = hmap.sum(2)
-	attended = (hmap*features).sum(2) / total
-	return dict(
-		features_flat = features,
-		hmap_flat = hmap,
-		total = total,
-		attended = attended
-	)
 
 
 class GaugeModule(nn.Module):
@@ -87,7 +74,7 @@ def get_args():
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')
 	parser.add_argument('--dropout', type=float, default=0)
-	parser.add_argument('--activation', default='none')
+	parser.add_argument('--activation', default='relu')
 	return parser.parse_args()
 
 
@@ -104,7 +91,7 @@ if __name__ == '__main__':
 	metadata = args.visualize > 0
 
 	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
-	gauge   = cudalize(GaugeModule(positive_hmap=args.activation!='none'))
+	gauge   = cudalize(GaugeModule(positive_hmap = args.activation != 'none'))
 	dataset = VQAFindGaugeDataset(metadata=metadata)
 
 	loader = DataLoader(dataset,
@@ -157,8 +144,8 @@ if __name__ == '__main__':
 
 			if perc == last_perc and not last_iter: continue
 			last_perc = perc
-			print('{perc: 3d}% - {loss} - {acc: 6.2f}'.format(
-				perc = perc, loss = total_loss/N, acc = 100*total_top1/N
+			print('{perc: 3d}% - {loss} - {acc}'.format(
+				perc = perc, loss = total_loss/N, acc = total_top1/N
 			))
 
 			if args.visualize > 0:
@@ -188,7 +175,10 @@ if __name__ == '__main__':
 				val_loss = val_loss/N
 			)
 
-			print('{} - acc: {: 10.6f}%'.format(clock.read_str(), 100*top1/N))
+			print('End of epoch', epoch)
+			print(clock.read_str())
+			logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
+
 
 			if args.save:
 				torch.save(module.state_dict(), PT_NEW.format(epoch))

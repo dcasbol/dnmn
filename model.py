@@ -52,9 +52,6 @@ class NMN(torch.nn.Module):
 			maps.append(m)
 		maps = torch.cat(maps)
 
-		# Temp - TESTING
-		# return self._describe[root_inst](maps, features).softmax(1)
-
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
 		yesno_maps = maps[yesno]
