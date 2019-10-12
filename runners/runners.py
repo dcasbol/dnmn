@@ -186,7 +186,11 @@ class NMNRunner(Runner):
 		super(NMNRunner, self).__init__(**kwargs)
 		if find_pt is not None:
 			self._model.load_module(Find.NAME, find_pt)
-			self._model._find.eval()
+			find_params = [ hash(p) for p in self._model._find.parameters() ]
+			parameters = [ p for p in self._model.parameters() if hash(p) not in find_params ]
+			lr, weight_decay = [ self._opt.defaults[k] for k in ['lr', 'weight_decay'] ]
+			self._opt = torch.optim.Adam(parameters,
+				lr=lr, weight_decay=weight_decay)
 
 	def _loader_class(self):
 		return NMNLoader
