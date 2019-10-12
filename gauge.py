@@ -139,7 +139,7 @@ if __name__ == '__main__':
 			clock.start()
 
 			result = run_find(module, batch_data, metadata)
-			features, hmap, label, meta = result
+			features, hmap, label = result[:3]
 
 			pred = gauge(features, hmap)
 			loss = gauge.loss(pred, label)
@@ -163,6 +163,7 @@ if __name__ == '__main__':
 			))
 
 			if args.visualize > 0:
+				meta = result[-1]
 				vis.update(hmap, *meta)
 
 			if not last_iter: continue
