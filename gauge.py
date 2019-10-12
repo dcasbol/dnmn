@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from vqa import VQAFindGaugeDataset
 from modules import Find
 from misc.constants import *
-from misc.util import cudalize, Logger, Chronometer, lookahead
+from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
 from misc.visualization import MapVisualizer
 from misc.indices import FIND_INDEX, ANSWER_INDEX
 from torch.distributions import Categorical
@@ -41,8 +41,7 @@ class GaugeModule(nn.Module):
 		hmap = hmap.view(B,1,-1)
 		if not self._positive_hmap:
 			hmap = hmap - hmap.min(2, keepdim=True).values
-		total = hmap.sum(2) + 1e-10
-		attended = (hmap*features).sum(2) / total
+		attended = attend_features(features, hmap, flatten=False)
 		pred = self._classifier(attended)
 		return pred
 
