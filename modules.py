@@ -33,7 +33,7 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	def __init__(self, activation='none', **kwargs):
+	def __init__(self, activation='relu', **kwargs):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.01)
