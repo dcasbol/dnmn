@@ -10,8 +10,7 @@ from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
 from misc.util import DEVICE, to_tens, to_numpy
 from misc.visualization import MapVisualizer
-from misc.indices import FIND_INDEX, ANSWER_INDEX
-from torch.distributions import Categorical
+from misc.indices import ANSWER_INDEX
 
 
 class GaugeModule(nn.Module):
@@ -104,7 +103,7 @@ if __name__ == '__main__':
 	val_loader = DataLoader(valset, batch_size=200, shuffle=False)
 
 	params = list(module.parameters()) + list(gauge.parameters())
-	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
+	opt = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wd)
 
 	if args.visualize > 0:
 		vis = MapVisualizer(args.visualize)
