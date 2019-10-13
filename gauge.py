@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import misc.util as util
 from torch.utils.data import DataLoader
-from vqa import VQAFindGaugeDataset, VQANMNDataset, nmn_collate_fn
+from vqa import VQAFindGaugeDataset
 from modules import Find
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
@@ -36,21 +36,8 @@ class GaugeModule(nn.Module):
 		return self._loss_fn(pred, target)
 
 
-def take_data(batch_data):
-
-	features  = batch_data['features']
-	find_inst = batch_data['find_inst']
-	label     = batch_data['label']
-
-	inst_1 = to_tens([ inst[0] for inst in find_inst ], 'long')
-	inst_2 = to_tens([ inst[1] if len(inst) > 1 else 0 for inst in find_inst ], 'long')
-
-	return features, inst_1, inst_2, label
-
-
 def run_find(module, batch_data, metadata=False):
 
-	batch_data = take_data(batch_data)
 	features, inst_1, inst_2, label = cudalize(*batch_data[:4])
 	if metadata:
 		inst_str, input_set, input_id = batch_data[4:]
@@ -110,12 +97,11 @@ if __name__ == '__main__':
 	loader = DataLoader(dataset,
 		batch_size  = args.batch_size,
 		shuffle     = True,
-		num_workers = 4,
-		collate_fn  = nmn_collate_fn
+		num_workers = 4
 	)
 
 	valset = VQAFindGaugeDataset(set_names='val2014', stop=0.2, metadata=metadata)
-	val_loader = DataLoader(valset, batch_size=200, shuffle=False, collate_fn=nmn_collate_fn)
+	val_loader = DataLoader(valset, batch_size=200, shuffle=False)
 
 	params = list(module.parameters()) + list(gauge.parameters())
 	opt = torch.optim.Adam(module.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -175,14 +161,18 @@ if __name__ == '__main__':
 			)
 
 			N = top1 = val_loss = 0
+			module.eval()
+			gauge.eval()
 			with torch.no_grad():
 				for batch_data in val_loader:
 					features, hmap, label = run_find(module, batch_data)
 					pred = gauge(features, hmap)
 					B = pred.size(0)
 					N += B
-					top1 += util.top1_accuracy(pred, label) * B
+					top1     += util.top1_accuracy(pred, label) * B
 					val_loss += gauge.loss(pred, label).item()
+			module.train()
+			gauge.train()
 
 			logger.log(
 				top_1 = top1/N,
