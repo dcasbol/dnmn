@@ -290,13 +290,13 @@ class VQAFindGaugeDataset(VQADataset):
 		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
 		
 		target_list = list()
-		for name, idx in zip(datum['layouts_names'], datum['layouts_indices']):
+		for name, index in zip(datum['layouts_names'], datum['layouts_indices']):
 			if name != 'find': continue
-			target_list.append(idx)
+			target_list.append(index)
 
 		n = len(target_list)
 		assert n > 0 and n < 3, 'FindSu sample found with {} instances'.format(n)
-		if len(target_list) == 2:
+		if n == 2:
 			target_1, target_2 = target_list
 		else:
 			target_1 = target_list[0]

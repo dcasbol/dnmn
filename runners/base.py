@@ -113,8 +113,6 @@ class Runner(object):
 					self._preview(loss_perc/N_perc)
 
 			mean_loss = loss_perc/N_perc
-			loss_perc = 0.
-			N_perc    = 0
 			self._log_routine(mean_loss)
 			self._validation_routine()
 			if self._evaluate(): break
