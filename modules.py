@@ -33,11 +33,12 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	def __init__(self, activation='srelu', **kwargs):
+	def __init__(self, activation='none', **kwargs):
 		super(Find, self).__init__(**kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.01)
 		self._act_fn = dict(
+			elu   = lambda x: F.elu(x) + 1.0,
 			srelu = lambda x: F.softsign(x)*0.5 + 0.5 + x.relu(),
 			relu  = lambda x: x.relu(),
 			none  = lambda x: x
@@ -78,7 +79,8 @@ class Describe(InstanceModule):
 		instance = self._get_instance()
 		preds = list()
 		for att, inst in zip(attended, instance):
-			preds.append(self._descr[inst](att))
+			#preds.append(self._descr[inst](att))
+			preds.append(self._descr[0](att))
 
 		return torch.cat(preds)
 
