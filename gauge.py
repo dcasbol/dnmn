@@ -11,6 +11,7 @@ from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
 from misc.util import DEVICE, to_tens, to_numpy
 from misc.visualization import MapVisualizer
 from misc.indices import ANSWER_INDEX
+from time import time
 
 
 class GaugeModule(nn.Module):
@@ -19,14 +20,17 @@ class GaugeModule(nn.Module):
 		super(GaugeModule, self).__init__()
 		self._classifier = nn.Linear(IMG_DEPTH+MASK_WIDTH**2, len(ANSWER_INDEX))
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
+		self._t = 0.
 
 	def forward(self, features, hmap, yesno):
+		t0 = time()
 		B = hmap.size(0)
 		yesno = yesno.view(B,1)
 		attended  = attend_features(features, hmap) * (1.-yesno)
 		hmap_flat = hmap.view(B,-1) * yesno
 		x = torch.cat([attended, hmap_flat], 1)
 		pred = self._classifier(x)
+		self._t += time() - t0
 		return pred
 
 	def loss(self, pred, target):
@@ -144,6 +148,10 @@ if __name__ == '__main__':
 			print('{perc: 3d}% - {loss} - {acc}'.format(
 				perc = perc, loss = total_loss/N, acc = total_top1/N
 			))
+
+			if perc == 4:
+				print(gauge._t)
+				quit()
 
 			if args.visualize > 0:
 				meta = result[-1]
