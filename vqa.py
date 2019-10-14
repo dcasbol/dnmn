@@ -302,7 +302,7 @@ class VQAFindGaugeDataset(VQADataset):
 			target_1 = target_list[0]
 			target_2 = 0
 
-		yesno = is_yesno(datum['questions'])
+		yesno = is_yesno(datum['question'])
 		label = majority_label(datum['answers'])
 		
 		output = (features, target_1, target_2, yesno, label)

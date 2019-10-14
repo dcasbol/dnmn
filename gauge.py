@@ -18,11 +18,15 @@ class GaugeModule(nn.Module):
 
 	def __init__(self, positive_hmap=True):
 		super(GaugeModule, self).__init__()
-		self._classifier = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+		self._classifier = nn.Sequential(
+			nn.Linear(IMG_DEPTH+MASK_WIDTH**2, 64, bias=False),
+			nn.Linear(64, len(ANSWER_INDEX))
+		)
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
 
 	def forward(self, features, hmap, yesno):
-		yesno = yesno.view(-1,1).float()
+		B = hmap.size(0)
+		yesno = yesno.view(B,1).float()
 		attended  = attend_features(features, hmap)*(1.-yesno)
 		hmap_flat = hmap.view(B,-1)*yesno
 		x = torch.cat([attended, hmap_flat], 1)
