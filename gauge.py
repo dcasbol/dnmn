@@ -18,19 +18,15 @@ class GaugeModule(nn.Module):
 
 	def __init__(self, positive_hmap=True):
 		super(GaugeModule, self).__init__()
-		self._classifier = nn.Linear(IMG_DEPTH+MASK_WIDTH**2, len(ANSWER_INDEX))
+		self._classifier = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
-		self._t = 0.
 
 	def forward(self, features, hmap, yesno):
-		t0 = time()
-		B = hmap.size(0)
-		yesno = yesno.view(B,1)
-		attended  = attend_features(features, hmap) * (1.-yesno)
-		hmap_flat = hmap.view(B,-1) * yesno
+		yesno = yesno.view(-1,1).float()
+		attended  = attend_features(features, hmap)*(1.-yesno)
+		hmap_flat = hmap.view(B,-1)*yesno
 		x = torch.cat([attended, hmap_flat], 1)
 		pred = self._classifier(x)
-		self._t += time() - t0
 		return pred
 
 	def loss(self, pred, target):
@@ -39,9 +35,9 @@ class GaugeModule(nn.Module):
 
 def run_find(module, batch_data, metadata=False):
 
-	features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:4])
+	features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
 	if metadata:
-		inst_str, input_set, input_id = batch_data[4:]
+		inst_str, input_set, input_id = batch_data[5:]
 
 	hmaps = module[inst_1](features)
 
@@ -126,7 +122,7 @@ if __name__ == '__main__':
 			clock.start()
 
 			result = run_find(module, batch_data, metadata)
-			features, hmap, yesno, label = result[:-1]
+			features, hmap, yesno, label = result[:4]
 
 			pred = gauge(features, hmap, yesno)
 			loss = gauge.loss(pred, label)
@@ -149,10 +145,6 @@ if __name__ == '__main__':
 				perc = perc, loss = total_loss/N, acc = total_top1/N
 			))
 
-			if perc == 4:
-				print(gauge._t)
-				quit()
-
 			if args.visualize > 0:
 				meta = result[-1]
 				vis.update(hmap, *meta)
@@ -170,8 +162,8 @@ if __name__ == '__main__':
 			gauge.eval()
 			with torch.no_grad():
 				for batch_data in val_loader:
-					features, hmap, label = run_find(module, batch_data)
-					pred = gauge(features, hmap)
+					features, hmap, yesno, label = run_find(module, batch_data)
+					pred = gauge(features, hmap, yesno)
 					B = pred.size(0)
 					N += B
 					top1     += util.top1_accuracy(pred, label) * B
