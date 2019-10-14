@@ -17,18 +17,16 @@ class GaugeModule(nn.Module):
 
 	def __init__(self, positive_hmap=True):
 		super(GaugeModule, self).__init__()
-		self._classifier = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+		self._classifier = nn.Linear(IMG_DEPTH+MASK_WIDTH**2, len(ANSWER_INDEX))
 		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
-		self._positive_hmap = positive_hmap
 
-	def forward(self, features, hmap):
-		B,C,H,W = features.size()
-		features = features.view(B,C,-1)
-		hmap = hmap.view(B,1,-1)
-		if not self._positive_hmap:
-			hmap = hmap - hmap.min(2, keepdim=True).values
-		attended = attend_features(features, hmap, flatten=False)
-		pred = self._classifier(attended)
+	def forward(self, features, hmap, yesno):
+		B = hmap.size(0)
+		yesno = yesno.view(B,1)
+		attended  = attend_features(features, hmap) * (1.-yesno)
+		hmap_flat = hmap.view(B,-1) * yesno
+		x = torch.cat([attended, hmap_flat], 1)
+		pred = self._classifier(x)
 		return pred
 
 	def loss(self, pred, target):
@@ -37,7 +35,7 @@ class GaugeModule(nn.Module):
 
 def run_find(module, batch_data, metadata=False):
 
-	features, inst_1, inst_2, label = cudalize(*batch_data[:4])
+	features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:4])
 	if metadata:
 		inst_str, input_set, input_id = batch_data[4:]
 
@@ -50,7 +48,7 @@ def run_find(module, batch_data, metadata=False):
 		hmaps_2 = module[inst_2](features_2)
 		hmaps[twoinst] = hmaps[twoinst] * hmaps_2
 
-	result = (features, hmaps, label)
+	result = (features, hmaps, yesno, label)
 	if metadata:
 		meta = (inst_str, input_set, input_id)
 		result = result + (meta,)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
 	metadata = args.visualize > 0
 
 	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
-	gauge   = cudalize(GaugeModule(positive_hmap = args.activation != 'none'))
+	gauge   = cudalize(GaugeModule())
 	dataset = VQAFindGaugeDataset(metadata=metadata)
 
 	loader = DataLoader(dataset,
@@ -124,9 +122,9 @@ if __name__ == '__main__':
 			clock.start()
 
 			result = run_find(module, batch_data, metadata)
-			features, hmap, label = result[:3]
+			features, hmap, yesno, label = result[:-1]
 
-			pred = gauge(features, hmap)
+			pred = gauge(features, hmap, yesno)
 			loss = gauge.loss(pred, label)
 
 			opt.zero_grad()

@@ -40,8 +40,7 @@ class Find(InstanceModule):
 		self._act_fn = dict(
 			elu   = lambda x: F.elu(x) + 1.0,
 			srelu = lambda x: F.softsign(x)*0.5 + 0.5 + x.relu(),
-			relu  = lambda x: x.relu(),
-			none  = lambda x: x
+			relu  = lambda x: x.relu()
 		)[activation]
 
 	def forward(self, features):
@@ -59,14 +58,13 @@ class Describe(InstanceModule):
 	a single fully-connected layer. """
 	NAME = 'describe'
 
-	def __init__(self, normalize_attention=False, **kwargs):
+	def __init__(self, **kwargs):
 		super(Describe, self).__init__(**kwargs)
 		self._descr = list()
 		for i in range(len(DESC_INDEX)):
 			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 			setattr(self, '_descr_%d' % i, layer)
 			self._descr.append(layer)
-		self._norm = normalize_attention
 
 	def forward(self, hmap_or_attended, features=None):
 		if features is None:
@@ -79,8 +77,7 @@ class Describe(InstanceModule):
 		instance = self._get_instance()
 		preds = list()
 		for att, inst in zip(attended, instance):
-			#preds.append(self._descr[inst](att))
-			preds.append(self._descr[0](att))
+			preds.append(self._descr[inst](att))
 
 		return torch.cat(preds)
 

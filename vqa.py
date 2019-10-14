@@ -302,9 +302,10 @@ class VQAFindGaugeDataset(VQADataset):
 			target_1 = target_list[0]
 			target_2 = 0
 
+		yesno = is_yesno(datum['questions'])
 		label = majority_label(datum['answers'])
 		
-		output = (features, target_1, target_2, label)
+		output = (features, target_1, target_2, yesno, label)
 		if self._metadata:
 			target_str = FIND_INDEX.get(target_1)
 			if target_2 > 0:
