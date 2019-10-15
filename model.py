@@ -29,13 +29,11 @@ class NMN(BaseModule):
 		# Drop the same channels for all Find instances
 		features = self._dropout2d(features)
 
-		for i, inst in enumerate(find_inst):
-			if i==0:
-				hmaps = self._find[inst](features)
-			else:
-				valid = inst>0
-				hmaps_inst = self._find[inst[valid]](features[valid])
-				hmaps[valid] = hmaps[valid] * hmaps_inst
+		hmaps = self._find[inst[0]](features)
+		for inst in find_inst[1:]:
+			valid = inst>0
+			hmaps_inst = self._find[inst[valid]](features[valid])
+			hmaps[valid] = hmaps[valid] * hmaps_inst
 
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
