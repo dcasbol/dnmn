@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import misc.util as util
 from torch.utils.data import DataLoader
-from vqa import VQAFindGaugeDataset
-from modules import BaseModule
+from vqa import VQAGaugeFindDataset
+from modules import BaseModule, Find
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
 from misc.visualization import MapVisualizer
@@ -13,12 +13,14 @@ from misc.indices import ANSWER_INDEX
 from time import time
 
 
-def run_find(module, batch_data, metadata=False):
+def run_find(module, batch_data, metadata=False, dropout_fn=None):
 
 	features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
 	if metadata:
 		inst_str, input_set, input_id = batch_data[5:]
 
+	if dropout_fn is not None:
+		features = dropout_fn(features)
 	hmaps = module[inst_1](features)
 
 	twoinst = inst_2 > 0
@@ -43,7 +45,6 @@ class Gauge(BaseModule):
 			nn.Linear(IMG_DEPTH + MASK_WIDTH**2, 64, bias=False),
 			nn.Linear(64, len(ANSWER_INDEX))
 		)
-		self._find = Find(**kwargs)
 
 	def forward(self, hmap, features, yesno):
 		B = hmap.size(0)
@@ -87,9 +88,13 @@ if __name__ == '__main__':
 
 	metadata = args.visualize > 0
 
-	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
+	module  = cudalize(Find(activation=args.activation))
 	gauge   = cudalize(Gauge(dropout=args.dropout))
-	dataset = VQAFindGaugeDataset(metadata=metadata)
+	dataset = VQAGaugeFindDataset(metadata=metadata)
+	if args.dropout > 0:
+		dropout_fn = lambda x: F.dropout2d(x, p=args.dropout, training=module.training)
+	else:
+		dropout_fn = None
 
 	loader = DataLoader(dataset,
 		batch_size  = args.batch_size,
@@ -97,7 +102,7 @@ if __name__ == '__main__':
 		num_workers = 4
 	)
 
-	valset = VQAFindGaugeDataset(set_names='val2014', stop=0.2, metadata=metadata)
+	valset = VQAGaugeFindDataset(set_names='val2014', stop=0.2, metadata=metadata)
 	val_loader = DataLoader(valset, batch_size=200, shuffle=False)
 
 	params = list(module.parameters()) + list(gauge.parameters())
@@ -121,7 +126,7 @@ if __name__ == '__main__':
 			# ---   begin timed block   ---
 			clock.start()
 
-			result = run_find(module, batch_data, metadata)
+			result = run_find(module, batch_data, metadata, dropout_fn)
 			features, hmap, yesno, label = result[:4]
 
 			pred = gauge(hmap, features, yesno)
