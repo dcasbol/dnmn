@@ -11,7 +11,7 @@ class NMN(BaseModule):
 
 	def __init__(self, dropout=0):
 		super(NMN, self).__init__()
-		self._find     = Find(dropout=0) # No internal dropout. 2d dropout instead.
+		self._find     = Find()
 		self._describe = Describe(dropout=dropout)
 		self._measure  = Measure(dropout=dropout)
 		self._encoder  = QuestionEncoder(dropout=dropout)
@@ -26,7 +26,7 @@ class NMN(BaseModule):
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
-		# Drop here to drop the same features for all modules
+		# Drop the same channels for all Find instances
 		features = self._dropout2d(features)
 
 		for i, inst in enumerate(find_inst):

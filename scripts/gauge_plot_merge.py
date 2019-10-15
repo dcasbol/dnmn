@@ -7,8 +7,8 @@ from glob import glob
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Generate plot info for assessing Find utility.')
-	parser.add_argument('--describe-logs-dir', default='./')
-	parser.add_argument('--output-log', default='plotqual.json')
+	parser.add_argument('--logs-dir', default='./')
+	parser.add_argument('--output-log', default='merged_max_acc.json')
 	parser.add_argument('--whiten', action='store_true')
 	parser.add_argument('--prefix', default='describe-qual-ep-')
 	return parser.parse_args()
@@ -17,7 +17,7 @@ def main(args):
 
 	i0 = len(args.prefix)
 
-	pattern = os.path.join(args.describe_logs_dir, '%s*_log.json' % args.prefix)
+	pattern = os.path.join(args.logs_dir, '%s*_log.json' % args.prefix)
 	fn_list = glob(pattern)
 	fn_list.sort()
 
