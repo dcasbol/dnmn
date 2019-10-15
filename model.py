@@ -17,12 +17,12 @@ class NMN(BaseModule):
 		self._encoder  = QuestionEncoder(dropout=dropout)
 		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
 
-		def cross_entropy(x, y):
-			# L(x) = -y*log(x) -(1-y)*log(1-x)
-			x = x[torch.arange(x.size(0)), y]
-			ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
-			return ce
-		self._loss_fn = cross_entropy
+	def loss(self, x, y):
+		# Cross Entropy
+		# L(x) = -y*log(x) -(1-y)*log(1-x)
+		x = x[torch.arange(x.size(0)), y]
+		ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+		return ce
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
@@ -30,12 +30,12 @@ class NMN(BaseModule):
 		features = self._dropout2d(features)
 
 		for i, inst in enumerate(find_inst):
-			hmaps_inst = self._find[inst](features)
 			if i==0:
-				hmaps = hmaps_inst
+				hmaps = self._find[inst](features)
 			else:
-				have_inst = inst>0
-				hmaps[have_inst] = hmaps[have_inst] * hmaps_inst
+				valid = inst>0
+				hmaps_inst = self._find[inst[valid]](features[valid])
+				hmaps[valid] = hmaps[valid] * hmaps_inst
 
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
