@@ -5,10 +5,9 @@ import torch.nn.functional as F
 import misc.util as util
 from torch.utils.data import DataLoader
 from vqa import VQAFindGaugeDataset
-from modules import Find, Gauge
+from modules import BaseModule
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
-from misc.util import DEVICE, to_tens, to_numpy
 from misc.visualization import MapVisualizer
 from misc.indices import ANSWER_INDEX
 from time import time
@@ -34,6 +33,26 @@ def run_find(module, batch_data, metadata=False):
 		meta = (inst_str, input_set, input_id)
 		result = result + (meta,)
 	return result
+
+
+class Gauge(BaseModule):
+
+	def __init__(self, **kwargs):
+		super(Gauge, self).__init__(**kwargs)
+		self._classifier = nn.Sequential(
+			nn.Linear(IMG_DEPTH + MASK_WIDTH**2, 64, bias=False),
+			nn.Linear(64, len(ANSWER_INDEX))
+		)
+		self._find = Find(**kwargs)
+
+	def forward(self, hmap, features, yesno):
+		B = hmap.size(0)
+		yesno = yesno.view(B,1).float()
+		attended  = attend_features(features, hmap)*(1.-yesno)
+		hmap_flat = hmap.view(B,-1)*yesno
+		x = torch.cat([attended, hmap_flat], 1)
+		pred = self._classifier(self._dropout(x))
+		return pred
 
 
 def get_args():
@@ -69,7 +88,7 @@ if __name__ == '__main__':
 	metadata = args.visualize > 0
 
 	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
-	gauge   = cudalize(Gauge())
+	gauge   = cudalize(Gauge(dropout=args.dropout))
 	dataset = VQAFindGaugeDataset(metadata=metadata)
 
 	loader = DataLoader(dataset,
