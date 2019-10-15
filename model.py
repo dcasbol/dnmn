@@ -29,7 +29,7 @@ class NMN(BaseModule):
 		# Drop the same channels for all Find instances
 		features = self._dropout2d(features)
 
-		hmaps = self._find[inst[0]](features)
+		hmaps = self._find[find_inst[0]](features)
 		for inst in find_inst[1:]:
 			valid = inst>0
 			hmaps_inst = self._find[inst[valid]](features[valid])
