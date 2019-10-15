@@ -277,10 +277,10 @@ def encoder_collate_fn(data):
 	distrs    = to_tens(distrs, 'float')
 	return questions, lengths, labels, distrs
 
-class VQAFindGaugeDataset(VQADataset):
+class VQAGaugeFindDataset(VQADataset):
 
 	def __init__(self, *args, metadata=False, **kwargs):
-		super(VQAFindGaugeDataset, self).__init__(*args, **kwargs)
+		super(VQAGaugeFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
 
 	def __getitem__(self, i):
@@ -352,15 +352,18 @@ def nmn_collate_fn(data):
 	else:
 		qids = unzipped[-1]
 
-	T = max(lengths)
-	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
+	max_len = max(lengths)
+	padded = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
+
+	max_num = max([len(i) for i in indices])
+	indices = [ idx + [0]*(max_num-len(idx)) for idx in indices ]
 
 	batch = dict(
 		question  = to_tens(padded, 'long').transpose(0,1),
 		length    = to_tens(lengths, 'long'),
 		yesno     = to_tens(yesno, 'uint8'),
 		features  = to_tens(features, 'float'),
-		find_inst = indices,
+		find_inst = to_tens(indices, 'long').unbind(1),
 		root_inst = to_tens(root_idx, 'long')
 	)
 	if has_labels:

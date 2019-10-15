@@ -5,36 +5,13 @@ import torch.nn.functional as F
 import misc.util as util
 from torch.utils.data import DataLoader
 from vqa import VQAFindGaugeDataset
-from modules import Find
+from modules import Find, Gauge
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
 from misc.util import DEVICE, to_tens, to_numpy
 from misc.visualization import MapVisualizer
 from misc.indices import ANSWER_INDEX
 from time import time
-
-
-class GaugeModule(nn.Module):
-
-	def __init__(self, positive_hmap=True):
-		super(GaugeModule, self).__init__()
-		self._classifier = nn.Sequential(
-			nn.Linear(IMG_DEPTH+MASK_WIDTH**2, 64, bias=False),
-			nn.Linear(64, len(ANSWER_INDEX))
-		)
-		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
-
-	def forward(self, features, hmap, yesno):
-		B = hmap.size(0)
-		yesno = yesno.view(B,1).float()
-		attended  = attend_features(features, hmap)*(1.-yesno)
-		hmap_flat = hmap.view(B,-1)*yesno
-		x = torch.cat([attended, hmap_flat], 1)
-		pred = self._classifier(x)
-		return pred
-
-	def loss(self, pred, target):
-		return self._loss_fn(pred, target)
 
 
 def run_find(module, batch_data, metadata=False):
@@ -92,7 +69,7 @@ if __name__ == '__main__':
 	metadata = args.visualize > 0
 
 	module  = cudalize(Find(dropout=args.dropout, activation=args.activation))
-	gauge   = cudalize(GaugeModule())
+	gauge   = cudalize(Gauge())
 	dataset = VQAFindGaugeDataset(metadata=metadata)
 
 	loader = DataLoader(dataset,
@@ -128,7 +105,7 @@ if __name__ == '__main__':
 			result = run_find(module, batch_data, metadata)
 			features, hmap, yesno, label = result[:4]
 
-			pred = gauge(features, hmap, yesno)
+			pred = gauge(hmap, features, yesno)
 			loss = gauge.loss(pred, label)
 
 			opt.zero_grad()
@@ -167,7 +144,7 @@ if __name__ == '__main__':
 			with torch.no_grad():
 				for batch_data in val_loader:
 					features, hmap, yesno, label = run_find(module, batch_data)
-					pred = gauge(features, hmap, yesno)
+					pred = gauge(hmap, features, yesno)
 					B = pred.size(0)
 					N += B
 					top1     += util.top1_accuracy(pred, label) * B

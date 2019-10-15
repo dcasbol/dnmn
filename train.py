@@ -36,7 +36,7 @@ if __name__ == '__main__':
 		assert args.visualize is None,\
 			"Only find module is subject to visualization."
 
-	if args.selection == 'describe_uncached':
+	if args.selection[-8:] == 'uncached':
 		assert args.find_pt is not None, "You must specify find module for uncached training."
 
 	kwargs = { k: v for k, v in vars(args).items() if v is not None }

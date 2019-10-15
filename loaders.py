@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
-from vqa import VQAEncoderDataset, VQANMNDataset
+from vqa import VQAEncoderDataset, VQANMNDataset, VQAGaugeFindDataset
 from vqa import encoder_collate_fn, nmn_collate_fn
 
 
@@ -45,3 +45,7 @@ class DescribeLoader(BaseLoader):
 class MeasureLoader(BaseLoader):
 	def _dataset(self, **kwargs):
 		return VQAMeasureDataset(**kwargs)
+
+class GaugeFindLoader(BaseLoader):
+	def _dataset(self, **kwargs):
+		return VQAGaugeFindDataset(**kwargs)

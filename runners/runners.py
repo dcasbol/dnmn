@@ -1,58 +1,36 @@
 import torch
-from modules import Find, Describe, Measure, QuestionEncoder
+from modules import Find, Describe, Measure, QuestionEncoder, GaugeFind
 from model import NMN
 from runners.base import Runner
 from misc.visualization import MapVisualizer
 from misc.util import cudalize, cudalize_dict, to_tens, DEVICE
-from loaders import EncoderLoader, FindLoader, DescribeLoader, MeasureLoader, NMNLoader
+from loaders import EncoderLoader, DescribeLoader, MeasureLoader, NMNLoader
+from loaders import GaugeFindLoader
 
-
-def _attend(features, hmap):
-	B,C,H,W = features.size()
-	features = features.view(B,C,-1)
-	hmap = hmap.view(B,1,-1)
-	total = hmap.sum(2)
-	attended = (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
-	return dict(
-		features_flat = features,
-		hmap_flat = hmap,
-		total = total,
-		attended = attended.view(B,C,1)
-	)
-
-def _weighted_var(features_flat, hmap_flat, attended, total):
-	var = (features_flat-attended).pow(2)
-	att_flat = hmap_flat + 1e-10
-	wvar = (var*att_flat).sum(2) / att_flat.sum(2)
-	return wvar.mean().item()
 
 class FindRunner(Runner):
 
-	def __init__(self, visualize=0, dropout=0, **kwargs):
-		self._model   = Find(dropout=dropout)
+	def __init__(self, visualize=0, **kwargs):
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
+		assert visualize == 0, 'Visualization not implemented yet.'
 		if visualize > 0:
+			print('WARNING: Find training running with visualization ON')
 			self._vis = MapVisualizer(visualize)
 
+	def _get_model(self):
+		return GaugeFind(dropout=self._dropout)
+
 	def _loader_class(self):
-		return FindLoader
+		return GaugeFindLoader
 
 	def _forward(self, batch_data):
-		features, instance = cudalize(*batch_data[:2])
-		output = self._model[instance](features)
+		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
+		pred = self._model(features, inst_1, inst_2, yesno)
 		result = dict(
-			output    = output,
-			label     = instance,
-			hmap      = output,
-			features  = features
+			output = pred,
+			label  = label
 		)
-		if len(batch_data) > 2:
-			result['label_str'] = batch_data[2]
-			result['input_set'] = batch_data[3]
-			result['input_id']  = batch_data[4]
-		self._result = result
-		return result
 
 	def _preview(self, mean_loss):
 		super(FindRunner, self)._preview(mean_loss)
@@ -61,28 +39,11 @@ class FindRunner(Runner):
 			values = [ self._result[k] for k in keys ]
 			self._vis.update(*values)
 
-	def _validation_routine(self):
-		if not self._validate: return
-		N = wvar = 0
-
-		self._model.eval()
-		with torch.no_grad():
-			for batch_data in self._val_loader:
-				result = self._forward(batch_data)
-				B = result['features'].size(0)
-				N += B
-				attended_kwargs = _attend(result['features'], result['hmap'])
-				wvar += _weighted_var(**attended_kwargs) * B
-		self._model.train()
-		
-		self._logger.log(wvar = wvar/N)
-		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 
 class DescribeRunner(Runner):
 
-	def __init__(self, dropout=0, **kwargs):
-		self._model = Describe(dropout=dropout)
-		super(DescribeRunner, self).__init__(**kwargs)
+	def _get_model(self):
+		return Describe(dropout=self._dropout)
 
 	def _loader_class(self):
 		return DescribeLoader
@@ -129,23 +90,23 @@ class UncachedRunner(Runner):
 			distr  = cudalize(batch_data['distr'])
 		)
 
+
 class DescribeRunnerUncached(UncachedRunner):
 
-	def __init__(self, dropout=0, **kwargs):
-		self._model = Describe(dropout=dropout)
-		super(DescribeRunnerUncached, self).__init__(**kwargs)
+	def _get_model(self):
+		return Describe(dropout=self._dropout)
+
 
 class MeasureRunnerUncached(UncachedRunner):
 
-	def __init__(self, dropout=0, **kwargs):
-		self._model = Measure(dropout=dropout)
-		super(MeasureRunnerUncached, self).__init__(**kwargs)
+	def _get_model(self):
+		return Measure(dropout=self._dropout)
+
 
 class MeasureRunner(Runner):
 
-	def __init__(self, dropout=0, **kwargs):
-		self._model = Measure(dropout=dropout)
-		super(MeasureRunner, self).__init__(**kwargs)
+	def _get_model(self):
+		return Measure(dropout=self._dropout)
 
 	def _loader_class(self):
 		return MeasureLoader
@@ -163,9 +124,8 @@ class MeasureRunner(Runner):
 
 class EncoderRunner(Runner):
 
-	def __init__(self, dropout=0, **kwargs):
-		self._model = QuestionEncoder(dropout=dropout)
-		super(EncoderRunner, self).__init__(**kwargs)
+	def _get_model(self):
+		return QuestionEncoder(dropout=self._dropout)
 
 	def _loader_class(self):
 		return EncoderLoader
@@ -181,8 +141,7 @@ class EncoderRunner(Runner):
 
 class NMNRunner(Runner):
 
-	def __init__(self, dropout=0, find_pt=None, **kwargs):
-		self._model = NMN(dropout=dropout)
+	def __init__(self, find_pt=None, **kwargs):
 		super(NMNRunner, self).__init__(**kwargs)
 		if find_pt is not None:
 			self._model.load_module(Find.NAME, find_pt)
@@ -191,6 +150,9 @@ class NMNRunner(Runner):
 			lr, weight_decay = [ self._opt.defaults[k] for k in ['lr', 'weight_decay'] ]
 			self._opt = torch.optim.Adam(parameters,
 				lr=lr, weight_decay=weight_decay)
+
+	def _get_model(self):
+		return NMN(dropout=self._dropout)
 
 	def _loader_class(self):
 		return NMNLoader

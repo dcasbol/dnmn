@@ -1,94 +1,67 @@
 import torch
 import torch.nn.functional as F
-from misc.util import cudalize, DEVICE
-from modules import Find, Describe, Measure, QuestionEncoder
+from misc.util import cudalize, DEVICE, USE_CUDA
+from modules import Find, Describe, Measure, QuestionEncoder, BaseModule
 from misc.indices import ANSWER_INDEX
 
-""" LAST PROFILING MADE
 
-00:18:28/00:05:58  24% - 2.6149481296539308
-yesno 16.357530117034912
-maps 55.134193897247314
-empty 0.02860236167907715
-inst 8.076877117156982
-others 16.136756896972656
-qenc 11.334144115447998
-do 0.6323862075805664
-"""
-
-class NMN(torch.nn.Module):
+class NMN(BaseModule):
 
 	NAME = 'nmn'
 
 	def __init__(self, dropout=0):
 		super(NMN, self).__init__()
-		self._find = Find()
-		self._describe = Describe()
-		self._measure = Measure(dropout=dropout)
-		self._encoder = QuestionEncoder(dropout=dropout)
+		self._find     = Find(dropout=0) # No internal dropout. 2d dropout instead.
+		self._describe = Describe(dropout=dropout)
+		self._measure  = Measure(dropout=dropout)
+		self._encoder  = QuestionEncoder(dropout=dropout)
+		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
 
-		self._dropout = {
-			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=dropout, training=self.training)
-		}[dropout>0]
-		self._dropout2d = {
-			False : lambda x: x,
-			True  : lambda x: F.dropout2d(x, p=dropout, training=self.training)
-		}[dropout>0]
+		def cross_entropy(x, y):
+			# L(x) = -y*log(x) -(1-y)*log(1-x)
+			x = x[torch.arange(x.size(0)), y]
+			ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+			return ce
+		self._loss_fn = cross_entropy
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
-		# this is the equivalent to dropout over 1x1 kernel
 		# Drop here to drop the same features for all modules
-		features = self._dropout2d(self._dropout(features))
-		features_list = features.unsqueeze(1).unbind(0)
+		features = self._dropout2d(features)
 
-		find_inst = [ torch.tensor(inst, dtype=torch.long, device=DEVICE) for inst in find_inst ]
-
-		maps = list()
-		for f, inst in zip(features_list, find_inst):
-			f = f.expand(len(inst), -1, -1, -1)
-			m = self._find[inst](f).prod(0, keepdim=True)
-			maps.append(m)
-		maps = torch.cat(maps)
+		for i, inst in enumerate(find_inst):
+			hmaps_inst = self._find[inst](features)
+			if i==0:
+				hmaps = hmaps_inst
+			else:
+				have_inst = inst>0
+				hmaps[have_inst] = hmaps[have_inst] * hmaps_inst
 
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 
-		yesno_maps = maps[yesno]
-		if yesno_maps.size(0) > 0:
+		yesno_hmaps = hmaps[yesno]
+		if yesno_hmaps.size(0) > 0:
 			yesno_inst = root_inst[yesno]
-			yesno_ans = self._measure[yesno_inst](yesno_maps)
+			yesno_ans = self._measure[yesno_inst](yesno_hmaps)
 			root_pred[yesno] = yesno_ans
 
 		other = ~yesno
-		other_maps = maps[other]
-		if other_maps.size(0) > 0:
+		other_hmaps = hmaps[other]
+		if other_hmaps.size(0) > 0:
 			other_inst = root_inst[other]
 			other_fts  = features[other]
-			other_ans  = self._describe[other_inst](other_maps, other_fts)
+			other_ans  = self._describe[other_inst](other_hmaps, other_fts)
 			root_pred[other] = other_ans
 
 		root_pred = root_pred.softmax(1)
-		enc_pred = self._encoder(question, length).softmax(1)
+		enc_pred  = self._encoder(question, length).softmax(1)
 
 		return (root_pred*enc_pred + 1e-30).sqrt()
 
-	def load(self, filename):
-		self.load_state_dict(torch.load(filename, map_location='cpu'))
-
-	def save(self, filename):
-		torch.save(self.state_dict(), filename)
-
 	def load_module(self, module_name, filename):
-		assert module_name in {'find', 'describe', 'measure', 'encoder'}
-		name = '_'+module_name
-		module = getattr(self, name)
-		module.load_state_dict(torch.load(filename, map_location='cpu'))
-		setattr(self, name, cudalize(module))
-		print('Module {} loaded from {!r}'.format(module_name, filename))
+		assert module_name in self._modnames
+		getattr(self, '_'+module_name).load(filename)
 
 	def save_module(self, module_name, filename):
-		assert module_name in {'find', 'describe', 'measure', 'encoder'}
-		module = getattr(self, '_'+module_name)
-		torch.save(module.state_dict(), filename)
-		print('Module {} saved to {!r}'.format(module_name, filename))
+		assert module_name in self._modnames
+		getattr(self, '_'+module_name).save(filename)

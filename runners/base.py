@@ -5,20 +5,24 @@ from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, PercentageCounter
-from modules import Find
-from model import NMN
+from modules import GaugeFind
+
 
 class Runner(object):
 
 	def __init__(self, max_epochs=40, batch_size=128,
 		restore=False, save=False, validate=True, suffix='',
-		learning_rate=1e-3, weight_decay=1e-5):
+		learning_rate=1e-3, weight_decay=1e-5, dropout=0):
 
-		self._save      = save
-		self._validate  = validate
-		self._best_acc  = None
-		self._n_worse   = 0
+		self._max_epochs = max_epochs
+		self._save       = save
+		self._validate   = validate
+		self._dropout    = dropout
+
+		self._best_acc   = None
+		self._n_worse    = 0
 		self._best_epoch = -1
+		self._model      = self._get_model()
 
 		modname = self._model.NAME
 		suffix = '' if suffix == '' else '-' + suffix
@@ -35,37 +39,24 @@ class Runner(object):
 		)
 
 		if validate:
-			kwargs = dict(metadata=True) if modname == Find.NAME and validate else {}
+			#kwargs = dict(metadata=True) if modname == GaugeFind.NAME and validate else {}
 			self._val_loader = loader_class(
 				set_names  = 'val2014',
 				stop       = 0.2,
 				batch_size = VAL_BATCH_SIZE,
 				shuffle    = False,
-				**kwargs
+				#**kwargs
 			)
-
-		if modname == Find.NAME:
-			self._loss_fn = lambda a, b: self._model.loss()
-		elif modname == NMN.NAME:
-			def cross_entropy(x, y):
-				# L(x) = -y*log(x) -(1-y)*log(1-x)
-				x = x[torch.arange(x.size(0)), y]
-				ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
-				return ce
-			self._loss_fn = cross_entropy
-		else:
-			self._loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
 
 		self._logger    = Logger()
 		self._clock     = Chronometer()
 		self._raw_clock = Chronometer()
 		self._perc_cnt  = PercentageCounter(batch_size, self._loader.dataset_len)
 
-		self._max_epochs = max_epochs
 		self._first_epoch = 0
 		if restore:
+			self._model.load(self._pt_restore)
 			self._logger.load(self._log_filename)
-			self._model.load_state_dict(torch.load(self._pt_restore, map_location='cpu'))
 			self._clock.set_t0(self._logger.last('time'))
 			self._raw_clock.set_t0(self._logger.last('raw_time'))
 			self._first_epoch = int(self._logger.last('epoch') + 0.5)
@@ -73,6 +64,9 @@ class Runner(object):
 		self._model = cudalize(self._model)
 		self._opt = torch.optim.Adam(self._model.parameters(),
 			lr=learning_rate, weight_decay=weight_decay)
+
+	def _get_model(self):
+		raise NotImplementedError
 
 	def _loader_class(self):
 		raise NotImplementedError
@@ -85,8 +79,7 @@ class Runner(object):
 		for self._epoch in range(self._first_epoch, self._max_epochs):
 
 			print('Epoch', self._epoch)
-			loss_perc = 0.
-			N_perc    = 0
+			N_perc = loss_perc = 0
 
 			for i, batch_data in enumerate(self._loader):
 
@@ -95,7 +88,7 @@ class Runner(object):
 				result = self._forward(batch_data)
 				output = result['output']
 
-				loss = self._loss_fn(output, result['label'])
+				loss = self._model.loss(output, result['label'])
 				self._opt.zero_grad()
 				loss.backward()
 				self._opt.step()
@@ -137,7 +130,7 @@ class Runner(object):
 
 	def _validation_routine(self):
 		if not self._validate: return
-		N = top1 = inset = wacc = 0
+		N = top1 = 0
 
 		self._model.eval()
 		with torch.no_grad():
@@ -145,19 +138,12 @@ class Runner(object):
 				result = self._forward(batch_data)
 				output = result['output'].softmax(1)
 				label  = result['label']
-				distr  = result['distr']
 				B = label.size(0)
 				N += B
 				top1  += util.top1_accuracy(output, label) * B
-				inset += util.inset_accuracy(output, distr) * B
-				wacc  += util.weighted_accuracy(output, distr) * B
 		self._model.train()
 		
-		self._logger.log(
-			top_1    = top1/N,
-			in_set   = inset/N,
-			weighted = wacc/N
-		)
+		self._logger.log(top_1 = top1/N)
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 
 	def _evaluate(self):
@@ -165,30 +151,21 @@ class Runner(object):
 
 		if not self._validate:
 			if self._save:
-				self.save_model(self._pt_new)
-				print('Model saved')
+				self._model.save(self._pt_new)
 			return False
 
-		if self._model.NAME == Find.NAME:
-			acc = - self._logger.last('wvar')
-		else:
-			acc = self._logger.last('top_1')
+		acc = self._logger.last('top_1')
 
 		if self._best_acc is None or acc > self._best_acc:
 			self._best_acc = acc
 			self._best_epoch = self._epoch
 			self._n_worse = 0
 			if self._save:
-				torch.save(self._model.state_dict(), self._pt_new)
-				print('Model saved')
+				self._model.save(self._pt_new)
 		else:
 			self._n_worse += 1
 
 		return self._n_worse >= max(3, (self._epoch+1)//3)
-
-	def save_model(self, pt_filename):
-		torch.save(self._model.state_dict(), pt_filename)
-		print('Model saved at {!r}'.format(pt_filename))
 
 	@property
 	def best_acc(self):

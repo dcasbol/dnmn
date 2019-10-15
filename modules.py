@@ -3,18 +3,42 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
-from misc.util import to_numpy, attend_features
+from misc.util import to_numpy, attend_features, USE_CUDA
 
 
-class InstanceModule(nn.Module):
+class BaseModule(nn.Module):
 
 	def __init__(self, dropout=0):
-		super(InstanceModule, self).__init__()
-		self._instance = None
+		super(BaseModule, self).__init__()
 		self._dropout = {
 			False : lambda x: x,
 			True  : lambda x: F.dropout(x, p=dropout, training=self.training)
 		}[dropout>0]
+		self._dropout2d = {
+			False : lambda x: x,
+			True  : lambda x: F.dropout2d(x, p=dropout, training=self.training)
+		}[dropout>0]
+		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
+
+	def loss(self, pred, target):
+		return self._loss_fn(pred, target)
+
+	def save(self, filename):
+		torch.save(self.state_dict(), filename)
+		print('{} saved at {!r}'.format(self.NAME, filename))
+
+	def load(self, filename):
+		self.load_state_dict(torch.load(filename, map_location='cpu'))
+		if USE_CUDA:
+			self.cuda()
+		print('{} loaded from {!r}'.format(self.NAME, filename))
+
+
+class InstanceModule(BaseModule):
+
+	def __init__(self, **kwargs):
+		super(InstanceModule, self).__init__(**kwargs)
+		self._instance = None
 
 	def __getitem__(self, instance):
 		assert self._instance is None
@@ -34,7 +58,7 @@ class Find(InstanceModule):
 	NAME = 'find'
 
 	def __init__(self, activation='relu', **kwargs):
-		super(Find, self).__init__(**kwargs)
+		super(Find, self).__init__(dropout=0, **kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
 		self._conv.weight.data.fill_(0.01)
 		self._act_fn = dict(
@@ -46,11 +70,15 @@ class Find(InstanceModule):
 	def forward(self, features):
 		c = self._get_instance()
 		B,D,H,W = features.size()
-		kernel = self._dropout(self._conv.weight[c])
+		kernel = self._conv.weight[c]
 		group_feats = features.contiguous().view(1,B*D,H,W)
 		hmap = F.conv2d(group_feats, kernel, groups=B)
 		hmap = self._act_fn(hmap)
 		return hmap.view(B,1,H,W)
+
+	def loss(self, pred, target):
+		raise NotImplementedError
+
 
 class Describe(InstanceModule):
 	""" From 1st NMN article: It first computes an average over image features
@@ -82,6 +110,28 @@ class Describe(InstanceModule):
 		return torch.cat(preds)
 
 
+class DescribeBeta(InstanceModule):
+
+	NAME = 'describe'
+
+	def __init__(self, **kwargs):
+		super(DescribeBeta, self).__init__(**kwargs)
+		self._full_layer = nn.Linear(len(DESC_INDEX)*IMG_DEPTH, len(ANSWER_INDEX))
+		self._weights = self._full_layer.weight.view(len(DESC_INDEX), IMG_DEPTH, len(ANSWER_INDEX))
+		self._bias    = self._full_layer.bias.view(1, len(ANSWER_INDEX))
+
+	def forward(self, hmap_or_attended, features=None):
+		if features is None:
+			attended = hmap_or_attended
+		else:
+			attended = attend_features(features, hmap_or_attended)
+
+		attended = self._dropout(attended)
+		instance = self._get_instance()
+		weights  = self._weights[instance]
+		return attended*weights + self._bias
+
+
 class Measure(InstanceModule):
 
 	NAME = 'measure'
@@ -109,7 +159,7 @@ class Measure(InstanceModule):
 		return torch.cat(preds)
 
 
-class QuestionEncoder(nn.Module):
+class QuestionEncoder(BaseModule):
 
 	NAME = 'encoder'
 
@@ -118,10 +168,6 @@ class QuestionEncoder(nn.Module):
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE)
 		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
-		self._dropout = {
-			False : lambda x: x,
-			True  : lambda x: F.dropout(x, p=dropout, training=self.training)
-		}[dropout>0]
 
 	def forward(self, question, length):
 		B = length.size(0)
@@ -142,3 +188,42 @@ class InstancePredictor(nn.Module):
 
 	def loss(self, pred, instance):
 		return self._loss_fn(pred, instance)
+
+
+class GaugeFind(BaseModule):
+
+	NAME = 'gauge-find'
+
+	def __init__(self, dropout=0, **kwargs):
+		super(GaugeFind, self).__init__(dropout=dropout)
+		self._classifier = nn.Sequential(
+			nn.Linear(IMG_DEPTH + MASK_WIDTH**2, 64, bias=False),
+			nn.Linear(64, len(ANSWER_INDEX))
+		)
+		self._find = Find(**kwargs)
+
+	def forward(self, features, inst_1, inst_2, yesno):
+
+		features = self._dropout2d(features)
+		hmap = self._find[inst_1](features)
+
+		twoinst = inst_2 > 0
+		inst_2 = inst_2[twoinst]
+		if inst_2.size(0) > 0:
+			features_2 = features[twoinst]
+			hmap_2 = self._find[inst_2](features_2)
+			hmap[twoinst] = hmap[twoinst] * hmap_2
+
+		B = hmap.size(0)
+		yesno = yesno.view(B,1).float()
+		attended  = attend_features(features, hmap)*(1.-yesno)
+		hmap_flat = hmap.view(B,-1)*yesno
+		x = torch.cat([attended, hmap_flat], 1)
+		pred = self._classifier(self._dropout(x))
+		return pred
+
+	def save(self, filename):
+		self._find.save(filename)
+
+	def load(self, filename):
+		self._find.load(filename)
