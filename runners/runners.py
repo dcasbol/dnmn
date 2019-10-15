@@ -27,7 +27,7 @@ class FindRunner(Runner):
 	def _forward(self, batch_data):
 		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
 		pred = self._model(features, inst_1, inst_2, yesno)
-		result = dict(
+		return dict(
 			output = pred,
 			label  = label
 		)
