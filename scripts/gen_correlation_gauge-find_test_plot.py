@@ -8,7 +8,7 @@ def get_args():
 	descr = """Generate json for checking correlation between gauge module's accuracy
 	and the final NMN accuracy, when using that module"""
 	parser = argparse.ArgumentParser(description=descr)
-	parser.add_argument('gauge-find-log')
+	parser.add_argument('gauge_find_log')
 	parser.add_argument('--logs-dir', default='./')
 	parser.add_argument('--output-log', default='merged_max_acc.json')
 	parser.add_argument('--whiten', action='store_true')
@@ -21,19 +21,20 @@ def main(args):
 
 	pattern_base = os.path.join(args.logs_dir, args.prefix)
 
-	filename_list = glob(pattern_base+'-ep*-run0_log.json')
-	n = len('00-run0_log.json')
+	filename_list = glob(pattern_base+'-ep*-run1_log.json')
+	n = len('00-run1_log.json')
 	epoch_list = [ int(fn[-n:-n+2]) for fn in filename_list ]
 	epoch_list.sort()
 	n_epochs = len(epoch_list)
 	n_runs   = len(glob(pattern_base+'-ep00-run*_log.json'))
 
+
 	top_1_means = list()
 	top_1_stds  = list()
-	for i, epoch in enumerate(range(epoch_list)):
+	for i, epoch in enumerate(epoch_list):
 		top_1_list = list()
-		for run in range(n_runs):
-			fn = pattern_base+'ep{:02d}-run{}_log.json'.format(epoch, run)
+		for run in range(1, n_runs+1):
+			fn = pattern_base+'-ep{:02d}-run{}_log.json'.format(epoch, run)
 			with open(fn) as fd:
 				data = json.load(fd)
 			top_1_list.append(max(data['top_1']))
@@ -43,14 +44,12 @@ def main(args):
 	with open(args.gauge_find_log) as fd:
 		data = json.load(fd)
 	find_top_1_list = [ data['top_1'][epoch] for epoch in epoch_list ]
-	find_top_1_train_list = [ data['top_1_train'][epoch] for epoch in epoch_list ]
 
 	result = dict(
 		epoch            = epoch_list,
 		nmn_top_1_mean   = top_1_means,
 		nmn_top_1_std    = top_1_stds,
 		find_top_1       = find_top_1_list,
-		find_top_1_train = find_top_1_train_list
 	)
 
 	with open(args.output_log, 'w') as fd:
