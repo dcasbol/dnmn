@@ -43,6 +43,7 @@ def main(args):
 	top_1 = normalize(top_1, *norm_factors(top_1))
 	plt.plot(epochs, top_1, label='Gauge validation')
 
+	plt.yticks([], [])
 	plt.legend()
 	plt.show()
 
