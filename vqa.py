@@ -237,8 +237,7 @@ class VQARootModuleDataset(VQADataset):
 
 class VQADescribeDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
-		super(VQADescribeDataset, self).__init__(*args, **kwargs,
-			features=False, exclude='yesno')
+		super(VQADescribeDataset, self).__init__(*args, **kwargs, exclude='yesno')
 
 	def __getitem__(self, i):
 		instance, label, distr, datum = super(VQADescribeDataset, self).__getitem__(i)
@@ -247,8 +246,7 @@ class VQADescribeDataset(VQARootModuleDataset):
 
 class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
-		super(VQAMeasureDataset, self).__init__(*args, **kwargs,
-			features=False, exclude='others')
+		super(VQAMeasureDataset, self).__init__(*args, **kwargs, exclude='others')
 
 	def __getitem__(self, i):
 		instance, label, distr, datum = super(VQAMeasureDataset, self).__getitem__(i)
@@ -258,7 +256,7 @@ class VQAMeasureDataset(VQARootModuleDataset):
 class VQAEncoderDataset(VQADataset):
 
 	def __init__(self, *args, **kwargs):
-		super(VQAEncoderDataset, self).__init__(*args, **kwargs, features=False)
+		super(VQAEncoderDataset, self).__init__(*args, **kwargs)
 
 	def __getitem__(self, i):
 		datum = self._get_datum(i)

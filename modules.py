@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
 from misc.util import to_numpy, attend_features, USE_CUDA
+from time import time
 
 
 class BaseModule(nn.Module):
@@ -164,16 +165,48 @@ class QuestionEncoder(BaseModule):
 	NAME = 'encoder'
 
 	def __init__(self, dropout=0):
-		super(QuestionEncoder, self).__init__()
+		super(QuestionEncoder, self).__init__(dropout=dropout)
 		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE)
 		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
 		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+		self._dropout_seq = lambda h: (self._dropout(h[0]), self._dropout(h[1]))
+		self._i = 0
+		self._t = 0.
 
-	def forward(self, question, length):
+	def _rec_dropout_forward(self, question, length):
+		t0 = time()
+		embed = self._wemb(question)
+
+		out, hidden = self._lstm(embed[:1])
+		out_list = [out]
+		for i in range(1, embed.size(0)):
+			hidden = self._dropout_seq(hidden)
+			out, hidden = self._lstm(embed[i:i+1], hidden)
+			out_list.append(out)
+		B   = length.size(0)
+		out = torch.cat(out_list)[length-1, torch.arange(B)]
+		self._t += time() - t0
+		self._i += 1
+		if self._i == 100:
+			print(self._t/100)
+			quit()
+
+		return self._final(self._dropout(out))
+
+	def _final_dropout_forward(self, question, length):
+		t0 = time()
 		B = length.size(0)
 		embed = self._wemb(question)
 		hidden = self._lstm(embed)[0][length-1, torch.arange(B)]
+		self._t += time() - t0
+		self._i += 1
+		if self._i == 100:
+			print(self._t/100)
+			quit()
 		return self._final(self._dropout(hidden))
+
+	def forward(self, question, length):
+		return self._rec_dropout_forward(question, length)
 
 
 class InstancePredictor(nn.Module):
