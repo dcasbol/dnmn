@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+import pickle
 import numpy as np
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, FIND_INDEX, ANSWER_INDEX
@@ -51,7 +52,7 @@ class VQADataset(Dataset):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		try:
-			with open(filename, 'rb') as fd:
+			with open(input_path, 'rb') as fd:
 				features = pickle.load(fd).toarray()
 				features.shape = (MASK_WIDTH, MASK_WIDTH, IMG_DEPTH)
 		except Exception as e:

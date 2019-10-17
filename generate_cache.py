@@ -37,9 +37,9 @@ def generate_and_save(find, set_name, batch_data, clock):
 
 	for m, a, qid in zip(hmap, attended, batch_data['question_id']):
 		fn = get_path(set_name, qid)
-		np.save(m)
+		np.save(fn, m)
 		fn = get_path(set_name, qid, cached_data='attended')
-		np.save(a)
+		np.save(fn, a)
 
 	return n_maps
 
