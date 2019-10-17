@@ -2,8 +2,11 @@ import torch
 import json
 import numpy as np
 import time
+import pickle
+from scipy.sparse import csr_matrix
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
+from misc.constants import *
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -20,6 +23,17 @@ def to_numpy(x):
 
 def to_tens(x, t, d='cpu'):
 	return torch.tensor(x, dtype=getattr(torch, t), requires_grad=False, device=d)
+
+def save_features(features_np, filename):
+	sparse = csr_matrix(np.reshape(features_np, [MASK_WIDTH, MASK_WIDTH*IMG_DEPTH]))
+	with open(filename, 'wb') as fd:
+		pickle.dump(sparse, fd, -1)
+
+def load_features(filename):
+	with open(filename, 'rb') as fd:
+		sparse = pickle.load(fd).toarray()
+		sparse.shape = (MASK_WIDTH, MASK_WIDTH, IMG_DEPTH)
+		return sparse
 
 def ziplist(*args):
 	""" Original zip returns list of tuples """

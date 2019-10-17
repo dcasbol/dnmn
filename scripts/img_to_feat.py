@@ -1,5 +1,6 @@
 from keras.applications.vgg16 import VGG16, preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
+from misc.util import save_features
 import numpy as np
 import os
 
@@ -8,7 +9,7 @@ WIDTH = 448 # Sizes from 2nd article. They aren't in the NMN article.
 
 def get_generator(datagen, batch_size):
 	return datagen.flow_from_directory(
-		'../data/vqa/Images', # This will go through dirs (it thinks they're classes)
+		'data/vqa/Images', # This will go through dirs (it thinks they're classes)
 		target_size=(WIDTH, WIDTH),
 		batch_size=batch_size,
 		shuffle=False,
