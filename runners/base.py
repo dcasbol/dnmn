@@ -167,6 +167,9 @@ class Runner(object):
 
 		return self._n_worse >= max(3, (self._epoch+1)//3)
 
+	def save_model(self, filename):
+		self._model.save(filename)
+
 	@property
 	def best_acc(self):
 		return self._best_acc*100
