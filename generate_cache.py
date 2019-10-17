@@ -5,15 +5,14 @@ import argparse
 import numpy as np
 from vqa import VQANMNDataset, nmn_collate_fn
 from modules import Find
+from misc.util import *
 from misc.util import cudalize, to_numpy, to_tens, DEVICE
 from misc.util import Chronometer, attend_features, generate_hmaps
 from torch.utils.data import DataLoader
 
 def get_path(set_name, qid, cached_data='hmaps'):
-	dirname = './cache/{}/{}'.format(set_name, cached_data)
-	basename = '{}-{}-{}.npy'.format(set_name, cached_data, qid)
-	filename = os.path.join(dirname, basename)
-	return filename
+	template = CACHE_HMAP_FILE if cached_data == 'hmaps' else CACHE_ATT_FILE
+	return template.format(set=set_name, qid=qid)
 
 def show_progress(i, total_iters):
 	perc = (i*100)//total_iters
@@ -38,9 +37,9 @@ def generate_and_save(find, set_name, batch_data, clock):
 
 	for m, a, qid in zip(hmap, batch_data['question_id']):
 		fn = get_path(set_name, qid)
-		np.save(fn, m)
+		save_sparse_3d(fn, m)
 		fn = get_path(set_name, qid, cached_data='attended')
-		np.save(fn, a)
+		save_sparse_2d(fn, a)
 
 	return n_maps
 
