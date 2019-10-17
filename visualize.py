@@ -17,6 +17,7 @@ parser.add_argument('condition', type=str, nargs='?', default="",
 	help='Condition visualizations on class.')
 parser.add_argument('--wait', type=float, default=1.)
 parser.add_argument('--shuffle', action='store_true')
+parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='val2014')
 args = parser.parse_args()
 
 cond = -1
