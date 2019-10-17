@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import argparse
 import numpy as np
@@ -83,3 +84,11 @@ if __name__ == '__main__':
 		n_generated, raw_clock.read(), raw_clock.read_str()
 	))
 	print('Inference time: {} ({})'.format(clock.read(), clock.read_str()))
+
+	log = dict(
+		dataset=args.dataset,
+		time=clock.read(),
+		raw_time=raw_clock.read()
+	)
+	with open('generate_cache--{}--{}--log.json') as fd:
+		json.dump(log, fd)
