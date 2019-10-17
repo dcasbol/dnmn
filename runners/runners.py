@@ -39,7 +39,6 @@ class FindRunner(Runner):
 			values = [ self._result[k] for k in keys ]
 			self._vis.update(*values)
 
-
 class DescribeRunner(Runner):
 
 	def _get_model(self):
@@ -49,13 +48,27 @@ class DescribeRunner(Runner):
 		return DescribeLoader
 
 	def _forward(self, batch_data):
-		mask, features, label, distr = cudalize(*batch_data[:2]+batch_data[3:])
-		instance = batch_data[2]
-		output = self._model[instance](mask, features)
+		attended, instance, label = cudalize(*batch_data)
+		output = self._model[instance](attended)
 		return dict(
 			output = output,
-			label  = label,
-			distr  = distr
+			label  = label
+		)
+
+class MeasureRunner(Runner):
+
+	def _get_model(self):
+		return Measure(dropout=self._dropout)
+
+	def _loader_class(self):
+		return MeasureLoader
+
+	def _forward(self, batch_data):
+		hmap, instance, label = cudalize(*batch_data)
+		output = self._model[instance](hmap)
+		return dict(
+			output = output,
+			label  = label
 		)
 
 class UncachedRunner(Runner):
@@ -101,26 +114,6 @@ class MeasureRunnerUncached(UncachedRunner):
 
 	def _get_model(self):
 		return Measure(dropout=self._dropout)
-
-
-class MeasureRunner(Runner):
-
-	def _get_model(self):
-		return Measure(dropout=self._dropout)
-
-	def _loader_class(self):
-		return MeasureLoader
-
-	def _forward(self, batch_data):
-		mask = cudalize(batch_data[0])
-		label, distr = cudalize(*batch_data[2:])
-		instance = batch_data[1]
-		output = self._model[instance](mask)
-		return dict(
-			output = output,
-			label  = label,
-			distr  = distr
-		)
 
 class EncoderRunner(Runner):
 

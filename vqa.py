@@ -232,10 +232,9 @@ class VQARootModuleDataset(VQADataset):
 	def __getitem__(self, i):
 		datum = self._get_datum(i)
 		label = majority_label(datum['answers'])
-		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 		instance = datum['layouts_indices'][0]
 
-		return instance, label, distr, datum
+		return instance, label, datum
 
 
 class VQADescribeDataset(VQARootModuleDataset):
@@ -243,18 +242,18 @@ class VQADescribeDataset(VQARootModuleDataset):
 		super(VQADescribeDataset, self).__init__(*args, **kwargs, exclude='yesno')
 
 	def __getitem__(self, i):
-		instance, label, distr, datum = super(VQADescribeDataset, self).__getitem__(i)
+		instance, label, datum = super(VQADescribeDataset, self).__getitem__(i)
 		att = self._get_attended(datum)
-		return att, instance, label, distr
+		return att, instance, label
 
 class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQAMeasureDataset, self).__init__(*args, **kwargs, exclude='others')
 
 	def __getitem__(self, i):
-		instance, label, distr, datum = super(VQAMeasureDataset, self).__getitem__(i)
+		instance, label, datum = super(VQAMeasureDataset, self).__getitem__(i)
 		hmap = self._get_hmap(datum)
-		return hmap, instance, label, distr
+		return hmap, instance, label
 
 class VQAEncoderDataset(VQADataset):
 
