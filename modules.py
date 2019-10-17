@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
-from misc.util import to_numpy, attend_features, USE_CUDA
+from misc.util import to_numpy, attend_features, USE_CUDA, generate_hmaps
 from time import time
 
 
@@ -206,14 +206,8 @@ class GaugeFind(BaseModule):
 	def forward(self, features, inst_1, inst_2, yesno):
 
 		features = self._dropout2d(features)
-		hmap = self._find[inst_1](features)
 
-		twoinst = inst_2 > 0
-		inst_2 = inst_2[twoinst]
-		if inst_2.size(0) > 0:
-			features_2 = features[twoinst]
-			hmap_2 = self._find[inst_2](features_2)
-			hmap[twoinst] = hmap[twoinst] * hmap_2
+		hmap = generate_hmaps(self._find, [inst_1, inst_2], features)
 
 		B = hmap.size(0)
 		yesno = yesno.view(B,1).float()

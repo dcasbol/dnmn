@@ -5,7 +5,7 @@ import numpy as np
 from vqa import VQANMNDataset, nmn_collate_fn
 from modules import Find
 from misc.util import cudalize, to_numpy, to_tens, DEVICE
-from misc.util import Chronometer, attend_features
+from misc.util import Chronometer, attend_features, generate_hmaps
 from torch.utils.data import DataLoader
 
 def get_path(set_name, qid, cached_data='hmaps'):
@@ -25,24 +25,18 @@ show_progress.last = -1
 def generate_and_save(find, set_name, batch_data, clock):
 
 	features = cudalize(batch_data['features'])
-	features_list = features.unsqueeze(1).unbind(0)
-
-	find_inst = [ to_tens(inst, 'long', d=DEVICE) for inst in batch_data['find_inst'] ]
 
 	clock.start()
-	maps = list()
-	for f, inst in zip(features_list, find_inst):
-		f = f.expand(len(inst), -1, -1, -1)
-		m = find[inst](f).prod(0, keepdim=True)
-		maps.append(m)
+	hmap = generate_hmaps(find, find_inst, features)
 	clock.stop()
 
-	for m, qid in zip(maps, batch_data['question_id']):
+	hmap_np = to_numpy(hmap)
+
+	for m, qid in zip(hmap_np, batch_data['question_id']):
 		fn = get_path(set_name, qid)
-		np.save(fn, to_numpy(m))
+		np.save(fn, m)
 
 	clock.start()
-	hmap = torch.cat(maps)
 	attended = attend_features(features, hmap)
 	clock.stop()
 

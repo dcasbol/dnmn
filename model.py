@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from misc.util import cudalize, DEVICE, USE_CUDA
+from misc.util import cudalize, DEVICE, USE_CUDA, generate_hmaps
 from modules import Find, Describe, Measure, QuestionEncoder, BaseModule
 from misc.indices import ANSWER_INDEX
 
@@ -29,11 +29,7 @@ class NMN(BaseModule):
 		# Drop the same channels for all Find instances
 		features = self._dropout2d(features)
 
-		hmaps = self._find[find_inst[0]](features)
-		for inst in find_inst[1:]:
-			valid = inst>0
-			hmaps_inst = self._find[inst[valid]](features[valid])
-			hmaps[valid] = hmaps[valid] * hmaps_inst
+		hmaps = generate_hmaps(self._find, find_inst, features)
 
 		root_pred = torch.empty(yesno.size(0), len(ANSWER_INDEX), device=DEVICE)
 

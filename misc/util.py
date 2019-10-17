@@ -107,6 +107,13 @@ def attend_features(features, hmap, flatten=True):
 		hmap     = hmap.view(B,1,-1)
 	return (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
 
+def generate_hmaps(find, instances, features):
+	hmaps = find[instances[0]](features)
+	for inst in instances[1:]:
+		valid = inst>0
+		hmaps_inst = find[inst[valid]](features[valid])
+		hmaps[valid] = hmaps[valid] * hmaps_inst
+	return hmaps
 
 class Logger(object):
 
