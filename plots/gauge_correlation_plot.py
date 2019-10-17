@@ -34,10 +34,10 @@ def main(args):
 	mean   = normalize(mean, displ, scale)
 	std    = normalize(std, 0, scale)
 
-	y1 = [ m-2*d for m, d in zip(mean, std) ]
-	y2 = [ m+2*d for m, d in zip(mean, std) ]
+	y1 = [ m-d for m, d in zip(mean, std) ]
+	y2 = [ m+d for m, d in zip(mean, std) ]
 	plt.fill_between(epochs, y1, y2, alpha=0.3)
-	plt.plot(epochs, mean, label='End2end NMN $\pm 2 \sigma$')
+	plt.plot(epochs, mean, label='End2end NMN $\pm \sigma$')
 
 	top_1 = data['find_top_1']
 	top_1 = normalize(top_1, *norm_factors(top_1))
