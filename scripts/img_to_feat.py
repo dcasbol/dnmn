@@ -16,6 +16,11 @@ def get_generator(datagen, batch_size):
 		class_mode=None
 	)
 
+def save_features(features_np, filename):
+	sparse = csr_matrix(np.reshape(features_np, [MASK_WIDTH, MASK_WIDTH*IMG_DEPTH]))
+	with open(filename, 'wb') as fd:
+		pickle.dump(sparse, fd, -1)
+
 def get_tgt_fn(fn):
 	dirname, base = os.path.split(fn)
 	assert dirname[-4:] == '/raw', 'not reading from raw images dir'
@@ -52,7 +57,7 @@ def main():
 		fn_batch = img_generator.filepaths[idx:idx+BATCH_SIZE]
 		for i, fn in enumerate(fn_batch):
 			dirname, tgt_fn = get_tgt_fn(fn)
-			np.save(tgt_fn, features[i])
+			save_features(features[i], tgt_fn)
 		if dirname != curr_dir:
 			curr_dir = dirname
 			print('processing', curr_dir)
