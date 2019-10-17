@@ -27,26 +27,21 @@ def generate_and_save(find, set_name, batch_data, clock):
 	features = cudalize(batch_data['features'])
 
 	clock.start()
-	hmap = generate_hmaps(find, find_inst, features)
-	clock.stop()
-
-	hmap_np = to_numpy(hmap)
-
-	for m, qid in zip(hmap_np, batch_data['question_id']):
-		fn = get_path(set_name, qid)
-		np.save(fn, m)
-
-	clock.start()
+	hmap     = generate_hmaps(find, batch_data['find_inst'], features)
 	attended = attend_features(features, hmap)
 	clock.stop()
 
+	n_maps   = hmap.size(0)
+	hmap     = to_numpy(hmap)
 	attended = to_numpy(attended)
 
-	for a, qid in zip(attended, batch_data['question_id']):
+	for m, a, qid in zip(hmap, batch_data['question_id']):
+		fn = get_path(set_name, qid)
+		np.save(fn, m)
 		fn = get_path(set_name, qid, cached_data='attended')
 		np.save(fn, a)
 
-	return len(maps)
+	return n_maps
 
 if __name__ == '__main__':
 
