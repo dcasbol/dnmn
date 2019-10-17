@@ -24,29 +24,6 @@ def to_numpy(x):
 def to_tens(x, t, d='cpu'):
 	return torch.tensor(x, dtype=getattr(torch, t), requires_grad=False, device=d)
 
-def save_features(features_np, filename):
-	sparse = csr_matrix(np.reshape(features_np, [MASK_WIDTH, MASK_WIDTH*IMG_DEPTH]))
-	with open(filename, 'wb') as fd:
-		pickle.dump(sparse, fd, -1)
-
-def save_sparse(filename, x):
-	if len(s.shape) > 2:
-		H,W,D = x.shape
-		x = x.reshape([H,W*D])
-	sparse = csr_matrix(x)
-	with open(filename, 'wb') as fd:
-		pickle.dump(sparse, fd, -1)
-
-def load_sparse_2d(filename):
-	with open(filename, 'rb') as fd:
-		return pickle.load(fd).toarray()
-
-def load_sparse_3d(filename, H, W, D):
-	with open(filename, 'rb') as fd:
-		sparse = pickle.load(fd).toarray()
-		sparse.shape = (H, W, D)
-		return sparse
-
 def ziplist(*args):
 	""" Original zip returns list of tuples """
 	return [ [ a[i] for a in args] for i in range(len(args[0])) ]
