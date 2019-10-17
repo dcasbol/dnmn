@@ -1,11 +1,11 @@
 QUESTION_FILE = "data/vqa/Questions/OpenEnded_mscoco_%s_questions.json"
 MULTI_PARSE_FILE = "multiparse/%s.sps2"
 ANN_FILE = "data/vqa/Annotations/mscoco_%s_annotations.json"
-IMAGE_FILE = "data/vqa/Images/%s/conv/COCO_%s_%012d.jpg.npy"
+IMAGE_FILE = "data/vqa/Images/%s/conv/COCO_%s_%012d.jpg.csr"
 RAW_IMAGE_FILE = "data/vqa/Images/%s/raw/COCO_%s_%012d.jpg"
 NORMALIZERS_FILE = "data/vqa/Images/normalizers.npz"
-CACHE_HMAP_FILE = "cache/{set}/hmaps/{set}-hmaps-{qid}.npy"
-CACHE_ATT_FILE = "cache/{set}/attended/{set}-attended-{qid}.npy"
+CACHE_HMAP_FILE = "cache/{set}/hmaps/{set}-hmaps-{qid}.csr"
+CACHE_ATT_FILE = "cache/{set}/attended/{set}-attended-{qid}.csr"
 
 MAX_ANSWERS = 2000
 IMG_DEPTH = 512

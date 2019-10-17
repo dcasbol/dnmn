@@ -1,6 +1,7 @@
 from keras.applications.vgg16 import VGG16, preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
-from misc.util import save_features
+from scipy.sparse import csr_matrix
+import pickle
 import numpy as np
 import os
 
@@ -17,7 +18,8 @@ def get_generator(datagen, batch_size):
 	)
 
 def save_features(features_np, filename):
-	sparse = csr_matrix(np.reshape(features_np, [MASK_WIDTH, MASK_WIDTH*IMG_DEPTH]))
+	H,W,D = features_np.shape
+	sparse = csr_matrix(features_np.reshape([H,W*D]))
 	with open(filename, 'wb') as fd:
 		pickle.dump(sparse, fd, -1)
 
@@ -25,7 +27,7 @@ def get_tgt_fn(fn):
 	dirname, base = os.path.split(fn)
 	assert dirname[-4:] == '/raw', 'not reading from raw images dir'
 	tgt_dir = dirname[:-3]+'conv'
-	tgt_fn = tgt_dir+'/'+base+'.npy'
+	tgt_fn = tgt_dir+'/'+base+'.csr'
 	if not os.path.exists(tgt_dir):
 		os.mkdir(tgt_dir)
 	return dirname, tgt_fn
