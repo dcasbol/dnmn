@@ -23,7 +23,7 @@ class HyperOptimizer(object):
 		self._path_dir = 'hyperopt/{}'.format(selection)
 		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
 		self._num_evals = 0
-		self._best_pt = '{}-hpo-best.pt'.format(selection)
+		self._best_pt = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
 		self._best_acc = None
 		self._test_obj = None
 
