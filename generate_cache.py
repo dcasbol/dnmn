@@ -86,8 +86,10 @@ if __name__ == '__main__':
 
 	log = dict(
 		dataset=args.dataset,
+		find_module = args.find_module,
 		time=clock.read(),
 		raw_time=raw_clock.read()
 	)
-	with open('generate_cache--{}--{}--log.json') as fd:
+	find_id = os.path.basename(args.find_module)[:-3]
+	with open('gen_cache-{}-({})-log.json'.format(args.dataset, find_id)) as fd:
 		json.dump(log, fd)
