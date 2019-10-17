@@ -91,5 +91,5 @@ if __name__ == '__main__':
 		raw_time=raw_clock.read()
 	)
 	find_id = os.path.basename(args.find_module)[:-3]
-	with open('gen_cache-{}-({})-log.json'.format(args.dataset, find_id)) as fd:
+	with open('gen_cache-{}-({})-log.json'.format(args.dataset, find_id), 'w') as fd:
 		json.dump(log, fd)
