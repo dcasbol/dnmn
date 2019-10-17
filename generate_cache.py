@@ -37,9 +37,9 @@ def generate_and_save(find, set_name, batch_data, clock):
 
 	for m, a, qid in zip(hmap, batch_data['question_id']):
 		fn = get_path(set_name, qid)
-		save_sparse_3d(fn, m)
+		save_sparse(fn, m)
 		fn = get_path(set_name, qid, cached_data='attended')
-		save_sparse_2d(fn, a)
+		save_sparse(fn, a)
 
 	return n_maps
 

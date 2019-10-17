@@ -29,10 +29,22 @@ def save_features(features_np, filename):
 	with open(filename, 'wb') as fd:
 		pickle.dump(sparse, fd, -1)
 
-def load_features(filename):
+def save_sparse(filename, x):
+	if len(s.shape) > 2:
+		H,W,D = x.shape
+		x = x.reshape([H,W*D])
+	sparse = csr_matrix(x)
+	with open(filename, 'wb') as fd:
+		pickle.dump(sparse, fd, -1)
+
+def load_sparse_2d(filename):
+	with open(filename, 'rb') as fd:
+		return pickle.load(fd).toarray()
+
+def load_sparse_3d(filename, H, W, D):
 	with open(filename, 'rb') as fd:
 		sparse = pickle.load(fd).toarray()
-		sparse.shape = (MASK_WIDTH, MASK_WIDTH, IMG_DEPTH)
+		sparse.shape = (H, W, D)
 		return sparse
 
 def ziplist(*args):

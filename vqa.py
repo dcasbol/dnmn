@@ -8,6 +8,7 @@ from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
 from misc.util import to_tens
+from misc.util import load_sparse_2d, load_sparse_3d
 from misc.parse import parse_tree, process_question, parse_to_layout
 
 
@@ -51,7 +52,7 @@ class VQADataset(Dataset):
 		input_set, input_id = datum['input_set'], datum['input_id']
 		input_path = IMAGE_FILE % (input_set, input_set, input_id)
 		try:
-			features = np.load(input_path)
+			features = load_sparse_3d(input_path, MASK_WIDTH, MASK_WIDTH, IMG_DEPTH)
 		except Exception as e:
 			print('Error while loading features.')
 			print('input_path:', input_path)
@@ -217,14 +218,14 @@ class VQARootModuleDataset(VQADataset):
 			set = datum['input_set'],
 			qid = datum['question_id']
 		)
-		return np.load(hmap_fn)
+		return load_sparse_3d(hmap_fn, MASK_WIDTH, MASK_WIDTH, 1)
 
 	def _get_attended(self, datum):
 		att_fn = self._att_pat.format(
 			set = datum['input_set'],
 			qid = datum['question_id']
 		)
-		return np.load(att_fn)
+		return load_sparse_2d(att_fn)
 
 	def __getitem__(self, i):
 		datum = self._get_datum(i)
