@@ -84,7 +84,8 @@ class HyperOptimizer(object):
 		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
 		print('Best acc is', self._best_acc)
 
-		json_fn = '{}-{}_log.json'.format(self._sel, suffix)
+		modname = self._sel if self._sel != 'find' else 'gauge-find'
+		json_fn = '{}-{}_log.json'.format(modname, suffix)
 		new_fn  = '{}-{:05.1f}-{}_log.json'.format(self._sel, test.best_acc, suffix)
 		new_fn  = os.path.join(self._path_dir, new_fn)
 		os.rename(json_fn, new_fn)
