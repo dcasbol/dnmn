@@ -35,7 +35,7 @@ def generate_and_save(find, set_name, batch_data, clock):
 	hmap     = to_numpy(hmap)
 	attended = to_numpy(attended)
 
-	for m, a, qid in zip(hmap, batch_data['question_id']):
+	for m, a, qid in zip(hmap, attended, batch_data['question_id']):
 		fn = get_path(set_name, qid)
 		save_sparse(fn, m)
 		fn = get_path(set_name, qid, cached_data='attended')
