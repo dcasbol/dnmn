@@ -65,7 +65,7 @@ def main():
 			print('processing', curr_dir)
 		if idx//100 > last_idx:
 			last_idx = idx//100
-			print(idx/n_images, '%')
+			print(100*idx/n_images, '%')
 		if img_generator.batch_index == 0:
 			break
 
