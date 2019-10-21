@@ -29,10 +29,12 @@ def main(args):
 	epochs = [ e+1 for e in data['epoch'] ]
 	mean   = data['nmn_top_1_mean']
 	std    = data['nmn_top_1_std']
+	metric = [ m/(s+1e-10) for m, s in zip(mean, std) ]
 
 	displ, scale = norm_factors(mean)
 	mean   = normalize(mean, displ, scale)
 	std    = normalize(std, 0, scale)
+	metric = normalize(metric, * norm_factors(metric))
 
 	y1 = [ m-d for m, d in zip(mean, std) ]
 	y2 = [ m+d for m, d in zip(mean, std) ]
@@ -42,6 +44,7 @@ def main(args):
 	top_1 = data['find_top_1']
 	top_1 = normalize(top_1, *norm_factors(top_1))
 	plt.plot(epochs, top_1, label='Gauge validation')
+	plt.plot(epochs, metric, label='$\mu / \sigma$')
 
 	plt.yticks([], [])
 	plt.legend()

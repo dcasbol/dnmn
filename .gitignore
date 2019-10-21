@@ -3,10 +3,11 @@ __pycache__
 # Data directory and cache files
 data
 cache/*.dat
-cache/train-2014
-cache/val-2014
+cache/*/
 *.npz
 results
+temp/
+hyperopt/
 
 # PyTorch files
 *.pt
@@ -14,5 +15,3 @@ results
 # Virtual Environments
 env*/
 
-# Testing on Find module
-find-assessment
