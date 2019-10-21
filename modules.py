@@ -207,7 +207,8 @@ class GaugeFind(BaseModule):
 
 		features = self._dropout2d(features)
 
-		hmap = generate_hmaps(self._find, [inst_1, inst_2], features)
+		instances = [inst_1, inst_2] if (inst_2>0).any() else [inst_1]
+		hmap = generate_hmaps(self._find, instances, features)
 
 		B = hmap.size(0)
 		yesno = yesno.view(B,1).float()
