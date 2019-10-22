@@ -159,6 +159,29 @@ class Measure(InstanceModule):
 			preds.append(self._measure[inst](m))
 		return torch.cat(preds)
 
+class MeasureBeta(InstanceModule):
+
+	NAME = 'measure'
+
+	def __init__(self, **kwargs):
+		super(Measure, self).__init__(**kwargs)
+		self._layer1 = nn.Linear(len(DESC_INDEX)*MASK_WIDTH**2, HIDDEN_SIZE)
+		self._w1 = self._layer1.weight.view(len(DESC_INDEX), MASK_WIDTH**2, HIDDEN_SIZE)
+		self._b1 = self._layer1.bias.view(1, HIDDEN_SIZE)
+		self._layer2 = nn.Linear(len(DESC_INDEX)*HIDDEN_SIZE, len(ANSWER_INDEX))
+		self._w2 = self._layer2.weight.view(len(DESC_INDEX), HIDDEN_SIZE, len(ANSWER_INDEX))
+		self._b2 = self._layer2.bias.view(1, len(ANSWER_INDEX))
+
+	def forward(self, hmap, *dummy_args):
+		B = hmap.size(0)
+		inst = self._get_instance()
+
+		hmap = self._dropout(hmap)
+		hmap = hmap.view(B, -1)
+
+		hidden = hmap   * self._w1[inst] + self._b1[inst]
+		pred   = hidden * self._w2[inst] + self._b2[inst]
+		return pred
 
 class QuestionEncoder(BaseModule):
 
