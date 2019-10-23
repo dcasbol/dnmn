@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
-from misc.util import cudalize, Logger, Chronometer, PercentageCounter
+from misc.util import cudalize, Logger, Chronometer, PercentageCounter, timeit
 from modules import GaugeFind
 
 
@@ -49,7 +49,7 @@ class Runner(object):
 			)
 
 		self._logger   = Logger()
-		keys = ['', 'raw_', 'stats_', 'log_', 'val_', 'save_']
+		keys = ['', 'raw_', 'stats_', 'val_', 'save_', 'batch_']
 		self._clock    = { k+'time':Chronometer() for k in keys }
 		self._perc_cnt = PercentageCounter(batch_size, self._loader.dataset_len)
 
@@ -81,7 +81,8 @@ class Runner(object):
 			print('Epoch', self._epoch)
 			N_perc = loss_perc = 0
 
-			for i, batch_data in enumerate(self._loader):
+			clk = self._clock['batch_time']
+			for i, batch_data in timeit(enumerate(self._loader), clk):
 
 				self._clock['time'].start()
 				result = self._forward(batch_data)
@@ -106,8 +107,8 @@ class Runner(object):
 				self._clock['stats_time'].stop()
 
 			mean_loss = loss_perc/N_perc
-			self._log_routine(mean_loss)
 			self._validation_routine()
+			self._log_routine(mean_loss)
 			if self._evaluate(): break
 
 		print('End of training. It took {} training seconds'.format(self._clock['time'].read()))
@@ -117,7 +118,6 @@ class Runner(object):
 		print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
 
 	def _log_routine(self, mean_loss):
-		self._clock['log_time'].start()
 		self._logger.log(
 			epoch    = self._epoch,
 			loss     = mean_loss
@@ -127,7 +127,6 @@ class Runner(object):
 		tstr     = self._clock['time'].read_str()
 		print('End of epoch', self._epoch)
 		print('{}/{} - {}'.format(raw_tstr, tstr, mean_loss))
-		self._clock['log_time'].stop()
 
 	def _validation_routine(self):
 		if not self._validate: return

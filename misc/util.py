@@ -103,6 +103,17 @@ def lookahead(iterable):
 		last = val
 	yield last, True
 
+def timeit(iterable, chrono):
+	it = iter(iterable)
+	chrono.start()
+	try:
+		x = next(it)
+	except StopIteration as e:
+		chrono.stop()
+		raise e
+	chrono.stop()
+	yield x
+
 def attend_features(features, hmap, flatten=True):
 	if flatten:
 		B,C,H,W  = features.size()
