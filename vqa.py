@@ -343,33 +343,30 @@ class VQANMNDataset(VQADataset):
 		return sample + (label,)
 
 def pad_seq(q, pad_len, pad_value):
-	return F.pad(torch.tensor(q, dtype=torch.long), (0, pad_len), value=pad_value)
+	return F.pad(torch.as_tensor(q, dtype=torch.long), (0, pad_len), value=pad_value)
 
 def nmn_collate_fn(data):
-	unzipped = tuple(zip(*data))
-	has_labels = len(unzipped) == 8
-	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
+	has_labels = len(data[0]) == 8
 	if has_labels:
-		label = unzipped[-1]
+		questions, lengths, yesno, features, root_idx, indices, num_idx, label = zip(*data)
 	else:
-		qids = unzipped[-2]
+		questions, lengths, yesno, features, root_idx, indices, num_idx, qids = zip(*data)
 
 	max_len = max(lengths)
 	questions = [ pad_seq(q, max_len-l, NULL_ID) for q, l in zip(questions, lengths) ]
 	questions = torch.stack(questions, dim=1)
 
-	num_idx = [ len(i) for i in indices ]
 	max_num = max(num_idx)
 	indices = [ pad_seq(idxs, max_num-n, 0) for idxs, n in zip(indices, num_idx) ]
 	indices = torch.stack(indices).unbind(1)
 
 	batch = dict(
 		question  = questions,
-		length    = torch.tensor(lengths, dtype=torch.long),
-		yesno     = torch.tensor(yesno, dtype=torch.uint8),
-		features  = torch.tensor(features, dtype=torch.float),
+		length    = torch.as_tensor(lengths, dtype=torch.long),
+		yesno     = torch.as_tensor(yesno, dtype=torch.uint8),
+		features  = torch.as_tensor(features, dtype=torch.float),
 		find_inst = indices,
-		root_inst = torch.tensor(root_idx, dtype=torch.long)
+		root_inst = torch.as_tensor(root_idx, dtype=torch.long),
 	)
 	if has_labels:
 		batch['label'] = torch.tensor(label, dtype=torch.long)
