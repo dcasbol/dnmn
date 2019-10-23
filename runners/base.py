@@ -48,17 +48,17 @@ class Runner(object):
 				#**kwargs
 			)
 
-		self._logger    = Logger()
-		self._clock     = Chronometer()
-		self._raw_clock = Chronometer()
-		self._perc_cnt  = PercentageCounter(batch_size, self._loader.dataset_len)
+		self._logger   = Logger()
+		keys = ['', 'raw_', 'stats_', 'log_', 'val_', 'save_']
+		self._clock    = { k+'time':Chronometer() for k in keys }
+		self._perc_cnt = PercentageCounter(batch_size, self._loader.dataset_len)
 
 		self._first_epoch = 0
 		if restore:
 			self._model.load(self._pt_restore)
 			self._logger.load(self._log_filename)
-			self._clock.set_t0(self._logger.last('time'))
-			self._raw_clock.set_t0(self._logger.last('raw_time'))
+			self._clock['time'].set_t0(self._logger.last('time'))
+			self._clock['raw_time'].set_t0(self._logger.last('raw_time'))
 			self._first_epoch = int(self._logger.last('epoch') + 0.5)
 
 		self._model = cudalize(self._model)
@@ -75,7 +75,7 @@ class Runner(object):
 		raise NotImplementedError
 
 	def run(self):
-		self._raw_clock.start()
+		self._clock['raw_time'].start()
 		for self._epoch in range(self._first_epoch, self._max_epochs):
 
 			print('Epoch', self._epoch)
@@ -83,8 +83,7 @@ class Runner(object):
 
 			for i, batch_data in enumerate(self._loader):
 
-				# ---   begin timed block   ---
-				self._clock.start()
+				self._clock['time'].start()
 				result = self._forward(batch_data)
 				output = result['output']
 
@@ -92,9 +91,9 @@ class Runner(object):
 				self._opt.zero_grad()
 				loss.backward()
 				self._opt.step()
-				self._clock.stop()
-				# ---   end timed block   ---
+				self._clock['time'].stop()
 
+				self._clock['stats_time'].start()
 				loss_perc += loss.item()
 				N_perc    += output.size(0)
 
@@ -104,32 +103,35 @@ class Runner(object):
 
 				if self._perc_cnt.update(i):
 					self._preview(loss_perc/N_perc)
+				self._clock['stats_time'].stop()
 
 			mean_loss = loss_perc/N_perc
 			self._log_routine(mean_loss)
 			self._validation_routine()
 			if self._evaluate(): break
 
-		print('End of training. It took {} training seconds'.format(self._clock.read()))
-		print('{} seconds in total'.format(self._raw_clock.read()))
+		print('End of training. It took {} training seconds'.format(self._clock['time'].read()))
+		print('{} seconds in total'.format(self._clock['raw_time'].read()))
 
 	def _preview(self, mean_loss):
 		print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
 
 	def _log_routine(self, mean_loss):
+		self._clock['log_time'].start()
 		self._logger.log(
-			raw_time = self._raw_clock.read(),
-			time     = self._clock.read(),
 			epoch    = self._epoch,
 			loss     = mean_loss
 		)
-		raw_tstr = self._raw_clock.read_str()
-		tstr     = self._clock.read_str()
+		self._logger.log(**{ k:c.read() for k, c in self._clock.items() })
+		raw_tstr = self._clock['raw_time'].read_str()
+		tstr     = self._clock['time'].read_str()
 		print('End of epoch', self._epoch)
 		print('{}/{} - {}'.format(raw_tstr, tstr, mean_loss))
+		self._clock['log_time'].stop()
 
 	def _validation_routine(self):
 		if not self._validate: return
+		self._clock['val_time'].start()
 		N = top1 = 0
 
 		self._model.eval()
@@ -145,13 +147,16 @@ class Runner(object):
 		
 		self._logger.log(top_1 = top1/N)
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
+		self._clock['val_time'].stop()
 
 	def _evaluate(self):
 		self._logger.save(self._log_filename)
 
 		if not self._validate:
 			if self._save:
+				self._clock['save_time'].start()
 				self._model.save(self._pt_new)
+				self._clock['save_time'].start()
 			return False
 
 		acc = self._logger.last('top_1')
@@ -161,7 +166,9 @@ class Runner(object):
 			self._best_epoch = self._epoch
 			self._n_worse = 0
 			if self._save:
+				self._clock['save_time'].start()
 				self._model.save(self._pt_new)
+				self._clock['save_time'].stop()
 		else:
 			self._n_worse += 1
 
@@ -172,7 +179,7 @@ class Runner(object):
 
 	@property
 	def best_acc(self):
-		return self._best_acc*100
+		return self._best_acc*100 if self._best_acc is not None else 0.0
 	
 	@property
 	def best_epoch(self):

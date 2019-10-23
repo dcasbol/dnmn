@@ -174,6 +174,7 @@ class Chronometer(object):
 		self._running = False
 
 	def set_t0(self, t0):
+		self._t  = t0
 		self._t0 = time.time()
 
 
