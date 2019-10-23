@@ -324,51 +324,53 @@ class VQANMNDataset(VQADataset):
 		datum    = self._get_datum(i)
 		features = self._get_features(datum)
 
-		names   = datum['layouts_names']
-		indices = datum['layouts_indices']
-		find_indices = [ i for n, i in zip(names, indices) if n == 'find' ]
-		root_index = indices[0]
+		find_indices = list()
+		for name, index in zip(datum['layouts_names'], datum['layouts_indices']):
+			if name != 'find': continue
+			find_indices.append(index)
+		root_index = datum['layouts_indices'][0]
 
+		n_indices = len(find_indices)
 		q = datum['question']
-		item = (q, len(q), is_yesno(q), features, root_index, find_indices)
+		sample = (q, len(q), is_yesno(q), features, root_index, find_indices, n_indices)
 		if self._skip_answers:
-			return item + (datum['question_id'],)
+			return sample + (datum['question_id'], True)
 
 		label = majority_label(datum['answers'])
-		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
 
-		return item + (label, distr)
+		return sample + (label,)
+
+def pad_seq(q, pad_len, pad_value):
+	return F.pad(torch.tensor(q, dtype=torch.long), (0, pad_len), value=pad_value)
 
 def nmn_collate_fn(data):
-	""" Custom collate function for NMN model. Pads questions, computes answer
-	probability distribution and gives find-instance indices as tuples,
-	because nr of calls is variable."""
-
-	unzipped = list(zip(*data))
+	unzipped = zip(*data)
 	has_labels = len(unzipped) == 8
-	questions, lengths, yesno, features, root_idx, indices = unzipped[:6]
+	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
 	if has_labels:
-		label, distr = unzipped[-2:]
+		label = unzipped[-1]
 	else:
-		qids = unzipped[-1]
+		qids = unzipped[-2]
 
 	max_len = max(lengths)
-	padded = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
+	questions = [ pad_seq(q, max_len-l, NULL_ID) for q, l in zip(questions, lengths) ]
+	questions = torch.stack(padded, dim=1)
 
-	max_num = max([len(i) for i in indices])
-	indices = [ idx + [0]*(max_num-len(idx)) for idx in indices ]
+	num_idx = [ len(i) for i in indices ]
+	max_num = max(num_idx)
+	indices = [ pad_seq(idxs, max_num-n, 0) for idxs, n in zip(indices, num_idx) ]
+	indices = torch.stack(indices).unbind(1)
 
 	batch = dict(
-		question  = to_tens(padded, 'long').transpose(0,1),
-		length    = to_tens(lengths, 'long'),
-		yesno     = to_tens(yesno, 'uint8'),
-		features  = to_tens(features, 'float'),
-		find_inst = to_tens(indices, 'long').unbind(1),
-		root_inst = to_tens(root_idx, 'long')
+		question  = questions,
+		length    = torch.tensor(lengths, dtype=torch.long),
+		yesno     = torch.tensor(yesno, dtype=torch.uint8),
+		features  = torch.tensor(features, dtype=torch.float),
+		find_inst = indices,
+		root_inst = torch.tensor(root_idx, dtype=torch.long)
 	)
 	if has_labels:
-		batch['label'] = to_tens(label, 'long')
-		batch['distr'] = to_tens(distr, 'float')
+		batch['label'] = torch.tensor(label, dtype=torch.long)
 	else:
 		batch['question_id'] = qids
 

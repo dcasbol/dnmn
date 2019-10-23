@@ -103,7 +103,7 @@ def lookahead(iterable):
 		last = val
 	yield last, True
 
-def timeit(iterable, chrono):
+def time_iter(iterable, chrono):
 	it = iter(iterable)
 	while True:
 		chrono.start()
