@@ -105,14 +105,15 @@ def lookahead(iterable):
 
 def timeit(iterable, chrono):
 	it = iter(iterable)
-	chrono.start()
-	try:
-		x = next(it)
-	except StopIteration as e:
+	while True:
+		chrono.start()
+		try:
+			x = next(it)
+		except StopIteration as e:
+			chrono.stop()
+			raise e
 		chrono.stop()
-		raise e
-	chrono.stop()
-	yield x
+		yield x
 
 def attend_features(features, hmap, flatten=True):
 	if flatten:
