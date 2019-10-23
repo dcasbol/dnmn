@@ -41,10 +41,11 @@ class Runner(object):
 		if validate:
 			#kwargs = dict(metadata=True) if modname == GaugeFind.NAME and validate else {}
 			self._val_loader = loader_class(
-				set_names  = 'val2014',
-				stop       = 0.2,
-				batch_size = VAL_BATCH_SIZE,
-				shuffle    = False,
+				set_names   = 'val2014',
+				stop        = 0.2,
+				batch_size  = VAL_BATCH_SIZE,
+				shuffle     = False,
+				num_workers = 4,
 				#**kwargs
 			)
 
@@ -82,7 +83,7 @@ class Runner(object):
 			N_perc = loss_perc = 0
 
 			clk = self._clock['batch_time']
-			for i, batch_data in timeit(enumerate(self._loader), clk):
+			for i, batch_data in time_iter(enumerate(self._loader), clk):
 
 				self._clock['time'].start()
 				result = self._forward(batch_data)
@@ -107,6 +108,9 @@ class Runner(object):
 				self._clock['stats_time'].stop()
 
 			mean_loss = loss_perc/N_perc
+			print('End of epoch', self._epoch)
+			print('{} - {}'.format(self._clock['raw_time'].read_str(), mean_loss))
+
 			self._validation_routine()
 			self._log_routine(mean_loss)
 			if self._evaluate(): break
@@ -123,14 +127,12 @@ class Runner(object):
 			loss     = mean_loss
 		)
 		self._logger.log(**{ k:c.read() for k, c in self._clock.items() })
-		raw_tstr = self._clock['raw_time'].read_str()
-		tstr     = self._clock['time'].read_str()
-		print('End of epoch', self._epoch)
-		print('{}/{} - {}'.format(raw_tstr, tstr, mean_loss))
+		self._logger.save(self._log_filename)
 
 	def _validation_routine(self):
 		if not self._validate: return
 		self._clock['val_time'].start()
+		print('Running validation...')
 		N = top1 = 0
 
 		self._model.eval()
@@ -145,12 +147,11 @@ class Runner(object):
 		self._model.train()
 		
 		self._logger.log(top_1 = top1/N)
+		print('...validation done')
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 		self._clock['val_time'].stop()
 
 	def _evaluate(self):
-		self._logger.save(self._log_filename)
-
 		if not self._validate:
 			if self._save:
 				self._clock['save_time'].start()
@@ -178,7 +179,10 @@ class Runner(object):
 
 	@property
 	def best_acc(self):
-		return self._best_acc*100 if self._best_acc is not None else 0.0
+		if self._best_acc is None:
+			print('WARNING: best_acc is not set')
+			return 0.0
+		return self._best_acc*100
 	
 	@property
 	def best_epoch(self):
