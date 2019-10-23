@@ -3,6 +3,8 @@ import json
 import torch
 import pickle
 import numpy as np
+import torch
+import torch.nn.functional as F
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, FIND_INDEX, ANSWER_INDEX
 from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
@@ -344,7 +346,7 @@ def pad_seq(q, pad_len, pad_value):
 	return F.pad(torch.tensor(q, dtype=torch.long), (0, pad_len), value=pad_value)
 
 def nmn_collate_fn(data):
-	unzipped = zip(*data)
+	unzipped = tuple(zip(*data))
 	has_labels = len(unzipped) == 8
 	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
 	if has_labels:
@@ -354,7 +356,7 @@ def nmn_collate_fn(data):
 
 	max_len = max(lengths)
 	questions = [ pad_seq(q, max_len-l, NULL_ID) for q, l in zip(questions, lengths) ]
-	questions = torch.stack(padded, dim=1)
+	questions = torch.stack(questions, dim=1)
 
 	num_idx = [ len(i) for i in indices ]
 	max_num = max(num_idx)

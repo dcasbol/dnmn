@@ -155,7 +155,8 @@ class NMNRunner(Runner):
 		return [ batch_data[k] for k in self._keys ]
 
 	def _forward(self, batch_data):
-		batch_data = cudalize_dict(batch_data)
+		batch_data = cudalize_dict(batch_data, exclude='find_inst')
+		batch_data['find_inst'] = cudalize(*batch_data['find_inst'])
 		nmn_data = self._get_nmn_data(batch_data)
 		pred = self._model(*nmn_data)
 		return dict(
