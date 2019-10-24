@@ -10,7 +10,7 @@ from misc.indices import QUESTION_INDEX, FIND_INDEX, ANSWER_INDEX
 from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
-from misc.util import to_tens
+from misc.util import to_tens, USE_CUDA
 from misc.parse import parse_tree, process_question, parse_to_layout
 
 
@@ -351,24 +351,24 @@ def nmn_collate_fn(data):
 	else:
 		qids  = unzipped[-2]
 
-	max_len = max(lengths)
+	max_len   = max(lengths)
 	questions = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
-	questions = torch.tensor(questions, dtype=torch.long).transpose(0,1)
+	questions = to_tens(questions, 'long').transpose(0,1)
 
 	max_num = max(num_idx)
 	indices = [ idxs + [0]*(max_num-n) for idxs, n in zip(indices, num_idx) ]
-	indices = torch.tensor(indices, dtype=torch.long).unbind(1)
+	indices = to_tens(indices, 'long').unbind(1)
 
 	batch = dict(
 		question  = questions,
-		length    = torch.tensor(lengths, dtype=torch.long),
-		yesno     = torch.tensor(yesno, dtype=torch.uint8),
-		features  = torch.tensor(features, dtype=torch.float),
+		length    = to_tens(lengths, 'long'),
+		yesno     = to_tens(yesno, 'uint8'),
+		features  = to_tens(features, 'float'),
 		find_inst = indices,
-		root_inst = torch.tensor(root_idx, dtype=torch.long),
+		root_inst = to_tens(root_idx, 'long'),
 	)
 	if has_labels:
-		batch['label'] = torch.tensor(label, dtype=torch.long)
+		batch['label'] = to_tens(label, 'long')
 	else:
 		batch['question_id'] = qids
 
