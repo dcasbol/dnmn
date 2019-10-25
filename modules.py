@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
-from misc.util import to_numpy, attend_features, USE_CUDA, generate_hmaps
-from time import time
+from misc.util import attend_features, USE_CUDA, generate_hmaps
 
 
 class BaseModule(nn.Module):
@@ -111,28 +110,6 @@ class Describe(InstanceModule):
 		return torch.cat(preds)
 
 
-class DescribeBeta(InstanceModule):
-
-	NAME = 'describe'
-
-	def __init__(self, **kwargs):
-		super(DescribeBeta, self).__init__(**kwargs)
-		self._full_layer = nn.Linear(len(DESC_INDEX)*IMG_DEPTH, len(ANSWER_INDEX))
-		self._weights = self._full_layer.weight.view(len(DESC_INDEX), IMG_DEPTH, len(ANSWER_INDEX))
-		self._bias    = self._full_layer.bias.view(1, len(ANSWER_INDEX))
-
-	def forward(self, hmap_or_attended, features=None):
-		if features is None:
-			attended = hmap_or_attended
-		else:
-			attended = attend_features(features, hmap_or_attended)
-
-		attended = self._dropout(attended)
-		instance = self._get_instance()
-		weights  = self._weights[instance]
-		return attended*weights + self._bias
-
-
 class Measure(InstanceModule):
 
 	NAME = 'measure'
@@ -159,29 +136,6 @@ class Measure(InstanceModule):
 			preds.append(self._measure[inst](m))
 		return torch.cat(preds)
 
-class MeasureBeta(InstanceModule):
-
-	NAME = 'measure'
-
-	def __init__(self, **kwargs):
-		super(Measure, self).__init__(**kwargs)
-		self._layer1 = nn.Linear(len(DESC_INDEX)*MASK_WIDTH**2, HIDDEN_SIZE)
-		self._w1 = self._layer1.weight.view(len(DESC_INDEX), MASK_WIDTH**2, HIDDEN_SIZE)
-		self._b1 = self._layer1.bias.view(1, HIDDEN_SIZE)
-		self._layer2 = nn.Linear(len(DESC_INDEX)*HIDDEN_SIZE, len(ANSWER_INDEX))
-		self._w2 = self._layer2.weight.view(len(DESC_INDEX), HIDDEN_SIZE, len(ANSWER_INDEX))
-		self._b2 = self._layer2.bias.view(1, len(ANSWER_INDEX))
-
-	def forward(self, hmap, *dummy_args):
-		B = hmap.size(0)
-		inst = self._get_instance()
-
-		hmap = self._dropout(hmap)
-		hmap = hmap.view(B, -1)
-
-		hidden = hmap   * self._w1[inst] + self._b1[inst]
-		pred   = hidden * self._w2[inst] + self._b2[inst]
-		return pred
 
 class QuestionEncoder(BaseModule):
 
@@ -198,20 +152,6 @@ class QuestionEncoder(BaseModule):
 		embed = self._wemb(question)
 		hidden = self._lstm(embed)[0][length-1, torch.arange(B)]
 		return self._final(self._dropout(hidden))
-
-
-class InstancePredictor(nn.Module):
-
-	def __init__(self):
-		super(InstancePredictor, self).__init__()
-		self._classifier = nn.Linear(IMG_DEPTH, len(FIND_INDEX))
-		self._loss_fn = nn.CrossEntropyLoss(reduction='sum')
-
-	def forward(self, attended):
-		return self._classifier(attended)
-
-	def loss(self, pred, instance):
-		return self._loss_fn(pred, instance)
 
 
 class GaugeFind(BaseModule):

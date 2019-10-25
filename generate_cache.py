@@ -6,12 +6,12 @@ import numpy as np
 from vqa import VQANMNDataset, nmn_collate_fn
 from modules import Find
 from misc.util import *
-from misc.util import cudalize, to_numpy, to_tens, DEVICE
+from misc.util import cudalize, to_numpy
 from misc.util import Chronometer, attend_features, generate_hmaps
 from torch.utils.data import DataLoader
 
-def get_path(set_name, qid, cached_data='hmaps'):
-	template = CACHE_HMAP_FILE if cached_data == 'hmaps' else CACHE_ATT_FILE
+def get_path(set_name, qid, is_hmap=True):
+	template = CACHE_HMAP_FILE if is_hmap else CACHE_ATT_FILE
 	return template.format(set=set_name, qid=qid)
 
 def show_progress(i, total_iters):
@@ -38,7 +38,7 @@ def generate_and_save(find, set_name, batch_data, clock):
 	for m, a, qid in zip(hmap, attended, batch_data['question_id']):
 		fn = get_path(set_name, qid)
 		np.save(fn, m)
-		fn = get_path(set_name, qid, cached_data='attended')
+		fn = get_path(set_name, qid, is_hmap=False)
 		np.save(fn, a)
 
 	return n_maps

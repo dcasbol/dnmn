@@ -3,14 +3,11 @@ import json
 import torch
 import pickle
 import numpy as np
-import torch
-import torch.nn.functional as F
 from misc.constants import *
 from misc.indices import QUESTION_INDEX, FIND_INDEX, ANSWER_INDEX
 from misc.indices import UNK_ID, NULL_ID, NEG_ANSWERS
 from torch.utils.data import Dataset
-from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
-from misc.util import to_tens, USE_CUDA
+from misc.util import flatten, ziplist, majority_label, is_yesno
 from misc.parse import parse_tree, process_question, parse_to_layout
 from torch.utils.data._utils.collate import default_collate
 
@@ -266,18 +263,15 @@ class VQAEncoderDataset(VQADataset):
 		datum = self._get_datum(i)
 		question = datum['question']
 		label = majority_label(datum['answers'])
-		distr = values_to_distribution(datum['answers'], len(ANSWER_INDEX))
-		return question, len(question), label, distr
+		return question, len(question), label
 
 def encoder_collate_fn(data):
-	questions, lengths, labels, distrs = zip(*data)
-	T = max(lengths)
-	padded = [ q + [NULL_ID]*(T-l) for q, l in zip(questions, lengths) ]
-	questions = to_tens(padded, 'long').transpose(0,1)
-	lengths   = to_tens(lengths, 'long')
-	labels    = to_tens(labels, 'long')
-	distrs    = to_tens(distrs, 'float')
-	return questions, lengths, labels, distrs
+	questions, lengths, labels = zip(*data)
+	max_len = max(lengths)
+	padded = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
+	questions = torch.tensor(padded, dtype=torch.long).transpose(0,1)
+	lengths, labels = default_collate(tuple(zip(lengths, labels)))
+	return questions, lengths, labels
 
 class VQAGaugeFindDataset(VQADataset):
 
@@ -342,7 +336,8 @@ class VQANMNDataset(VQADataset):
 
 		return sample + (label,)
 
-def nmn_collate_fn_bak(data):
+
+def nmn_collate_fn(data):
 	unzipped   = list(zip(*data))
 	has_labels = len(unzipped) == 8
 	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
@@ -353,60 +348,28 @@ def nmn_collate_fn_bak(data):
 
 	max_len   = max(lengths)
 	questions = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
-	questions = to_tens(questions, 'long').transpose(0,1)
+	questions = torch.tensor(questions, dtype=torch.long).transpose(0,1)
 
 	max_num = max(num_idx)
 	indices = [ idxs + [0]*(max_num-n) for idxs, n in zip(indices, num_idx) ]
-	indices = to_tens(indices, 'long').unbind(1)
+	indices = torch.tensor(indices, dtype=torch.long).unbind(1)
 
-	batch = dict(
+	batch = (lengths, yesno, features, root_idx)
+	if has_labels:
+		batch += (label,)
+	batch = default_collate(tuple(zip(*batch)))
+
+	batch_dict = dict(
+		length    = batch[0],
+		yesno     = batch[1],
+		features  = batch[2],
+		root_inst = batch[3],
 		question  = questions,
-		length    = to_tens(lengths, 'long'),
-		yesno     = to_tens(yesno, 'uint8'),
-		features  = to_tens(features, 'float'),
 		find_inst = indices,
-		root_inst = to_tens(root_idx, 'long'),
 	)
 	if has_labels:
-		batch['label'] = to_tens(label, 'long')
+		batch_dict['label'] = batch[4]
 	else:
-		batch['question_id'] = qids
+		batch_dict['question_id'] = qids
 
-	return batch
-
-def nmn_collate_fn(data):
-        unzipped   = list(zip(*data))
-        has_labels = len(unzipped) == 8
-        questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
-        if has_labels:
-                label = unzipped[-1]
-        else:
-                qids  = unzipped[-2]
-
-        max_len   = max(lengths)
-        questions = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
-        questions = to_tens(questions, 'long').transpose(0,1)
-
-        max_num = max(num_idx)
-        indices = [ idxs + [0]*(max_num-n) for idxs, n in zip(indices, num_idx) ]
-        indices = to_tens(indices, 'long').unbind(1)
-
-        batch = (lengths, yesno, features, root_idx)
-        if has_labels:
-                batch += (label,)
-        batch = default_collate(tuple(zip(*batch)))
-
-        batch_dict = dict(
-                length    = batch[0],
-                yesno     = batch[1],
-                features  = batch[2],
-                root_inst = batch[3],
-                question  = questions,
-                find_inst = indices,
-        )
-        if has_labels:
-                batch_dict['label'] = batch[4]
-        else:
-                batch_dict['question_id'] = qids
-
-        return batch_dict
+	return batch_dict

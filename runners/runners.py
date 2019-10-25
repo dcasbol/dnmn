@@ -86,29 +86,20 @@ class UncachedRunner(Runner):
 	def _forward(self, batch_data):
 		features  = cudalize(batch_data['features'])
 		root_inst = cudalize(batch_data['root_inst'])
-		find_inst = [ to_tens(inst, 'long', DEVICE) for inst in batch_data['find_inst'] ]
+		instances = cudalize(batch_data['find_inst'])
 
 		with torch.no_grad():
-			features_list = features.unsqueeze(1).unbind(0)
-			maps = list()
-			for f, inst in zip(features_list, find_inst):
-				f = f.expand(len(inst), -1, -1, -1)
-				m = self._find[inst](f).prod(0, keepdim=True)
-				maps.append(m)
-			maps = torch.cat(maps)
+			hmaps = generate_hmaps(self._find, instances, features)
 
 		return dict(
-			output = self._model[root_inst](maps, features),
-			label  = cudalize(batch_data['label']),
-			distr  = cudalize(batch_data['distr'])
+			output = self._model[root_inst](hmaps, features),
+			label  = cudalize(batch_data['label'])
 		)
-
 
 class DescribeRunnerUncached(UncachedRunner):
 
 	def _get_model(self):
 		return Describe(dropout=self._dropout)
-
 
 class MeasureRunnerUncached(UncachedRunner):
 
@@ -124,12 +115,11 @@ class EncoderRunner(Runner):
 		return EncoderLoader
 
 	def _forward(self, batch_data):
-		question, length, label, distr = cudalize(*batch_data)
+		question, length, label = cudalize(*batch_data)
 		output = self._model(question, length)
 		return dict(
 			output = output,
-			label  = label,
-			distr  = distr
+			label  = label
 		)
 
 class NMNRunner(Runner):
