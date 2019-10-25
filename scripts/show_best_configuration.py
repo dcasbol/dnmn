@@ -11,7 +11,7 @@ PARAM_NAMES = ['batch_size', 'learning_rate', 'dropout', 'weight_decay']
 
 def main(args):
 
-	print('Showing results in {!r}...', args.result_file)
+	print('Showing results in {!r}...'.format(args.result_file))
 
 	res = skopt.load(args.result_file)
 	print('Final accuracy: {}%'.format(-res.fun))
