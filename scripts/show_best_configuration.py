@@ -14,11 +14,10 @@ def main(args):
 	print('Showing results in {!r}...', args.result_file)
 
 	res = skopt.load(args.result_file)
-	print('Final accuracy: {}%'.format(-100*res.fun))
+	print('Final accuracy: {}%'.format(-res.fun))
 	print('Hyperparameters:')
 	for name, value in zip(PARAM_NAMES, res.x):
 		print(name, ' --> ', value)
 
 if __name__ == '__main__':
 	main(get_args())
-	
