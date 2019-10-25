@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, values_to_distribution, is_yesno
 from misc.util import to_tens, USE_CUDA
 from misc.parse import parse_tree, process_question, parse_to_layout
-
+from torch.utils.data._utils.collate import default_collate
 
 class VQADataset(Dataset):
 	"""
@@ -342,7 +342,7 @@ class VQANMNDataset(VQADataset):
 
 		return sample + (label,)
 
-def nmn_collate_fn(data):
+def nmn_collate_fn_bak(data):
 	unzipped   = list(zip(*data))
 	has_labels = len(unzipped) == 8
 	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
@@ -373,3 +373,40 @@ def nmn_collate_fn(data):
 		batch['question_id'] = qids
 
 	return batch
+
+def nmn_collate_fn(data):
+        unzipped   = list(zip(*data))
+        has_labels = len(unzipped) == 8
+        questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
+        if has_labels:
+                label = unzipped[-1]
+        else:
+                qids  = unzipped[-2]
+
+        max_len   = max(lengths)
+        questions = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
+        questions = to_tens(questions, 'long').transpose(0,1)
+
+        max_num = max(num_idx)
+        indices = [ idxs + [0]*(max_num-n) for idxs, n in zip(indices, num_idx) ]
+        indices = to_tens(indices, 'long').unbind(1)
+
+        batch = (lengths, yesno, features, root_idx)
+        if has_labels:
+                batch += (label,)
+        batch = default_collate(tuple(zip(*batch)))
+
+        batch_dict = dict(
+                length    = batch[0],
+                yesno     = batch[1],
+                features  = batch[2],
+                root_inst = batch[3],
+                question  = questions,
+                find_inst = indices,
+        )
+        if has_labels:
+                batch_dict['label'] = batch[4]
+        else:
+                batch_dict['question_id'] = qids
+
+        return batch_dict

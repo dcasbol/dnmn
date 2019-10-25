@@ -156,7 +156,7 @@ class Runner(object):
 			if self._save:
 				self._clock['save_time'].start()
 				self._model.save(self._pt_new)
-				self._clock['save_time'].start()
+				self._clock['save_time'].stop()
 			return False
 
 		acc = self._logger.last('top_1')
