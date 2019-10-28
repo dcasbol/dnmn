@@ -327,6 +327,8 @@ class VQANMNDataset(VQADataset):
 		root_index = datum['layouts_indices'][0]
 
 		n_indices = len(find_indices)
+		assert n_indices > 0, 'Question id:{}({}) has no find instances'.format(
+			datum['question_id'], datum['question'])
 		q = datum['question']
 		sample = (q, len(q), is_yesno(q), features, root_index, find_indices, n_indices)
 		if self._skip_answers:
