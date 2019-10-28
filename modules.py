@@ -35,6 +35,8 @@ class BaseModule(nn.Module):
 
 
 class InstanceModule(BaseModule):
+	"""Module with [] overloaded to follow nomenclature as in paper:
+	Find[inst](features)"""
 
 	def __init__(self, **kwargs):
 		super(InstanceModule, self).__init__(**kwargs)
@@ -53,7 +55,10 @@ class InstanceModule(BaseModule):
 
 
 class Find(InstanceModule):
-	"""This module corresponds to the original 'attend' in the NMN paper."""
+	"""find[c] convolves every position in the input image with a weight vector
+	(distinct for each c) to produce a heatmap or unnormalized attention. [...]
+	the output of the module find[dog] is a matrix whose entries should be large
+	in regions of the image containing dogs, and small everywhere else."""
 
 	NAME = 'find'
 
@@ -75,9 +80,9 @@ class Find(InstanceModule):
 
 
 class Describe(InstanceModule):
-	""" From 1st NMN article: It first computes an average over image features
-	weighted by the attention, then passes this averaged feature vector through
-	a single fully-connected layer. """
+	"""First computes an average over image features weighted by the attention,
+	then passes this averaged feature vector through a single fully-connected layer."""
+
 	NAME = 'describe'
 
 	def __init__(self, **kwargs):
@@ -105,6 +110,8 @@ class Describe(InstanceModule):
 
 
 class Measure(InstanceModule):
+	""" measure[c] takes an attention alone and maps it to a distribution over labels.
+	hmap -> FC -> ReLU -> FC -> Softmax -> ans """
 
 	NAME = 'measure'
 
@@ -132,6 +139,8 @@ class Measure(InstanceModule):
 
 
 class QuestionEncoder(BaseModule):
+	"""Single-layer LSTM with 1024 units. The question modeling component predicts
+	a distribution over the set of answers."""
 
 	NAME = 'encoder'
 
@@ -149,6 +158,8 @@ class QuestionEncoder(BaseModule):
 
 
 class GaugeFind(BaseModule):
+	"""This module integrates a Gauge sub-module, which acts as an utility function
+	for training the Find module"""
 
 	NAME = 'gauge-find'
 
