@@ -21,7 +21,7 @@ class NMN(BaseModule):
 		# Cross Entropy
 		# L(x) = -y*log(x) -(1-y)*log(1-x)
 		x = x[torch.arange(x.size(0)), y]
-		ce = -((x+1e-10).log() + (1.-x+1e-10).log()).sum()
+		ce = -((x+1e-10).log() + (1.+1e-10-x).log()).mean()
 		return ce
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):

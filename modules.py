@@ -18,7 +18,7 @@ class BaseModule(nn.Module):
 			False : lambda x: x,
 			True  : lambda x: F.dropout2d(x, p=dropout, training=self.training)
 		}[dropout>0]
-		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
+		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
 
 	def loss(self, pred, target):
 		return self._loss_fn(pred, target)

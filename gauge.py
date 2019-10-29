@@ -8,6 +8,7 @@ from vqa import VQAGaugeFindDataset
 from modules import BaseModule, Find
 from misc.constants import *
 from misc.util import cudalize, Logger, Chronometer, lookahead, attend_features
+from misc.util import generate_hmaps
 from misc.visualization import MapVisualizer
 from misc.indices import ANSWER_INDEX
 from time import time
@@ -21,14 +22,9 @@ def run_find(module, batch_data, metadata=False, dropout_fn=None):
 
 	if dropout_fn is not None:
 		features = dropout_fn(features)
-	hmaps = module[inst_1](features)
 
-	twoinst = inst_2 > 0
-	inst_2 = inst_2[twoinst]
-	if inst_2.size(0) > 0:
-		features_2 = features[twoinst]
-		hmaps_2 = module[inst_2](features_2)
-		hmaps[twoinst] = hmaps[twoinst] * hmaps_2
+	instances = [inst_1, inst_2] if (inst_2>0).any() else [inst_1]
+	hmaps = generate_hmaps(module, instances, features)
 
 	result = (features, hmaps, yesno, label)
 	if metadata:
@@ -72,7 +68,6 @@ def get_args():
 	parser.add_argument('--visualize', type=int, default=0,
 		help='(find) Select every N steps to visualize. 0 is disabled.')
 	parser.add_argument('--dropout', type=float, default=0)
-	parser.add_argument('--activation', default='relu')
 	return parser.parse_args()
 
 
@@ -88,13 +83,13 @@ if __name__ == '__main__':
 
 	metadata = args.visualize > 0
 
-	module  = cudalize(Find(activation=args.activation))
+	module  = cudalize(Find())
 	gauge   = cudalize(Gauge(dropout=args.dropout))
 	dataset = VQAGaugeFindDataset(metadata=metadata)
+
+	dropout_fn = None
 	if args.dropout > 0:
 		dropout_fn = lambda x: F.dropout2d(x, p=args.dropout, training=module.training)
-	else:
-		dropout_fn = None
 
 	loader = DataLoader(dataset,
 		batch_size  = args.batch_size,
@@ -141,7 +136,7 @@ if __name__ == '__main__':
 
 			B = hmap.size(0)
 			N += B
-			total_loss += loss.item()
+			total_loss += loss.item() * B
 			total_top1 += util.top1_accuracy(pred, label) * B
 
 			if perc == last_perc and not last_iter: continue
@@ -172,7 +167,7 @@ if __name__ == '__main__':
 					B = pred.size(0)
 					N += B
 					top1     += util.top1_accuracy(pred, label) * B
-					val_loss += gauge.loss(pred, label).item()
+					val_loss += gauge.loss(pred, label).item() * B
 			module.train()
 			gauge.train()
 
@@ -184,7 +179,6 @@ if __name__ == '__main__':
 			print('End of epoch', epoch)
 			print(clock.read_str())
 			logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
-
 
 			if args.save:
 				torch.save(module.state_dict(), PT_NEW.format(epoch))

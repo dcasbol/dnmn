@@ -97,8 +97,9 @@ class Runner(object):
 				self._clock['time'].stop()
 
 				self._clock['stats_time'].start()
-				loss_perc += loss.item()
-				N_perc    += output.size(0)
+				B = output.size(0)
+				loss_perc += loss.item() * B
+				N_perc    += B
 
 				if loss_perc != loss_perc:
 					print('Encountered nan. Training aborted.')
