@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 from misc.util import flatten, ziplist, majority_label, is_yesno
 from misc.parse import parse_tree, process_question, parse_to_layout
 from torch.utils.data._utils.collate import default_collate
+import pdb
 
 class VQADataset(Dataset):
 	"""
@@ -327,6 +328,9 @@ class VQANMNDataset(VQADataset):
 		root_index = datum['layouts_indices'][0]
 
 		n_indices = len(find_indices)
+		if n_indices == 0:
+			print('dataset: n_indices==0')
+			pdb.set_trace()
 		assert n_indices > 0, 'Question id:{}({}) has no find instances'.format(
 			datum['question_id'], datum['question'])
 		q = datum['question']

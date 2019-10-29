@@ -7,6 +7,7 @@ from scipy.sparse import csr_matrix
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
 from misc.constants import *
+import pdb
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -123,9 +124,15 @@ def attend_features(features, hmap, flatten=True):
 	return (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
 
 def generate_hmaps(find, instances, features):
+	if not (instances[0]>0).any():
+		print('generate_hmaps: inst[0]')
+		pdb.set_trace()
 	hmaps = find[instances[0]](features)
 	for inst in instances[1:]:
 		valid = inst>0
+		if not valid.any():
+			print('generate_hmaps: valid.any()')
+			pdb.set_trace()
 		hmaps_inst = find[inst[valid]](features[valid])
 		hmaps[valid] = hmaps[valid] * hmaps_inst
 	return hmaps
