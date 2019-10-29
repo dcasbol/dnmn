@@ -12,12 +12,14 @@ class Runner(object):
 
 	def __init__(self, max_epochs=40, batch_size=128,
 		restore_pt=None, save=False, validate=True, suffix='',
-		learning_rate=1e-3, weight_decay=1e-5, dropout=0):
+		learning_rate=1e-3, weight_decay=1e-5, dropout=0,
+		early_stopping=True):
 
 		self._max_epochs = max_epochs
 		self._save       = save
 		self._validate   = validate
 		self._dropout    = dropout
+		self._earl_stop  = early_stopping
 
 		self._best_acc   = None
 		self._n_worse    = 0
@@ -171,7 +173,7 @@ class Runner(object):
 		else:
 			self._n_worse += 1
 
-		return self._n_worse >= max(3, (self._epoch+1)//3)
+		return self._earl_stop and self._n_worse >= max(3, (self._epoch+1)//3)
 
 	def save_model(self, filename):
 		self._model.save(filename)

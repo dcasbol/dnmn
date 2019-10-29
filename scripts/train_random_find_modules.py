@@ -16,11 +16,12 @@ if __name__ == '__main__':
 
 	for i in range(args.start, args.end):
 		kwargs = dict(
-			max_epochs    = int(random()*10),
-			batch_size    = int(16+random()*(512-16)),
-			learning_rate = 1e-5+random()*(0.1-1e-5),
-			weight_decay  = random(),
-			dropout       = random()*0.9
+			max_epochs     = int(random()*10),
+			batch_size     = int(16+random()*(512-16)),
+			learning_rate  = 1e-5+random()*(0.1-1e-5),
+			weight_decay   = random(),
+			dropout        = random()*0.9,
+			early_stopping = False
 		)
 
 		runner = FindRunner(**kwargs)
