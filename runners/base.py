@@ -11,7 +11,7 @@ from modules import GaugeFind
 class Runner(object):
 
 	def __init__(self, max_epochs=40, batch_size=128,
-		restore=False, save=False, validate=True, suffix='',
+		restore_pt=None, save=False, validate=True, suffix='',
 		learning_rate=1e-3, weight_decay=1e-5, dropout=0):
 
 		self._max_epochs = max_epochs
@@ -28,7 +28,6 @@ class Runner(object):
 		suffix = '' if suffix == '' else '-' + suffix
 		full_name = modname + suffix
 		self._log_filename = full_name + '_log.json'
-		self._pt_restore   = full_name + '.pt'
 		self._pt_new       = full_name + '-new.pt'
 
 		loader_class = self._loader_class()
@@ -55,12 +54,12 @@ class Runner(object):
 		self._perc_cnt = PercentageCounter(batch_size, self._loader.dataset_len)
 
 		self._first_epoch = 0
-		if restore:
-			self._model.load(self._pt_restore)
-			self._logger.load(self._log_filename)
-			self._clock['time'].set_t0(self._logger.last('time'))
-			self._clock['raw_time'].set_t0(self._logger.last('raw_time'))
-			self._first_epoch = int(self._logger.last('epoch') + 0.5)
+		if restore_pt is not None:
+			self._model.load(restore_pt)
+			#self._logger.load(self._log_filename)
+			#self._clock['time'].set_t0(self._logger.last('time'))
+			#self._clock['raw_time'].set_t0(self._logger.last('raw_time'))
+			#self._first_epoch = int(self._logger.last('epoch') + 0.5)
 
 		self._model = cudalize(self._model)
 		self._opt = torch.optim.Adam(self._model.parameters(),

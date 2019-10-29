@@ -11,20 +11,20 @@ def get_args():
 	parser.add_argument('--max-epochs', type=int,
 		help='Max. training epochs')
 	parser.add_argument('--batch-size', type=int)
-	parser.add_argument('--restore', action='store_true')
+	parser.add_argument('--restore-pt')
 	parser.add_argument('--save', action='store_true',
-		help='Save the module after every epoch.')
-	parser.add_argument('--suffix', type=str,
-		help='Add suffix to files. Useful when training others simultaneously.')
+		help='Save the model regularly.')
+	parser.add_argument('--suffix',
+		help='Add suffix to saved files. Useful when training +1 simultaneously.')
 	parser.add_argument('--learning-rate', type=float,
 		help='Specify learning rate')
-	parser.add_argument('--weight-decay', type=float, help='Weight decay')
+	parser.add_argument('--weight-decay', type=float)
 	parser.add_argument('--dropout', type=float)
 	parser.add_argument('--visualize', type=int,
-		help='(find) Visualize a masking example every N%. 0 is disabled.')
+		help='(find) Visualize an output heatmap every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
-		help='Run validation every 1% of the dataset')
-	parser.add_argument('--find-pt', type=str)
+		help='Run validation after every epoch')
+	parser.add_argument('--find-pt')
 	return parser.parse_args()
 
 
