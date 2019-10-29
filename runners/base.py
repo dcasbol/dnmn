@@ -179,6 +179,10 @@ class Runner(object):
 		self._model.save(filename)
 
 	@property
+	def last_acc(self):
+		return self._logger.last('top_1')
+
+	@property
 	def best_acc(self):
 		if self._best_acc is None:
 			print('WARNING: best_acc is not set')

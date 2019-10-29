@@ -29,7 +29,6 @@ if __name__ == '__main__':
 		base_name = 'find-rnd-{}'.format(i)
 		runner.save_model(base_name+'.pt')
 
-		kwargs['top_1']      = runner.best_acc
-		kwargs['best_epoch'] = runner.best_epoch
+		kwargs['top_1'] = runner.last_acc
 		with open(base_name+'.json', 'w') as fd:
 			json.dump(kwargs, fd)
