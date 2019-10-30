@@ -25,9 +25,11 @@ show_progress.last = -1
 def generate_and_save(find, set_name, batch_data, clock):
 
 	features = cudalize(batch_data['features'])
+	inst = cudalize(*batch_data['find_inst'])
+	inst = (inst,) if isinstance(inst, torch.Tensor) else inst
 
 	clock.start()
-	hmap     = generate_hmaps(find, batch_data['find_inst'], features)
+	hmap     = generate_hmaps(find, inst, features)
 	attended = attend_features(features, hmap)
 	clock.stop()
 

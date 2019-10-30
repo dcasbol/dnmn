@@ -284,15 +284,12 @@ class VQAGaugeFindDataset(VQADataset):
 		datum    = self._get_datum(i)
 		features = self._get_features(datum)
 
-		assert len(datum['parses']) == 1, 'Encountered item ({}) with +1 parses: {}'.format(i, datum['parses'])
-		
 		target_list = list()
 		for name, index in zip(datum['layouts_names'], datum['layouts_indices']):
 			if name != 'find': continue
 			target_list.append(index)
 
 		n = len(target_list)
-		assert n > 0 and n < 3, 'FindSu sample found with {} instances'.format(n)
 		if n == 2:
 			target_1, target_2 = target_list
 		else:
@@ -328,11 +325,6 @@ class VQANMNDataset(VQADataset):
 		root_index = datum['layouts_indices'][0]
 
 		n_indices = len(find_indices)
-		if n_indices == 0:
-			print('dataset: n_indices==0')
-			pdb.set_trace()
-		assert n_indices > 0, 'Question id:{}({}) has no find instances'.format(
-			datum['question_id'], datum['question'])
 		q = datum['question']
 		sample = (q, len(q), is_yesno(q), features, root_index, find_indices, n_indices)
 		if self._skip_answers:

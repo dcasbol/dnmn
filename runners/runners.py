@@ -86,10 +86,11 @@ class UncachedRunner(Runner):
 	def _forward(self, batch_data):
 		features  = cudalize(batch_data['features'])
 		root_inst = cudalize(batch_data['root_inst'])
-		instances = cudalize(batch_data['find_inst'])
+		inst = cudalize(*batch_data['find_inst'])
+		inst = (inst,) if isinstance(inst, torch.Tensor) else inst
 
 		with torch.no_grad():
-			hmaps = generate_hmaps(self._find, instances, features)
+			hmaps = generate_hmaps(self._find, inst, features)
 
 		return dict(
 			output = self._model[root_inst](hmaps, features),
@@ -146,7 +147,8 @@ class NMNRunner(Runner):
 
 	def _forward(self, batch_data):
 		batch_data = cudalize_dict(batch_data, exclude='find_inst')
-		batch_data['find_inst'] = cudalize(*batch_data['find_inst'])
+		inst = cudalize(*batch_data['find_inst'])
+		batch_data['find_inst'] = (inst,) if isinstance(inst, torch.Tensor) else inst
 		nmn_data = self._get_nmn_data(batch_data)
 		pred = self._model(*nmn_data)
 		return dict(

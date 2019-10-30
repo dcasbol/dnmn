@@ -1,3 +1,4 @@
+import os
 import argparse
 import json
 from random import random
@@ -26,7 +27,9 @@ if __name__ == '__main__':
 
 		runner = FindRunner(**kwargs)
 		runner.run()
-		base_name = 'find-rnd-{}'.format(i)
+		if not os.path.exists('find-rnd'):
+			os.makedirs('find-rnd')
+		base_name = 'find-rnd/find-rnd-{}'.format(i)
 		runner.save_model(base_name+'.pt')
 
 		kwargs['top_1'] = runner.last_acc
