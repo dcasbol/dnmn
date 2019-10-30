@@ -82,7 +82,7 @@ class HyperOptimizer(object):
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
 
 		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
-		print('Best acc is', self._best_acc)
+		print('Best HPO acc is', self._best_acc)
 
 		modname = self._sel if self._sel != 'find' else 'gauge-find'
 		json_fn = '{}-{}_log.json'.format(modname, suffix)
