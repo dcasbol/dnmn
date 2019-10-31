@@ -77,9 +77,7 @@ class Runner(object):
 		raise NotImplementedError
 
 	def run(self):
-		if USE_CUDA and not self._model.is_cuda:
-			self._model = cudalize(self._model)
-
+		self._model = cudalize(self._model)
 		self._logger.save(self._log_filename) # For HPO
 		self._clock['raw_time'].start()
 		for self._epoch in range(self._first_epoch, self._max_epochs):
