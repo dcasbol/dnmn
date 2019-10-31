@@ -7,7 +7,6 @@ from scipy.sparse import csr_matrix
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
 from misc.constants import *
-import pdb
 
 
 USE_CUDA = torch.cuda.is_available()

@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
-from misc.util import cudalize, Logger, Chronometer, PercentageCounter, time_iter
+from misc.util import cudalize, USE_CUDA
+from misc.util import Logger, Chronometer, PercentageCounter, time_iter
 from modules import GaugeFind
 
 
@@ -63,7 +64,6 @@ class Runner(object):
 			#self._clock['raw_time'].set_t0(self._logger.last('raw_time'))
 			#self._first_epoch = int(self._logger.last('epoch') + 0.5)
 
-		self._model = cudalize(self._model)
 		self._opt = torch.optim.Adam(self._model.parameters(),
 			lr=learning_rate, weight_decay=weight_decay)
 
@@ -77,6 +77,9 @@ class Runner(object):
 		raise NotImplementedError
 
 	def run(self):
+		if USE_CUDA and not self._model.is_cuda:
+			self._model = cudalize(self._model)
+
 		self._logger.save(self._log_filename) # For HPO
 		self._clock['raw_time'].start()
 		for self._epoch in range(self._first_epoch, self._max_epochs):

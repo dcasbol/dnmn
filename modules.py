@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, NULL_ID
 from misc.constants import *
-from misc.util import attend_features, USE_CUDA, generate_hmaps
+from misc.util import attend_features, generate_hmaps
 
 
 class BaseModule(nn.Module):
@@ -29,8 +29,6 @@ class BaseModule(nn.Module):
 
 	def load(self, filename):
 		self.load_state_dict(torch.load(filename, map_location='cpu'))
-		if USE_CUDA:
-			self.cuda()
 		print('{} loaded from {!r}'.format(self.NAME, filename))
 
 
