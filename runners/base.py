@@ -143,7 +143,7 @@ class Runner(object):
 		with torch.no_grad():
 			for batch_data in self._val_loader:
 				result = self._forward(batch_data)
-				output = result['output'].softmax(1)
+				output = result['output']
 				label  = result['label']
 				B = label.size(0)
 				N += B
