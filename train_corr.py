@@ -2,6 +2,8 @@ import argparse
 import json
 from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
 from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
+import torch
+torch.cuda.empty_cache()
 
 def get_args():
 
@@ -34,7 +36,7 @@ if __name__ == '__main__':
 	with open('gauge_corr_data.json') as fd:
 		d = json.load(fd)
 
-	idx = 0
+	idx = -1
 	for i in range(len(d['pt_files'])):
 		if d['nmn_accs'][i] == -1:
 			d['nmn_accs'][i] = -2
@@ -43,6 +45,9 @@ if __name__ == '__main__':
 			idx = i
 			pt_file = 'find-rnd/' + d['pt_files'][i]
 			break
+	if idx < 0:
+		print('No more jobs left')
+		quit()
 
 	args = get_args()
 
@@ -67,12 +72,13 @@ if __name__ == '__main__':
 		measure_uncached  = MeasureRunnerUncached
 	)[args.selection](**kwargs)
 
+	runner.run()
+
 	with open('gauge_corr_data.json') as fd:
 		d = json.load(fd)
 	d['nmn_accs'][idx] = runner.best_acc
 	with open('gauge_corr_data.json', 'w') as fd:
 		json.dump(d, fd)
 
-	runner.run()
 	print('Best validation accuracy:', runner.best_acc)
 	print('Achieved at epoch', runner.best_epoch)
