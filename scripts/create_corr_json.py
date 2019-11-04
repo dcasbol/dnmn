@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	sel_values = list()
 	sel_filenames = list()
 	sel_indices   = set()
-	while len(sel_values) < N_VALUES:
+	while len(sel_values) < N_VALUES and N_PER_SLOT < N_VALUES/2:
 		for idx, (v, fn) in enumerate(zip(value_list, fn_list)):
 			i = int(len(n_list)*(v+displ)*scale)
 			if n_list[i] < N_PER_SLOT and idx not in sel_indices:
