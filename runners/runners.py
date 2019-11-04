@@ -42,6 +42,11 @@ class FindRunner(Runner):
 			values = [ self._result[k] for k in keys ]
 			self._vis.update(*values)
 
+	@property
+	def last_var(self):
+		return self._logger.last('var')
+	
+
 class DescribeRunner(Runner):
 
 	def _get_model(self):
