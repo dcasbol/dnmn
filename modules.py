@@ -168,6 +168,7 @@ class GaugeFind(BaseModule):
 			nn.Linear(64, len(ANSWER_INDEX))
 		)
 		self._find = Find(**kwargs)
+		self._forced_dropout = lambda x: F.dropout(x, p=0.3, training=True)
 
 	def forward(self, features, inst_1, inst_2, yesno):
 
@@ -181,8 +182,16 @@ class GaugeFind(BaseModule):
 		attended  = attend_features(features, hmap)*(1.-yesno)
 		hmap_flat = hmap.view(B,-1)*yesno
 		x = torch.cat([attended, hmap_flat], 1)
-		pred = self._classifier(self._dropout(x))
-		return pred
+		if self.training:
+			pred = self._classifier(self._forced_dropout(x))
+			return pred
+		else:
+			x = x.view(B,1,-1).repeat(1,5,1)
+			preds = self._classifier(self._forced_dropout(x))
+			mean = preds.mean(1)
+			idx  = mean.argmax(1)
+			var  = preds[torch.arange(B),:,idx].var(1)
+			return mean, var
 
 	def save(self, filename):
 		self._find.save(filename)

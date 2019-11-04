@@ -27,10 +27,13 @@ class FindRunner(Runner):
 	def _forward(self, batch_data):
 		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
 		pred = self._model(features, inst_1, inst_2, yesno)
-		return dict(
+		result = dict(
 			output = pred,
-			label  = label
+			label = label
 		)
+		if not self._model.training:
+			result['output'], result['var'] = pred
+		return result
 
 	def _preview(self, mean_loss):
 		super(FindRunner, self)._preview(mean_loss)
