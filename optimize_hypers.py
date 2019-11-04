@@ -13,7 +13,7 @@ SPACE = [
 	skopt.space.Integer(16, 512, name='batch_size'),
 	skopt.space.Real(1e-5, 0.1, name='learning_rate', prior='log-uniform'),
 	skopt.space.Real(0, 0.9, name='dropout'),
-	skopt.space.Real(1e-5, 1., name='weight_decay', prior='log-uniform')
+	skopt.space.Real(0., 1., name='weight_decay', prior='log-uniform')
 ]
 
 class HyperOptimizer(object):
@@ -116,8 +116,8 @@ class HyperOptimizer(object):
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,
-			n_random_starts = 5,
-			n_calls = 20
+			n_random_starts = 20,
+			n_calls = 100
 		)
 
 		print('Hyperparameter Optimization ended.')
