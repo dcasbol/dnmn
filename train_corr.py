@@ -1,5 +1,7 @@
+import os
 import argparse
 import json
+import skopt
 from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
 from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
 import torch
@@ -8,77 +10,52 @@ torch.cuda.empty_cache()
 def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
-	parser.add_argument('selection',
-		choices=['find', 'describe', 'measure', 'encoder', 'nmn',
-			'describe_uncached', 'measure_uncached'])
-	parser.add_argument('--max-epochs', type=int,
-		help='Max. training epochs')
-	parser.add_argument('--batch-size', type=int)
-	parser.add_argument('--restore-pt')
-	parser.add_argument('--save', action='store_true',
-		help='Save the model regularly.')
-	parser.add_argument('--suffix',
-		help='Add suffix to saved files. Useful when training +1 simultaneously.')
-	parser.add_argument('--learning-rate', type=float,
-		help='Specify learning rate')
-	parser.add_argument('--weight-decay', type=float)
-	parser.add_argument('--dropout', type=float)
-	parser.add_argument('--visualize', type=int,
-		help='(find) Visualize an output heatmap every N%. 0 is disabled.')
-	parser.add_argument('--validate', action='store_true',
-		help='Run validation after every epoch')
-	parser.add_argument('--find-pt')
+	parser.add_argument('--corr-data', default='gauge_corr_data.json')
+	parser.add_argument('--find-pt-dir', default='find-rnd')
+	parser.add_argument('--skopt-res', default='hyperopt/nmn/nmn-res.gz')
 	return parser.parse_args()
 
 
 if __name__ == '__main__':
 
-	with open('gauge_corr_data.json') as fd:
-		d = json.load(fd)
+	args = get_args()
 
-	idx = -1
+	def read():
+		with open(args.corr_data) as fd:
+			return json.load(fd)
+
+	def write(d):
+		with open(args.corr_data, 'w') as fd:
+			json.dump(d, fd)
+
+	d = read()
+
 	for i in range(len(d['pt_files'])):
 		if d['nmn_accs'][i] == -1:
 			d['nmn_accs'][i] = -2
-			with open('gauge_corr_data.json', 'w') as fd:
-				json.dump(d, fd)
+			write(d)
 			idx = i
-			pt_file = 'find-rnd/' + d['pt_files'][i]
+			pt_file = os.path.join(args.find_pt_dir, d['pt_files'][i])
 			break
-	if idx < 0:
+	else:
 		print('No more jobs left')
 		quit()
 
-	args = get_args()
-
-	if args.selection != 'find':
-		assert args.visualize is None,\
-			"Only find module is subject to visualization."
-
-	if args.selection[-8:] == 'uncached':
-		assert args.find_pt is not None, "You must specify find module for uncached training."
-
-	kwargs = { k: v for k, v in vars(args).items() if v is not None }
-	del kwargs['selection']
-	kwargs['find_pt'] = pt_file
-
-	runner = dict(
-		encoder  = EncoderRunner,
-		find     = FindRunner,
-		measure  = MeasureRunner,
-		describe = DescribeRunner,
-		nmn      = NMNRunner,
-		describe_uncached = DescribeRunnerUncached,
-		measure_uncached  = MeasureRunnerUncached
-	)[args.selection](**kwargs)
-
+	bs, lr, do, wd = skopt.load(args.skopt_res).x
+	runner = NMNRunner(
+		max_epochs    = 20,
+		validate      = True,
+		batch_size    = bs,
+		learning_rate = lr,
+		dropout       = do,
+		weight_decay  = wd,
+		find_pt       = pt_file
+	)
 	runner.run()
 
-	with open('gauge_corr_data.json') as fd:
-		d = json.load(fd)
+	d = read()
 	d['nmn_accs'][idx] = runner.best_acc
-	with open('gauge_corr_data.json', 'w') as fd:
-		json.dump(d, fd)
+	write(d)
 
 	print('Best validation accuracy:', runner.best_acc)
 	print('Achieved at epoch', runner.best_epoch)
