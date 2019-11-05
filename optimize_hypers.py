@@ -11,7 +11,7 @@ def get_args():
 
 SPACE = [
 	skopt.space.Integer(16, 512, name='batch_size'),
-	skopt.space.Real(1e-5, 0.1, name='learning_rate', prior='log-uniform'),
+	skopt.space.Real(1e-10, 0.1, name='learning_rate', prior='log-uniform'),
 	skopt.space.Real(0, 0.9, name='dropout'),
 	skopt.space.Real(0., 1., name='weight_decay', prior='log-uniform')
 ]
