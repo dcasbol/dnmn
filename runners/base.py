@@ -155,7 +155,7 @@ class Runner(object):
 		
 		self._logger.log(top_1 = top1/N)
 		if is_gauge:
-			self._logger.log(variance = var/N)
+			self._logger.log(var = var/N)
 		print('...validation done')
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 		self._clock['val_time'].stop()
