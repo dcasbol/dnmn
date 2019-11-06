@@ -1,11 +1,10 @@
 import os
 import json
-import numpy as np
+import argparse
 import matplotlib.pyplot as plt
 from glob import glob
 
 MIN_VALUE  = 0.01
-N_VALUES   = 30
 N_SLOTS    = 10
 
 def get_args():
@@ -13,6 +12,7 @@ def get_args():
 	parser = argparse.ArgumentParser(description=descr)
 	parser.add_argument('--input-pattern', default='find-rnd/find-rnd*.json')
 	parser.add_argument('--max-variance', type=float, default=0.1)
+	parser.add_argument('--n-values', type=int, default=30)
 	return parser.parse_args()
 
 def main():
@@ -41,8 +41,9 @@ def main():
 
 	for n, reason in [(skipped_acc, 'accuracy'), (skipped_var, 'variance')]:
 		if n == 0: continue
-		print('{} values skipped due to {} constraints')
+		print('{} values skipped due to {} constraints'.format(n, reason))
 
+	N_VALUES = args.n_values
 	N_PER_SLOT = int(N_VALUES/N_SLOTS)
 	min_v = min(value_list)
 	max_v = max(value_list)
@@ -53,7 +54,7 @@ def main():
 	sel_values = list()
 	sel_filenames = list()
 	sel_indices   = set()
-	while len(sel_values) < N_VALUES and N_PER_SLOT < N_VALUES/2:
+	while len(sel_values) < N_VALUES and N_PER_SLOT < N_VALUES:
 		for idx, (v, fn) in enumerate(zip(value_list, fn_list)):
 			i = int(len(n_list)*(v+displ)*scale)
 			if n_list[i] < N_PER_SLOT and idx not in sel_indices:
