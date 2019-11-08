@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 from vqa import VQANMNDataset, nmn_collate_fn
 from modules import Find
-from misc.util import *
+from misc.constants import *
 from misc.util import cudalize, to_numpy
 from misc.util import Chronometer, attend_features, generate_hmaps
 from torch.utils.data import DataLoader
