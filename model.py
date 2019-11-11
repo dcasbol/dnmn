@@ -19,10 +19,10 @@ class NMN(BaseModule):
 
 	def loss(self, x, y):
 		# Cross Entropy
-		# L(x) = -y*log(x) -(1-y)*log(1-x)
-		x = x[torch.arange(x.size(0)), y]
-		ce = -((x+1e-10).log() + (1.+1e-10-x).log()).mean()
-		return ce
+		return F.cross_entropy(x, y)
+		#x = x[torch.arange(x.size(0)), y]
+		#ce = -((x+1e-10).log() + (1.+1e-10-x).log()).mean()
+		#return ce
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
