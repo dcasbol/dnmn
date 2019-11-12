@@ -48,7 +48,7 @@ def main():
 		indices = sorted(list(range(len(value_list))), key=lambda i: var_list[i])
 		value_list = [ value_list[i] for i in indices ]
 		fn_list = [ fn_list[i] for i in indices ]
-		var_list[i] = [ var_list[i] for i in indices ]
+		var_list = [ var_list[i] for i in indices ]
 
 
 	N_VALUES = args.n_values
