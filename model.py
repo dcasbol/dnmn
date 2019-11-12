@@ -18,11 +18,8 @@ class NMN(BaseModule):
 		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
 
 	def loss(self, x, y):
-		# Cross Entropy
-		return F.cross_entropy(x, y)
-		#x = x[torch.arange(x.size(0)), y]
-		#ce = -((x+1e-10).log() + (1.+1e-10-x).log()).mean()
-		#return ce
+		p = x[torch.arange(x.size(0)), y]
+		return -(p+1e-10).log().mean()
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
