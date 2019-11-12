@@ -43,6 +43,14 @@ def main():
 		if n == 0: continue
 		print('{} values skipped due to {} constraints'.format(n, reason))
 
+	# Sort by variance
+	if len(var_list) > 0:
+		indices = sorted(list(range(len(value_list))), key=lambda i: var_list[i])
+		value_list = [ value_list[i] for i in indices ]
+		fn_list = [ fn_list[i] for i in indices ]
+		var_list[i] = [ var_list[i] for i in indices ]
+
+
 	N_VALUES = args.n_values
 	N_PER_SLOT = int(N_VALUES/N_SLOTS)
 	min_v = min(value_list)
