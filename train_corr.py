@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	runner = NMNRunner(
 		max_epochs    = 20,
 		validate      = True,
-		batch_size    = bs,
+		batch_size    = int(bs),
 		learning_rate = lr,
 		dropout       = do,
 		weight_decay  = wd,
