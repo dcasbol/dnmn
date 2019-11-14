@@ -7,7 +7,7 @@ def get_args():
 	parser.add_argument('--data-json', default='gauge_corr_data.json')
 	return parser.parse_args()
 
-def main():
+def main(args):
 
 	with open(args.data_json) as fd:
 		d = json.load(fd)
@@ -23,4 +23,4 @@ def main():
 	plt.show()
 
 if __name__ == '__main__':
-	main()
+	main(get_args())
