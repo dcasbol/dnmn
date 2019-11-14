@@ -3,10 +3,12 @@ import json
 import numpy as np
 import time
 import pickle
+import subprocess
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD
 from misc.constants import *
+from ilock import ILock
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -210,3 +212,44 @@ class PercentageCounter(object):
 
 	def __repr__(self):
 		return '{: 3d}%'.format(self._last_perc)
+
+class GPUScheduler(object):
+
+	def __init__(self, script_name):
+		self._lock_name   = 'gpu-scheduler'
+		self._book_file   = '/tmp/gpu-book.json'
+		self._script_name = script_name
+		env = os.environ.copy()
+		if 'CUDA_VISIBLE_DEVICES' in env:
+			del env['CUDA_VISIBLE_DEVICES']
+		command = 'import sys; import torch; sys.exit(torch.cuda.device_count()'
+		self._num_gpus = subprocess.run(['python','-c',command], env=env).returncode
+		assert self._num_gpus > 0, 'No GPUs were found in system'
+
+	def __enter__(self):
+		with ILock(self._lock_name):
+			if not os.path.exists(self._book_file):
+				status = { gpu_id : None for gpu_id in range(self._num_gpus) }
+			else:
+				with open(self._book_file):
+					status = json.load(fd)
+			booked_id = None
+			for gpu_id, booked_script  in status.items():
+				if booked_script is None:
+					booked_id = gpu_id
+					break
+			assert booked_id is not None, "There is no free GPU"
+			status[booked_id] = self._script_name
+			with open(self._book_file,'w') as fd:
+				json.dump(status, fd)
+		return booked_id
+
+	def __exit__(self, type, value, traceback):
+		with ILock(self._book_file):
+			with open(self._book_file) as fd:
+				status = json.load(fd)
+			assert status[gpu_id] == self._script_name,\
+				'Failed to free GPU: an unexpected script name was encountered'
+			status[gpu_id] = None
+			with open(self._book_file,'w') as fd:
+				json.dump(status, fd)
