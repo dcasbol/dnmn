@@ -117,7 +117,7 @@ class HyperOptimizer(object):
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,
 			n_random_starts = 20,
-			n_calls = 100
+			n_calls = 50
 		)
 
 		print('Hyperparameter Optimization ended.')
