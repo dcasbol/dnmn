@@ -187,7 +187,7 @@ class GaugeFind(BaseModule):
 			return pred
 		else:
 			x = x.view(B,1,-1).repeat(1,5,1)
-			preds = self._classifier(self._forced_dropout(x))
+			preds = self._classifier(self._forced_dropout(x)).softmax(dim=2)
 			mean = preds.mean(1)
 			idx  = mean.argmax(1)
 			var  = preds[torch.arange(B),:,idx].var(1)
