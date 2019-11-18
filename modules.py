@@ -186,7 +186,7 @@ class GaugeFind(BaseModule):
 			pred = self._classifier(self._forced_dropout(x))
 			return pred
 		else:
-			x = x.view(B,1,-1).repeat(1,5,1)
+			x = x.view(B,1,-1).repeat(1,20,1)
 			preds = self._classifier(self._forced_dropout(x)).softmax(dim=2)
 			mean = preds.mean(1)
 			idx  = mean.argmax(1)
