@@ -11,7 +11,8 @@ def get_args():
 	descr = """Create JSON with selected Find modules for correlation plot"""
 	parser = argparse.ArgumentParser(description=descr)
 	parser.add_argument('--input-pattern', default='find-rnd/find-rnd*.json')
-	parser.add_argument('--max-variance', type=float, default=0.1)
+	# 2*std < 0.1 --> std < 0.05 --> var < 2.5e-3
+	parser.add_argument('--max-variance', type=float, default=2.5e-3)
 	parser.add_argument('--n-values', type=int, default=30)
 	return parser.parse_args()
 
@@ -30,7 +31,7 @@ def main():
 		if d['top_1'] < MIN_VALUE:
 			skipped_acc += 1
 			continue
-		if d.get('var',0) > args.max_variance:
+		if d.get('var', 0) > args.max_variance:
 			skipped_var += 1
 			continue
 
