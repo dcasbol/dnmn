@@ -51,27 +51,28 @@ def main():
 		fn_list = [ fn_list[i] for i in indices ]
 		var_list = [ var_list[i] for i in indices ]
 
-
 	N_VALUES = args.n_values
-	N_PER_SLOT = int(N_VALUES/N_SLOTS)
 	min_v = min(value_list)
 	max_v = max(value_list)
 	displ = -min_v
 	scale = 1./(max_v-min_v+1e-10)
 
 	n_list = [0]*N_SLOTS
-	sel_values = list()
-	sel_filenames = list()
-	sel_indices   = set()
-	while len(sel_values) < N_VALUES and N_PER_SLOT < N_VALUES:
-		for idx, (v, fn) in enumerate(zip(value_list, fn_list)):
-			i = int(len(n_list)*(v+displ)*scale)
-			if n_list[i] < N_PER_SLOT and idx not in sel_indices:
-				n_list[i] += 1
-				sel_indices.add(idx)
-				sel_values.append(v)
-				sel_filenames.append(fn)
-		N_PER_SLOT += 1
+	sel_indices = [ list() for i in range(N_SLOTS) ]
+	for idx, v in enumerate(value_list):
+		i = int(N_SLOTS*(v+displ)*scale)
+		n_list[i] += 1
+		sel_indices[i].append(idx)
+	i = 0
+	distr_indices = list()
+	while len(distr_indices) < N_VALUES:
+		for idcs in sel_indices:
+			if i < len(idcs):
+				distr_indices.append(idcs[i])
+		i += 1
+	sel_indices = distr_indices
+	sel_values  = [ value_list[i] for i in sel_indices ]
+	sel_filenames = [ fn_list[i] for i in sel_indices ]
 
 	print('{} selected from {}'.format(len(sel_values), len(value_list)))
 
