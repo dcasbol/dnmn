@@ -63,7 +63,7 @@ class HyperOptimizer(object):
 		)
 
 		test = self._runner_cl(
-			max_epochs    = 30,
+			max_epochs    = 100,
 			batch_size    = batch_size,
 			learning_rate = learning_rate,
 			dropout       = dropout,

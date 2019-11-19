@@ -181,7 +181,7 @@ class Runner(object):
 		else:
 			self._n_worse += 1
 
-		return self._earl_stop and self._n_worse >= max(3, (self._epoch+1)//3)
+		return self._earl_stop and self._n_worse >= max(5, (self._epoch+1)//3)
 
 	def save_model(self, filename):
 		self._model.save(filename)
