@@ -1,3 +1,4 @@
+import os
 import torch
 import json
 import numpy as np
@@ -222,8 +223,9 @@ class GPUScheduler(object):
 		env = os.environ.copy()
 		if 'CUDA_VISIBLE_DEVICES' in env:
 			del env['CUDA_VISIBLE_DEVICES']
-		command = 'import sys; import torch; sys.exit(torch.cuda.device_count()'
+		command = 'import sys; import torch; sys.exit(torch.cuda.device_count())'
 		self._num_gpus = subprocess.run(['python','-c',command], env=env).returncode
+		print(self._num_gpus, 'GPUs found')
 		assert self._num_gpus > 0, 'No GPUs were found in system'
 
 	def __enter__(self):
@@ -231,7 +233,7 @@ class GPUScheduler(object):
 			if not os.path.exists(self._book_file):
 				status = { gpu_id : None for gpu_id in range(self._num_gpus) }
 			else:
-				with open(self._book_file):
+				with open(self._book_file) as fd:
 					status = json.load(fd)
 			booked_id = None
 			for gpu_id, booked_script  in status.items():
@@ -242,14 +244,15 @@ class GPUScheduler(object):
 			status[booked_id] = self._script_name
 			with open(self._book_file,'w') as fd:
 				json.dump(status, fd)
+		self._booked_id = booked_id
 		return booked_id
 
 	def __exit__(self, type, value, traceback):
 		with ILock(self._book_file):
 			with open(self._book_file) as fd:
 				status = json.load(fd)
-			assert status[gpu_id] == self._script_name,\
+			assert status[self._booked_id] == self._script_name,\
 				'Failed to free GPU: an unexpected script name was encountered'
-			status[gpu_id] = None
+			status[self._booked_id] = None
 			with open(self._book_file,'w') as fd:
 				json.dump(status, fd)
