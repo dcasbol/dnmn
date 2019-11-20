@@ -40,6 +40,7 @@ class HyperOptimizer(object):
 
 		self._res = None
 		self._x0 = self._y0 = None
+		self._random_starts = 20
 		if os.path.exists(self._path_res):
 			print('Found previous skopt result. Resuming.')
 			self._res = skopt.load(self._path_res)
@@ -47,6 +48,7 @@ class HyperOptimizer(object):
 			self._y0 = self._res.func_vals
 			self._best_acc = self._res.fun
 			self._num_evals = len(self._y0)
+			self._random_starts = max(0, self._random_starts-len(self._x0))
 
 	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
 
@@ -116,7 +118,7 @@ class HyperOptimizer(object):
 			verbose = True,
 			x0 = self._x0, y0 = self._y0,
 			callback = callback,
-			n_random_starts = 20,
+			n_random_starts = self._random_starts,
 			n_calls = 50
 		)
 
