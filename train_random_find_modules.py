@@ -27,10 +27,10 @@ if __name__ == '__main__':
 		assert not os.path.exists(base_name+'.pt'), "{!r} already exists".format(base_name)
 		
 		kwargs = dict(
-			max_epochs     = int(1+random()*9),
+			max_epochs     = int(1+random()*20),
 			batch_size     = int(16+random()*(512-16)),
-			learning_rate  = 1e-5+random()*(0.1-1e-5),
-			weight_decay   = random(),
+			learning_rate  = 10**(-5+random()*4),
+			weight_decay   = 10**(-10+random()*9),
 			dropout        = random()*0.9,
 			early_stopping = False
 		)
