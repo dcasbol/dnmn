@@ -11,16 +11,16 @@ def get_args():
 	descr = """Create JSON with selected Find modules for correlation plot"""
 	parser = argparse.ArgumentParser(description=descr)
 	parser.add_argument('--input-pattern', default='find-rnd/find-rnd*.json')
-	# 2*std < 0.1 --> std < 0.05 --> var < 2.5e-3
-	parser.add_argument('--max-variance', type=float, default=2.5e-3)
+	parser.add_argument('--max-std', type=float, default=0.005)
 	parser.add_argument('--n-values', type=int, default=30)
 	return parser.parse_args()
 
-def main():
-
-	args = get_args()
+def main(args):
 
 	glob_list  = glob(args.input_pattern)
+
+	max_variance = args.max_std**2
+
 	var_list   = list()
 	value_list = list()
 	fn_list    = list()
@@ -28,41 +28,41 @@ def main():
 	for fn in glob_list:
 		with open(fn) as fd:
 			d = json.load(fd)
-		if d['top_1'] < MIN_VALUE:
-			skipped_acc += 1
-			continue
-		if d.get('var', 0) > args.max_variance:
-			skipped_var += 1
+
+		skip_acc = d['top_1'] < MIN_VALUE
+		skip_var = d['var'] > max_variance
+		skipped_acc += int(skip_acc)
+		skipped_var += int(skip_var)
+		if skip_acc or skip_var:
 			continue
 
 		value_list.append(d['top_1'])
+		var_list.append(d['var'])
 		fn_list.append(fn)
-		if 'var' in d:
-			var_list.append(d['var'])
 
 	for n, reason in [(skipped_acc, 'accuracy'), (skipped_var, 'variance')]:
 		if n == 0: continue
-		print('{} values skipped due to {} constraints'.format(n, reason))
+		print('{} values violated {} constraints'.format(n, reason))
+	if skipped_acc + skipped_var > 0:
+		print('{} skipped values in total'.format(len(glob_list)-len(value_list)))
 
 	# Sort by variance
-	if len(var_list) > 0:
-		indices = sorted(list(range(len(value_list))), key=lambda i: var_list[i])
-		value_list = [ value_list[i] for i in indices ]
-		fn_list = [ fn_list[i] for i in indices ]
-		var_list = [ var_list[i] for i in indices ]
+	indices = sorted(range(len(value_list)), key=lambda i: var_list[i])
+	value_list = [ value_list[i] for i in indices ]
+	fn_list    = [ fn_list[i]    for i in indices ]
+	var_list   = [ var_list[i]   for i in indices ]
 
 	N_VALUES = args.n_values
 	min_v = min(value_list)
 	max_v = max(value_list)
 	displ = -min_v
 	scale = 1./(max_v-min_v+1e-10)
+	get_slot = lambda v: int(N_SLOTS*(v+displ)*scale)
 
-	n_list = [0]*N_SLOTS
-	sel_indices = [ list() for i in range(N_SLOTS) ]
+	slots = [ list() for i in range(N_SLOTS) ]
 	for idx, v in enumerate(value_list):
-		i = int(N_SLOTS*(v+displ)*scale)
-		n_list[i] += 1
-		sel_indices[i].append(idx)
+		slots[get_slot(v)].append(idx)
+		
 	i = 0
 	distr_indices = list()
 	while len(distr_indices) < N_VALUES:
@@ -108,4 +108,4 @@ def main():
 			json.dump(data, fd)
 
 if __name__ == '__main__':
-	main()
+	main(get_args())
