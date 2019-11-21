@@ -62,15 +62,14 @@ def main(args):
 	slots = [ list() for i in range(N_SLOTS) ]
 	for idx, v in enumerate(value_list):
 		slots[get_slot(v)].append(idx)
-		
+
 	i = 0
-	distr_indices = list()
-	while len(distr_indices) < N_VALUES:
-		for idcs in sel_indices:
+	sel_indices = list()
+	while len(sel_indices) < N_VALUES:
+		for idcs in slots:
 			if i < len(idcs):
-				distr_indices.append(idcs[i])
+				sel_indices.append(idcs[i])
 		i += 1
-	sel_indices = distr_indices
 	sel_values  = [ value_list[i] for i in sel_indices ]
 	sel_filenames = [ fn_list[i] for i in sel_indices ]
 
