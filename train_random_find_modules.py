@@ -41,5 +41,6 @@ if __name__ == '__main__':
 
 		kwargs['top_1'] = runner.last_acc
 		kwargs['var']   = runner.last_var
+		kwargs['agreement'] = runner.last_agreement
 		with open(base_name+'.json', 'w') as fd:
 			json.dump(kwargs, fd)

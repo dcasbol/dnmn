@@ -24,6 +24,7 @@ def main(args):
 	var_list   = list()
 	value_list = list()
 	fn_list    = list()
+	agr_list   = list()
 	skipped_acc = skipped_var = 0
 	for fn in glob_list:
 		with open(fn) as fd:
@@ -31,14 +32,15 @@ def main(args):
 
 		skip_acc = d['top_1'] < MIN_VALUE
 		skip_var = d['var'] > max_variance
-		skipped_acc += int(skip_acc)
-		skipped_var += int(skip_var)
 		if skip_acc or skip_var:
+			skipped_acc += int(skip_acc)
+			skipped_var += int(skip_var)
 			continue
 
 		value_list.append(d['top_1'])
 		var_list.append(d['var'])
 		fn_list.append(fn)
+		agr_list.append(d.get('agreement',0))
 
 	for n, reason in [(skipped_acc, 'accuracy'), (skipped_var, 'variance')]:
 		if n == 0: continue
@@ -47,10 +49,12 @@ def main(args):
 		print('{} skipped values in total'.format(len(glob_list)-len(value_list)))
 
 	# Sort by variance
+	select = lambda l, idcs: [ l[i] for i in idcs ]
 	indices = sorted(range(len(value_list)), key=lambda i: var_list[i])
-	value_list = [ value_list[i] for i in indices ]
-	fn_list    = [ fn_list[i]    for i in indices ]
-	var_list   = [ var_list[i]   for i in indices ]
+	value_list = select(value_list, indices)
+	fn_list    = select(fn_list, indices)
+	var_list   = select(var_list, indices)
+	agr_list   = select(agr_list, indices)
 
 	N_VALUES = args.n_values
 	min_v = min(value_list)
@@ -91,6 +95,11 @@ def main(args):
 
 		sel_vars = [ var_list[i] for i in sel_indices ]
 		plt.scatter(sel_values, sel_vars, alpha=0.5)
+		plt.show()
+
+		plt.figure()
+		sel_agrs = select(agr_list, indices)
+		plt.scatter(sel_values, sel_agrs, alpha=0.5)
 	plt.show()
 
 	if input('Write to JSON file? ').lower() in {'y','yes'}:
