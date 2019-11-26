@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
 	bs, lr, do, wd = skopt.load(args.skopt_res).x
 	runner = NMNRunner(
-		max_epochs    = 40,
+		max_epochs    = 100,
 		validate      = True,
 		batch_size    = int(bs),
 		learning_rate = lr,
