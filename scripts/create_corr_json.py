@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from glob import glob
 
 MIN_VALUE  = 0.01
-N_SLOTS    = 10
+N_SLOTS    = 20
 
 def get_args():
 	descr = """Create JSON with selected Find modules for correlation plot"""
@@ -93,12 +93,12 @@ def main(args):
 		excl_vars   = [ var_list[i] for i in excl_indices ]
 		plt.scatter(excl_values, excl_vars, c='grey', alpha=0.5)
 
-		sel_vars = [ var_list[i] for i in sel_indices ]
+		sel_vars = select(var_list, sel_indices)
 		plt.scatter(sel_values, sel_vars, alpha=0.5)
 		plt.show()
 
 		plt.figure()
-		sel_agrs = select(agr_list, indices)
+		sel_agrs = select(agr_list, sel_indices)
 		plt.scatter(sel_values, sel_agrs, alpha=0.5)
 	plt.show()
 
