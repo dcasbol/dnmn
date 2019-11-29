@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
 		base_name = BASE_PAT.format(i)
 		assert not os.path.exists(base_name+'.pt'), "{!r} already exists".format(base_name)
-		
+
 		kwargs = dict(
 			max_epochs     = int(1+random()*20),
 			batch_size     = int(16+random()*(512-16)),
@@ -41,6 +41,5 @@ if __name__ == '__main__':
 
 		kwargs['top_1'] = runner.last_acc
 		kwargs['var']   = runner.last_var
-		kwargs['agreement'] = runner.last_agreement
 		with open(base_name+'.json', 'w') as fd:
 			json.dump(kwargs, fd)
