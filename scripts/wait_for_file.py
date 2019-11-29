@@ -1,6 +1,6 @@
-import os
 import sys
 import time
+import glob
 import argparse
 
 def get_args():
@@ -13,7 +13,7 @@ def get_args():
 
 def main(args):
 	t0 = time.time()
-	while not os.path.exists(args.filename):
+	while len(glob.glob(args.filename)) == 0:
 		time.sleep(args.check_interval)
 		if args.time_limit > 0 and time.time()-t0 > args.time_limit:
 			sys.exit(1)
@@ -21,4 +21,3 @@ def main(args):
 
 if __name__ == '__main__':
 	main(get_args())
-	
