@@ -11,7 +11,7 @@ def get_args():
 	descr = """Create JSON with selected Find modules for correlation plot"""
 	parser = argparse.ArgumentParser(description=descr)
 	parser.add_argument('--input-pattern', default='find-rnd/find-rnd*.json')
-	parser.add_argument('--max-std', type=float, default=0.005)
+	parser.add_argument('--max-std', type=float, default=0.07)
 	parser.add_argument('--n-values', type=int, default=30)
 	return parser.parse_args()
 
