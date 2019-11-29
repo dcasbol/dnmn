@@ -191,8 +191,6 @@ class GaugeFind(BaseModule):
 			mean = preds.mean(1)
 			idx  = mean.argmax(1)
 			var  = preds[torch.arange(B),:,idx].var(1)
-			agr  = (preds.argmax(2, keepdim=True)==idx.unsqueeze(1)).float().mean(1)
-			self._agreement = agr.detach()
 			return mean, var
 
 	def save(self, filename):
@@ -200,8 +198,3 @@ class GaugeFind(BaseModule):
 
 	def load(self, filename):
 		self._find.load(filename)
-
-	@property
-	def agreement(self):
-		return self._agreement
-	

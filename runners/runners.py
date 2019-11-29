@@ -33,7 +33,6 @@ class FindRunner(Runner):
 		)
 		if not self._model.training:
 			result['output'], result['var'] = pred
-			result['agreement'] = self._model.agreement
 		return result
 
 	def _preview(self, mean_loss):

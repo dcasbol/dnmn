@@ -138,7 +138,7 @@ class Runner(object):
 		self._clock['val_time'].start()
 		print('Running validation...')
 		is_gauge = self._model.NAME == GaugeFind.NAME
-		N = top1 = var = agr = 0
+		N = top1 = var = 0
 
 		self._model.eval()
 		with torch.no_grad():
@@ -151,13 +151,11 @@ class Runner(object):
 				top1 += util.top1_accuracy(output, label) * B
 				if is_gauge:
 					var += result['var'].sum().item()
-					agr += result['agreement'].sum().item()
 		self._model.train()
 		
 		self._logger.log(top_1 = top1/N)
 		if is_gauge:
 			self._logger.log(var = var/N)
-			self._logger.log(agreement = agr/N)
 		print('...validation done')
 		self._logger.print(exclude=['raw_time', 'time', 'epoch', 'loss'])
 		self._clock['val_time'].stop()
@@ -171,6 +169,9 @@ class Runner(object):
 			return False
 
 		acc = self._logger.last('top_1')
+		if self._model.NAME == GaugeFind.NAME:
+			var = self._logger.last('var')
+			acc = acc if var < MAX_VARIANCE else 0.0
 
 		if self._best_acc is None or acc > self._best_acc:
 			self._best_acc = acc
