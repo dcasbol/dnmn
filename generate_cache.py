@@ -1,4 +1,5 @@
 import os
+import shutil
 import json
 import torch
 import argparse
@@ -51,10 +52,16 @@ if __name__ == '__main__':
 	parser.add_argument('find_module', type=str)
 	parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='train2014')
 	parser.add_argument('--batch-size', type=int, default=256)
+	parser.add_argument('--overwrite', action='store_true')
 	args = parser.parse_args()
 
-	assert not os.path.exists('./cache/{}'.format(args.dataset)),\
-		"Please remove cache/{} dir before proceeding.".format(args.dataset)
+	dirname = './cache/{}'.format(args.dataset)
+
+	if args.overwrite:
+		shutil.rmtree(dirname, ignore_errors=True)
+
+	assert not os.path.exists(dirname),\
+		"Remove {!r} or run with --overwrite flag".format(dirname)
 	for name in ['hmaps', 'attended']:
 		os.makedirs('./cache/{}/{}'.format(args.dataset, name))
 
