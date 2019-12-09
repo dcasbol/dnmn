@@ -24,7 +24,6 @@ if __name__ == '__main__':
 	parser.add_argument('--measure')
 	parser.add_argument('--nmn')
 	parser.add_argument('--output', default='results.json')
-	parser.add_argument('--find-mode', choices=['pre', 'post', 'softmax'], default=None)
 	args = parser.parse_args()
 
 	modules = ['encoder', 'find', 'describe', 'measure']
@@ -40,7 +39,7 @@ if __name__ == '__main__':
 		shuffle    = False
 	)
 
-	nmn = NMN(find_mode=args.find_mode)
+	nmn = NMN()
 	if args.nmn is not None:
 		nmn.load(args.nmn)
 	else:
