@@ -1,24 +1,21 @@
 import os
+import sys
 import argparse
 import json
 import skopt
 from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
 from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
 import torch
-torch.cuda.empty_cache()
 
-def get_args():
-
+def get_args(args=None):
 	parser = argparse.ArgumentParser(description='Train a Module')
 	parser.add_argument('--corr-data', default='gauge_corr_data.json')
 	parser.add_argument('--find-pt-dir', default='find-rnd')
 	parser.add_argument('--skopt-res', default='hyperopt/nmn/nmn-res.gz')
-	return parser.parse_args()
+	return parser.parse_args(args)
 
 
-if __name__ == '__main__':
-
-	args = get_args()
+def main(args):
 
 	def read():
 		with open(args.corr_data) as fd:
@@ -59,3 +56,6 @@ if __name__ == '__main__':
 
 	print('Best validation accuracy:', runner.best_acc)
 	print('Achieved at epoch', runner.best_epoch)
+
+if __name__ == '__main__':
+	main(get_args())
