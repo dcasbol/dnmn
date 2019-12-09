@@ -8,6 +8,7 @@ cache/*/
 results
 temp/
 hyperopt/
+run-queue/
 
 # PyTorch files
 *.pt

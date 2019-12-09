@@ -1,13 +1,13 @@
 import os
 import json
 import torch
+import subprocess
 from misc.util import GPUScheduler
 from glob import glob
 from ilock import ILock
 
 QUEUE_DIR = 'run-queue'
 LOCK_NAME = 'run-next'
-GPU_LOCKS = QUEUE_DIR+'/gpu-locks.json'
 
 def pick_script():
 	assert os.path.exists(QUEUE_DIR), "{} folder doesn't exist".format(QUEUE_DIR)
@@ -20,7 +20,7 @@ def pick_script():
 		sdir, sname = os.path.split(full_sname)
 		new_sname = os.path.join(sdir, 'RUNNING-'+sname)
 		os.rename(full_sname, new_sname)
-		return old_sname, new_sname
+		return full_sname, new_sname
 
 def main():
 
@@ -37,12 +37,12 @@ def main():
 		if 'CUDA_VISIBLE_DEVICES' in env:
 			del env['CUDA_VISIBLE_DEVICES']
 		subprocess.run(['sh', sel_sname], env=env)
-		print('Execution finished')
+		print('\nExecution finished')
 
 		done_sname = os.path.join(sdir, 'DONE-'+sname)
 		os.rename(sel_sname, done_sname)
 
-	print('GPU {} is now free', gpu_id)
+	print('GPU {} is now free'.format(gpu_id))
 
 if __name__ == '__main__':
 	main()
