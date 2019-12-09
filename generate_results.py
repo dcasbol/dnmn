@@ -17,7 +17,7 @@ if __name__ == '__main__':
 		Generate test results for a NMN (json file).
 		User must provide either the file for the whole NMN or the file for each module.
 		""")
-	parser.add_argument('set_name', choices=['train2014', 'val2014', 'test2015'])
+	parser.add_argument('set_name', choices=['val2014', 'test2015'])
 	parser.add_argument('--encoder')
 	parser.add_argument('--find')
 	parser.add_argument('--describe')
@@ -31,7 +31,8 @@ if __name__ == '__main__':
 	modules_fn = [ getattr(args, name) for name in modules ]
 	assert args.nmn is not None or None not in modules_fn, 'Load whole NMN or all its modules.'
 
-	dataset = VQANMNDataset(set_names = args.set_name, answers = False)
+	kwargs = dict(start=0.2) if args.set_name == 'val2014' else {}
+	dataset = VQANMNDataset(set_names=args.set_name, answers=False, **kwargs)
 	batch_size = max_divisor_batch_size(len(dataset), 256)
 	loader = DataLoader(dataset,
 		batch_size = batch_size,
