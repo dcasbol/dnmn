@@ -7,7 +7,7 @@ import pickle
 import subprocess
 from scipy.sparse import csr_matrix
 from collections import defaultdict
-from misc.indices import YESNO_QWORDS, OR_QWORD
+from misc.indices import YESNO_QWORDS, OR_QWORD, UNK_ID
 from misc.constants import *
 from ilock import ILock
 
@@ -84,7 +84,9 @@ def values_to_distribution(values, size):
 	return distr
 
 def top1_accuracy(pred, label):
-	return (pred.argmax(1) == label).float().mean().item()
+	y = pred.argmax(1)
+	hits = (y == label) & (y != UNK_ID)
+	return hits.float().mean().item()
 
 def inset_accuracy(pred, label_dist):
 	idx = torch.arange(pred.size(0))
