@@ -43,7 +43,12 @@ accuracyFile, evalQAFile, evalQuesTypeFile, evalAnsTypeFile = [ res_dir % ft for
 vqa = VQA(annFile, quesFile)
 vqaRes = vqa.loadRes(args.result_file, quesFile)
 vqaEval = VQAEval(vqa, vqaRes, n=2) # n -> decimal places
-vqaEval.evaluate() 
+quesIds = None
+if args.set_name == 'val2014':
+	quesIds = [ quesId for quesId in vqaEval.params['question_id'] ]
+	quesIds.sort()
+	quesIds = quesIds[int(0.2*len(quesIds)):]
+vqaEval.evaluate(quesIds) 
 
 print "\n"
 print "Overall Accuracy is: %.02f\n" % vqaEval.accuracy['overall']
