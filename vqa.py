@@ -330,9 +330,9 @@ class VQANMNDataset(VQADataset):
 		if self._skip_answers:
 			return sample + (datum['question_id'], True)
 
-		label = majority_label(datum['answers'])
+		labels = datum['answers']
 
-		return sample + (label,)
+		return sample + (labels,)
 
 
 def nmn_collate_fn(data):
@@ -340,9 +340,9 @@ def nmn_collate_fn(data):
 	has_labels = len(unzipped) == 8
 	questions, lengths, yesno, features, root_idx, indices, num_idx = unzipped[:7]
 	if has_labels:
-		label = unzipped[-1]
+		labels = unzipped[-1]
 	else:
-		qids  = unzipped[-2]
+		qids   = unzipped[-2]
 
 	max_len   = max(lengths)
 	questions = [ q + [NULL_ID]*(max_len-l) for q, l in zip(questions, lengths) ]
@@ -354,7 +354,7 @@ def nmn_collate_fn(data):
 
 	batch = (lengths, yesno, features, root_idx)
 	if has_labels:
-		batch += (label,)
+		batch += (labels,)
 	batch = default_collate(tuple(zip(*batch)))
 
 	batch_dict = dict(

@@ -17,9 +17,14 @@ class NMN(BaseModule):
 		self._encoder  = QuestionEncoder(dropout=dropout)
 		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
 
-	def loss(self, x, y):
-		p = x[torch.arange(x.size(0)), y]
-		return -(p+1e-10).log().mean()
+	def loss(self, x, labels):
+		loss_list = list()
+		B_idx = torch.arange(x.size(0))
+		for y in labels:
+			p  = x[B_idx, y]
+			ce = -(p+1e-10).log().mean()
+			loss_list.append(ce)
+		return sum(loss_list)
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 
