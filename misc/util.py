@@ -84,9 +84,11 @@ def values_to_distribution(values, size):
 	return distr
 
 def top1_accuracy(pred, label):
-	y = pred.argmax(1)
+	y = pred.argmax(1).view(-1,1)
 	hits = (y == label) & (y != UNK_ID)
-	return hits.float().mean().item()
+	hits = hits.float().sum(1)/3.0
+	hits = torch.min(hits, torch.ones([], device=DEVICE))
+	return hits.mean().item()
 
 def inset_accuracy(pred, label_dist):
 	idx = torch.arange(pred.size(0))

@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from misc.util import cudalize, DEVICE, USE_CUDA, generate_hmaps
 from modules import Find, Describe, Measure, QuestionEncoder, BaseModule
-from misc.indices import ANSWER_INDEX
+from misc.indices import ANSWER_INDEX, UNK_ID
 
 
 class NMN(BaseModule):
@@ -20,9 +20,11 @@ class NMN(BaseModule):
 	def loss(self, x, labels):
 		loss_list = list()
 		B_idx = torch.arange(x.size(0))
-		for y in labels:
+		for y in labels.t():
 			p  = x[B_idx, y]
-			ce = -(p+1e-10).log().mean()
+			mask = (y != UNK_ID).float()
+			ce = -(p+1e-10).log()
+			ce = (ce * mask).mean()
 			loss_list.append(ce)
 		return sum(loss_list)
 

@@ -330,7 +330,7 @@ class VQANMNDataset(VQADataset):
 		if self._skip_answers:
 			return sample + (datum['question_id'], True)
 
-		labels = datum['answers']
+		labels = np.array(datum['answers'])
 
 		return sample + (labels,)
 
