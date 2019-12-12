@@ -18,10 +18,15 @@ class BaseModule(nn.Module):
 			False : lambda x: x,
 			True  : lambda x: F.dropout2d(x, p=dropout, training=self.training)
 		}[dropout>0]
-		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
+		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='none')
 
-	def loss(self, pred, target):
-		return self._loss_fn(pred, target)
+	def loss(self, pred, labels):
+		loss_list = list()
+		for y in labels.t():
+			mask = (y != UNK_ID).float()
+			loss = (mask * self._loss_fn(pred, y)).mean()
+			loss_list.append(loss)
+		return sum(loss_list)
 
 	def save(self, filename):
 		torch.save(self.state_dict(), filename)

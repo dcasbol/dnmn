@@ -231,10 +231,9 @@ class VQARootModuleDataset(VQADataset):
 
 	def __getitem__(self, i):
 		datum = self._get_datum(i)
-		label = majority_label(datum['answers'])
+		labels = np.array(datum['answers'])
 		instance = datum['layouts_indices'][0]
-
-		return instance, label, datum
+		return instance, labels, datum
 
 
 class VQADescribeDataset(VQARootModuleDataset):
@@ -242,18 +241,18 @@ class VQADescribeDataset(VQARootModuleDataset):
 		super(VQADescribeDataset, self).__init__(*args, **kwargs, exclude='yesno')
 
 	def __getitem__(self, i):
-		instance, label, datum = super(VQADescribeDataset, self).__getitem__(i)
+		instance, labels, datum = super(VQADescribeDataset, self).__getitem__(i)
 		att = self._get_attended(datum)
-		return att, instance, label
+		return att, instance, labels
 
 class VQAMeasureDataset(VQARootModuleDataset):
 	def __init__(self, *args, **kwargs):
 		super(VQAMeasureDataset, self).__init__(*args, **kwargs, exclude='others')
 
 	def __getitem__(self, i):
-		instance, label, datum = super(VQAMeasureDataset, self).__getitem__(i)
+		instance, labels, datum = super(VQAMeasureDataset, self).__getitem__(i)
 		hmap = self._get_hmap(datum)
-		return hmap, instance, label
+		return hmap, instance, labels
 
 class VQAEncoderDataset(VQADataset):
 
@@ -261,10 +260,10 @@ class VQAEncoderDataset(VQADataset):
 		super(VQAEncoderDataset, self).__init__(*args, **kwargs)
 
 	def __getitem__(self, i):
-		datum = self._get_datum(i)
+		datum    = self._get_datum(i)
 		question = datum['question']
-		label = majority_label(datum['answers'])
-		return question, len(question), label
+		labels   = np.array(datum['answers'])
+		return question, len(question), labels
 
 def encoder_collate_fn(data):
 	questions, lengths, labels = zip(*data)
@@ -296,10 +295,10 @@ class VQAGaugeFindDataset(VQADataset):
 			target_1 = target_list[0]
 			target_2 = 0
 
-		yesno = is_yesno(datum['question'])
-		label = majority_label(datum['answers'])
+		yesno  = is_yesno(datum['question'])
+		labels = np.array(datum['answers'])
 		
-		output = (features, target_1, target_2, yesno, label)
+		output = (features, target_1, target_2, yesno, labels)
 		if self._metadata:
 			target_str = FIND_INDEX.get(target_1)
 			if target_2 > 0:
