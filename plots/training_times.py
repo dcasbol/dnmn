@@ -14,8 +14,9 @@ def main(args):
 	with open(args.input_log) as fd:
 		data = json.load(fd)
 
+	suf = '(raw)' if args.raw_times else '(forward-backward)'
 	plt.figure()
-	plt.title('Training times')
+	plt.title('Training times '+suf)
 	plt.ylabel('Hours')
 
 	NAMES = ['find', 'cache', 'measure', 'describe', 'encoder']
