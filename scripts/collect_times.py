@@ -1,38 +1,42 @@
-
+import os
 import argparse
 import json
+from glob import glob
+from collections import defaultdict
 
 NAMES = ['nmn', 'encoder', 'find', 'measure', 'describe']
 
 def get_args():
-	descr = """Collect all training times in a single JSON file."""
+	descr = """Collect all time data from the hyperparameter optimization
+	in a single JSON file."""
 	parser = argparse.ArgumentParser(description=descr)
-	for name in NAMES:
-		parser.add_argument('--'+name)
-	parser.add_argument('--cache')
-	parser.add_argument('--output-log', default='training-times.json')
+	parser.add_argument('hpo_dir', default='hyperopt')
+	parser.add_argument('--cache-logs', nargs=2)
+	parser.add_argument('--output-log', default='hpo-times.json')
 	return parser.parse_args()
 
 def main(args):
 
 	data = dict(
-		time     = dict(),
-		raw_time = dict()
+		time     = defaultdict(lambda: 0.0),
+		raw_time = defaultdict(lambda: 0.0)
 	)
 
 	for name in NAMES:
-		fn = getattr(args, name)
-		assert fn is not None, 'Logfile for {} was not specified'.format(name)
+		fn_pattern = os.path.join(args.hpo_dir, name, name+'-*_log.json')
+		logfiles   = glob(fn_pattern)
+		logfiles.sort()
+		fn = logfiles[-1]
 		with open(fn) as fd:
-			d = json.load(fd)
-		data['time'][name]     = d['time'][-1]
-		data['raw_time'][name] = d['raw_time'][-1]
+			log = json.load(fd)
+		for k in ['time', 'raw_time']:
+			data[k][name] += log[k][-1]
 
-	assert args.cache is not None, 'Caching logfile was not specified'
-	with open(args.cache) as fd:
-		d = json.load(fd)
-	data['time']['cache']     = d['time']
-	data['raw_time']['cache'] = d['raw_time']
+	for fn in args.cache_logs:
+		with open(fn) as fd:
+			log = json.load(fd)
+		for k in ['time', 'raw_time']:
+			data[k]['cache'] += log[k]
 
 	with open(args.output_log, 'w') as fd:
 		json.dump(data, fd)
