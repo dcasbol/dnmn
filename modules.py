@@ -20,7 +20,21 @@ class BaseModule(nn.Module):
 		}[dropout>0]
 		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='none')
 
-	def loss(self, pred, labels):
+	def loss(self, x, labels):
+		x = x.softmax(1)
+		loss_list  = list()
+		batch_size = x.size(0)
+		B_idx = torch.arange(batch_size)
+		for y in labels.t():
+			mask = (y != UNK_ID)
+			if not mask.any():
+				break
+			p  = x[B_idx, y][mask]
+			ce = -(p+1e-10).log().sum() / batch_size
+			loss_list.append(ce)
+		return sum(loss_list)
+
+	def loss_old(self, pred, labels):
 		loss_list = list()
 		for y in labels.t():
 			mask = (y != UNK_ID).float()

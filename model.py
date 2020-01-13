@@ -18,6 +18,22 @@ class NMN(BaseModule):
 		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
 
 	def loss(self, x, labels):
+
+
+	def loss(self, x, labels):
+		loss_list  = list()
+		batch_size = x.size(0)
+		B_idx = torch.arange(batch_size)
+		for y in labels.t():
+			mask = (y != UNK_ID)
+			if not mask.any():
+				break
+			p  = x[B_idx, y][mask]
+			ce = -(p+1e-10).log().sum() / batch_size
+			loss_list.append(ce)
+		return sum(loss_list)
+
+	def loss_old(self, x, labels):
 		loss_list = list()
 		B_idx = torch.arange(x.size(0))
 		for y in labels.t():
