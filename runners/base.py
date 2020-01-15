@@ -1,5 +1,6 @@
 import torch
 import misc.util as util
+import numpy as np
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset, VQADescribeDataset, VQAMeasureDataset
 from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
@@ -15,6 +16,9 @@ class Runner(object):
 		restore_pt=None, save=False, validate=True, suffix='',
 		learning_rate=1e-3, weight_decay=1e-5, dropout=0,
 		early_stopping=True):
+
+		# This seed makes weight initialization deterministic
+		self._seed()
 
 		self._max_epochs = max_epochs
 		self._save       = save
@@ -67,6 +71,12 @@ class Runner(object):
 		self._opt = torch.optim.Adam(self._model.parameters(),
 			lr=learning_rate, weight_decay=weight_decay)
 
+	def _seed(self):
+		torch.manual_seed(0)
+		np.random.seed(0)
+		torch.backends.cudnn.deterministic = True
+		torch.backends.cudnn.benchmark     = False
+
 	def _get_model(self):
 		raise NotImplementedError
 
@@ -77,6 +87,9 @@ class Runner(object):
 		raise NotImplementedError
 
 	def run(self):
+		# This seed ensures that training is deterministic
+		self._seed()
+
 		self._model = cudalize(self._model)
 		self._logger.save(self._log_filename) # For HPO
 		self._clock['raw_time'].start()
