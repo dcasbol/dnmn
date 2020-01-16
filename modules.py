@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, UNK_ID
 from misc.constants import *
-from misc.util import attend_features, generate_hmaps
+from misc.util import DEVICE, attend_features, generate_hmaps
 
 
 class BaseModule(nn.Module):
@@ -32,6 +32,8 @@ class BaseModule(nn.Module):
 			p  = x[B_idx, y][mask]
 			ce = -(p+1e-10).log().sum() / batch_size
 			loss_list.append(ce)
+		if loss_list == []:
+			return torch.zeros([], device=DEVICE, requires_grad=True)
 		return sum(loss_list)
 
 	def loss_old(self, pred, labels):

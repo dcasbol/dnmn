@@ -28,6 +28,8 @@ class NMN(BaseModule):
 			p  = x[B_idx, y][mask]
 			ce = -(p+1e-10).log().sum() / batch_size
 			loss_list.append(ce)
+		if loss_list == []:
+			return torch.zeros([], device=DEVICE, requires_grad=True)
 		return sum(loss_list)
 
 	def loss_old(self, x, labels):
