@@ -11,13 +11,16 @@ def get_args():
 	return parser.parse_args()
 
 def read_pickle(file_name):
-	with open(file_name, 'b') as fd:
+	with open(file_name, 'rb') as fd:
 		data = pickle.load(fd)
 	return data
 
 def write_pickle(file_name, data):
 	with open(file_name, 'wb') as fd:
 		pickle.dump(data, fd)
+
+class ResultObject:
+	pass
 
 class HyperOptimizer(object):
 
@@ -36,7 +39,7 @@ class HyperOptimizer(object):
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
 
-		with open(self._path_candidates):
+		with open(self._path_candidates) as fd:
 			self._candidates = json.load(fd)
 
 		self._runner_cl = dict(
@@ -47,9 +50,6 @@ class HyperOptimizer(object):
 			nmn      = NMNRunner
 		)[self._sel]
 
-		class ResultObject:
-			pass
-			
 		self._res = ResultObject()
 		self._res.x_iters   = list()
 		self._res.func_vals = list()
@@ -93,7 +93,7 @@ class HyperOptimizer(object):
 
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
 
-		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
+		print('Eval({}): {:.1f}-{}'.format(self._eval_idx, test.best_acc, res_suffix))
 		print('Best HPO acc is', self._best_acc)
 
 		modname = self._sel if self._sel != 'find' else 'gauge-find'
