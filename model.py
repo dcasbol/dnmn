@@ -22,26 +22,15 @@ class NMN(BaseModule):
 		batch_size = x.size(0)
 		B_idx = torch.arange(batch_size)
 		for y in labels.t():
-			mask = (y != UNK_ID)
+			mask = y != UNK_ID
 			if not mask.any():
 				break
 			p  = x[B_idx, y][mask]
-			ce = -(p+1e-10).log().sum() / batch_size
+			ce = -(p+1e-10).log().sum()
 			loss_list.append(ce)
 		if loss_list == []:
 			return torch.zeros([], device=DEVICE, requires_grad=True)
-		return sum(loss_list)
-
-	def loss_old(self, x, labels):
-		loss_list = list()
-		B_idx = torch.arange(x.size(0))
-		for y in labels.t():
-			p  = x[B_idx, y]
-			mask = (y != UNK_ID).float()
-			ce = -(p+1e-10).log()
-			ce = (ce * mask).mean()
-			loss_list.append(ce)
-		return sum(loss_list)
+		return sum(loss_list) / batch_size
 
 	def forward(self, features, question, length, yesno, root_inst, find_inst):
 

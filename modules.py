@@ -18,31 +18,20 @@ class BaseModule(nn.Module):
 			False : lambda x: x,
 			True  : lambda x: F.dropout2d(x, p=dropout, training=self.training)
 		}[dropout>0]
-		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='none')
+		self._loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
 
-	def loss(self, x, labels):
-		x = x.softmax(1)
+	def loss(self, pred, labels):
 		loss_list  = list()
-		batch_size = x.size(0)
-		B_idx = torch.arange(batch_size)
+		batch_size = pred.size(0)
 		for y in labels.t():
-			mask = (y != UNK_ID)
+			mask = y != UNK_ID
 			if not mask.any():
 				break
-			p  = x[B_idx, y][mask]
-			ce = -(p+1e-10).log().sum() / batch_size
-			loss_list.append(ce)
+			loss = self._loss_fn(pred[mask], y[mask])
+			loss_list.append(loss)
 		if loss_list == []:
 			return torch.zeros([], device=DEVICE, requires_grad=True)
-		return sum(loss_list)
-
-	def loss_old(self, pred, labels):
-		loss_list = list()
-		for y in labels.t():
-			mask = (y != UNK_ID).float()
-			loss = (mask * self._loss_fn(pred, y)).mean()
-			loss_list.append(loss)
-		return sum(loss_list)
+		return sum(loss_list) / batch_size
 
 	def save(self, filename):
 		torch.save(self.state_dict(), filename)
