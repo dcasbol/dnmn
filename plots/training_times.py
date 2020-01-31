@@ -1,5 +1,6 @@
 import json
 import argparse
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 def get_args():
@@ -9,6 +10,9 @@ def get_args():
 	parser.add_argument('--raw-times', action='store_true')
 	return parser.parse_args()
 
+
+NAMES = ['encoder', 'find', 'cache', 'measure', 'describe']
+
 def main(args):
 
 	with open(args.input_log) as fd:
@@ -16,10 +20,10 @@ def main(args):
 
 	suf = '(raw)' if args.raw_times else '(forward-backward)'
 	plt.figure()
+	sns.set_palette(sns.color_palette("Dark2"))
 	plt.title('Training times '+suf)
 	plt.ylabel('Hours')
 
-	NAMES = ['find', 'cache', 'measure', 'describe', 'encoder']
 	bottom = 0
 	width = 0.5
 	plots = list()
