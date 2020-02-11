@@ -2,7 +2,7 @@ import os
 import argparse
 import json
 from random import random
-from runners.runners import FindRunner
+from runners import FindRunner
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Train N random Find modules')
