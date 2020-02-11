@@ -1,6 +1,6 @@
 import argparse
-from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
-from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
+from runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
+from runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
 
 def get_args():
 

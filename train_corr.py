@@ -1,19 +1,19 @@
 import os
-import sys
 import argparse
 import json
-import skopt
-from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
-from runners.runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
-import torch
+import pickle
+from runners import NMNRunner
+
+
+class ResultObject:
+	pass
 
 def get_args(args=None):
 	parser = argparse.ArgumentParser(description='Train a Module')
 	parser.add_argument('--corr-data', default='gauge_corr_data.json')
 	parser.add_argument('--find-pt-dir', default='find-rnd')
-	parser.add_argument('--skopt-res', default='hyperopt/nmn/nmn-res.gz')
+	parser.add_argument('--hpo-res', default='hyperopt/nmn/nmn-res.dat')
 	return parser.parse_args(args)
-
 
 def main(args):
 
@@ -38,14 +38,17 @@ def main(args):
 		print('No more jobs left')
 		quit()
 
-	bs, lr, do, wd = skopt.load(args.skopt_res).x
+	with open(args.hpo_res, 'rb') as fd:
+		res = pickle.load(fd)
+	conf = res.x_iters[res.best_eval]
+
 	runner = NMNRunner(
 		max_epochs    = 100,
 		validate      = True,
-		batch_size    = int(bs),
-		learning_rate = lr,
-		dropout       = do,
-		weight_decay  = wd,
+		batch_size    = int(conf['batch_size']),
+		learning_rate = conf['learning_rate'],
+		dropout       = conf['dropout'],
+		weight_decay  = conf['weight_decay'],
 		find_pt       = pt_file
 	)
 	runner.run()

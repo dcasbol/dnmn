@@ -1,0 +1,20 @@
+from .base import Runner
+from modules import QuestionEncoder
+from loaders import EncoderLoader
+from misc.util import cudalize
+
+class EncoderRunner(Runner):
+
+	def _get_model(self):
+		return QuestionEncoder(dropout=self._dropout)
+
+	def _loader_class(self):
+		return EncoderLoader
+
+	def _forward(self, batch_data):
+		question, length, label = cudalize(*batch_data)
+		output = self._model(question, length)
+		return dict(
+			output = output,
+			label  = label
+		)
