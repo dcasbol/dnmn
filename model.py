@@ -9,13 +9,14 @@ class NMN(BaseModule):
 
 	NAME = 'nmn'
 
-	def __init__(self, dropout=0):
+	def __init__(self, dropout=0, modular=False):
 		super(NMN, self).__init__()
 		self._find     = Find()
 		self._describe = Describe(dropout=dropout)
 		self._measure  = Measure(dropout=dropout)
 		self._encoder  = QuestionEncoder(dropout=dropout)
 		self._modnames = [ m.NAME for m in [ Find, Describe, Measure, QuestionEncoder ] ]
+		self._modular  = modular
 
 	def loss(self, x, labels):
 		loss_list  = list()
@@ -54,6 +55,9 @@ class NMN(BaseModule):
 			other_fts  = features[other]
 			other_ans  = self._describe[other_inst](other_hmaps, other_fts)
 			root_pred[other] = other_ans
+
+		if self._modular:
+			return (root_pred+enc_pred).softmax(1)
 
 		root_pred = root_pred.softmax(1)
 		enc_pred  = self._encoder(question, length).softmax(1)

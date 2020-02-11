@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from misc.indices import FIND_INDEX, ANSWER_INDEX, QUESTION_INDEX, DESC_INDEX, UNK_ID
 from misc.constants import *
 from misc.util import DEVICE, attend_features, generate_hmaps
+import misc.util as util
 
 
 class BaseModule(nn.Module):
@@ -70,17 +71,22 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	def __init__(self, **kwargs):
+	def __init__(self, modular=False, **kwargs):
 		super(Find, self).__init__(dropout=0, **kwargs)
 		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
-		self._conv.weight.data.fill_(0.01)
+		if modular:
+			self._act_fn = nn.Sigmoid()
+		else:
+			self._act_fn = nn.ReLU()
+			self._conv.weight.data.fill_(0.01)
 
 	def forward(self, features):
 		c = self._get_instance()
 		B,D,H,W = features.size()
 		kernel = self._conv.weight[c]
 		group_feats = features.contiguous().view(1,B*D,H,W)
-		hmap = F.conv2d(group_feats, kernel, groups=B).relu().view(B,1,H,W)
+		hmap = F.conv2d(group_feats, kernel, groups=B)
+		hmap = self._act_fn(hmap).view(B,1,H,W)
 		return hmap
 
 	def loss(self, pred, target):
@@ -171,7 +177,7 @@ class GaugeFind(BaseModule):
 
 	NAME = 'gauge-find'
 
-	def __init__(self, dropout=0, **kwargs):
+	def __init__(self, dropout=0, modular=False, **kwargs):
 		super(GaugeFind, self).__init__(dropout=dropout)
 		self._classifier = nn.Sequential(
 			nn.Linear(IMG_DEPTH + MASK_WIDTH**2, 64, bias=False),
@@ -179,13 +185,14 @@ class GaugeFind(BaseModule):
 		)
 		self._find = Find(**kwargs)
 		self._forced_dropout = lambda x: F.dropout(x, p=0.3, training=True)
+		self._modular = modular
 
 	def forward(self, features, inst_1, inst_2, yesno):
 
 		features = self._dropout2d(features)
 
 		instances = [inst_1, inst_2] if (inst_2>0).any() else [inst_1]
-		hmap = generate_hmaps(self._find, instances, features)
+		hmap = generate_hmaps(self._find, instances, features, self._modular)
 
 		B = hmap.size(0)
 		yesno = yesno.view(B,1).float()

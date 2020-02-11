@@ -10,7 +10,8 @@ from loaders import GaugeFindLoader
 
 class FindRunner(Runner):
 
-	def __init__(self, visualize=0, **kwargs):
+	def __init__(self, visualize=0, modular=False, **kwargs):
+		self._modular   = modular
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
 		assert visualize == 0, 'Visualization not implemented yet.'
@@ -19,7 +20,7 @@ class FindRunner(Runner):
 			self._vis = MapVisualizer(visualize)
 
 	def _get_model(self):
-		return GaugeFind(dropout=self._dropout)
+		return GaugeFind(dropout=self._dropout, modular=self._modular)
 
 	def _loader_class(self):
 		return GaugeFindLoader
@@ -49,8 +50,6 @@ class FindRunner(Runner):
 	@property
 	def last_agreement(self):
 		return self._logger.last('agreement')
-	
-	
 
 class DescribeRunner(Runner):
 
@@ -86,12 +85,13 @@ class MeasureRunner(Runner):
 
 class UncachedRunner(Runner):
 
-	def __init__(self, find_pt='find.pt', **kwargs):
+	def __init__(self, find_pt='find.pt', modular=False, **kwargs):
 		super(UncachedRunner, self).__init__(**kwargs)
-		self._find = Find()
+		self._find = Find(modular=modular)
 		self._find.load_state_dict(torch.load(find_pt, map_location='cpu'))
 		self._find = cudalize(self._find)
 		self._find.eval()
+		self._modular = modular
 
 	def _loader_class(self):
 		return NMNLoader
@@ -103,7 +103,7 @@ class UncachedRunner(Runner):
 		inst = (inst,) if isinstance(inst, torch.Tensor) else inst
 
 		with torch.no_grad():
-			hmaps = generate_hmaps(self._find, inst, features)
+			hmaps = generate_hmaps(self._find, inst, features, self._modular)
 
 		return dict(
 			output = self._model[root_inst](hmaps, features),
@@ -138,9 +138,10 @@ class EncoderRunner(Runner):
 
 class NMNRunner(Runner):
 
-	def __init__(self, find_pt=None, **kwargs):
+	def __init__(self, find_pt=None, modular=False, **kwargs):
 		super(NMNRunner, self).__init__(**kwargs)
 		self._keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
+		self._modular = modular
 		if find_pt is not None:
 			self._model.load_module(Find.NAME, find_pt)
 			find_params = [ hash(p) for p in self._model._find.parameters() ]
@@ -150,7 +151,7 @@ class NMNRunner(Runner):
 				lr=lr, weight_decay=weight_decay)
 
 	def _get_model(self):
-		return NMN(dropout=self._dropout)
+		return NMN(dropout=self._dropout, modular=self._modular)
 
 	def _loader_class(self):
 		return NMNLoader

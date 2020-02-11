@@ -24,6 +24,8 @@ def get_args():
 		help='(find) Visualize an output heatmap every N%. 0 is disabled.')
 	parser.add_argument('--validate', action='store_true',
 		help='Run validation after every epoch')
+	parser.add_argument('--modular', action='store_true',
+		help='Use modular adaptations')
 	parser.add_argument('--find-pt')
 	return parser.parse_args()
 
@@ -41,6 +43,8 @@ if __name__ == '__main__':
 
 	kwargs = { k: v for k, v in vars(args).items() if v is not None }
 	del kwargs['selection']
+	if args.selection not in {'find', 'nmn'}:
+		del kwargs['modular']
 
 	runner = dict(
 		encoder  = EncoderRunner,
