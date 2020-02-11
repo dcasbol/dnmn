@@ -1,6 +1,5 @@
 import argparse
-from runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
-from runners import NMNRunner, DescribeRunnerUncached, MeasureRunnerUncached
+import runners
 
 def get_args():
 
@@ -47,13 +46,13 @@ if __name__ == '__main__':
 		del kwargs['modular']
 
 	runner = dict(
-		encoder  = EncoderRunner,
-		find     = FindRunner,
-		measure  = MeasureRunner,
-		describe = DescribeRunner,
-		nmn      = NMNRunner,
-		describe_uncached = DescribeRunnerUncached,
-		measure_uncached  = MeasureRunnerUncached
+		encoder  = runners.EncoderRunner,
+		find     = runners.FindRunner,
+		measure  = runners.MeasureRunner,
+		describe = runners.DescribeRunner,
+		nmn      = runners.NMNRunner,
+		describe_uncached = runners.DescribeRunnerUncached,
+		measure_uncached  = runners.MeasureRunnerUncached
 	)[args.selection](**kwargs)
 
 	runner.run()
