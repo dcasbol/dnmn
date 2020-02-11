@@ -139,9 +139,9 @@ class EncoderRunner(Runner):
 class NMNRunner(Runner):
 
 	def __init__(self, find_pt=None, modular=False, **kwargs):
+		self._modular = modular
 		super(NMNRunner, self).__init__(**kwargs)
 		self._keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
-		self._modular = modular
 		if find_pt is not None:
 			self._model.load_module(Find.NAME, find_pt)
 			find_params = [ hash(p) for p in self._model._find.parameters() ]

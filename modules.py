@@ -101,11 +101,10 @@ class Describe(InstanceModule):
 
 	def __init__(self, **kwargs):
 		super(Describe, self).__init__(**kwargs)
-		self._descr = list()
-		for i in range(len(DESC_INDEX)):
-			layer = nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
-			setattr(self, '_descr_%d' % i, layer)
-			self._descr.append(layer)
+		self._descr = nn.ModuleList([
+			nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+			for _ in range(len(DESC_INDEX))
+		])
 
 	def forward(self, hmap_or_attended, features=None):
 		if features is None:
@@ -131,15 +130,14 @@ class Measure(InstanceModule):
 
 	def __init__(self, **kwargs):
 		super(Measure, self).__init__(**kwargs)
-		self._measure = list()
-		for i in range(len(DESC_INDEX)):
-			layers =  nn.Sequential(
+		self._measure = nn.ModuleList([
+			nn.Sequential(
 				nn.Linear(MASK_WIDTH**2, HIDDEN_SIZE),
 				nn.ReLU(),
 				nn.Linear(HIDDEN_SIZE, len(ANSWER_INDEX))
 			)
-			setattr(self, '_measure_%d' % i, layers)
-			self._measure.append(layers)
+			for _ in range(len(DESC_INDEX))
+		])
 
 	def forward(self, mask, *dummy_args):
 		B = mask.size(0)
