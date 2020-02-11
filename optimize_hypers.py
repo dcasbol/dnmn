@@ -1,34 +1,46 @@
 import os
 import argparse
-import skopt
-from runners.runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
-from runners.runners import NMNRunner
+import pickle
+import json
+from runners import EncoderRunner, FindRunner, MeasureRunner, DescribeRunner
+from runners import NMNRunner
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Hyperparameter optimization')
 	parser.add_argument('selection', choices=['find', 'describe', 'measure', 'encoder', 'nmn'])
 	return parser.parse_args()
 
-SPACE = [
-	skopt.space.Integer(16, 512, name='batch_size'),
-	skopt.space.Real(1e-5, 0.1, name='learning_rate', prior='log-uniform'),
-	skopt.space.Real(0, 0.9, name='dropout'),
-	skopt.space.Real(1e-10, 1., name='weight_decay', prior='log-uniform')
-]
+def read_pickle(file_name):
+	with open(file_name, 'rb') as fd:
+		data = pickle.load(fd)
+	return data
+
+def write_pickle(file_name, data):
+	with open(file_name, 'wb') as fd:
+		pickle.dump(data, fd)
+
+class ResultObject:
+	pass
 
 class HyperOptimizer(object):
 
 	def __init__(self, selection):
 		self._sel = selection
+		self._path_candidates = 'hyperopt/hpo_candidates.json'
 		self._path_dir = 'hyperopt/{}'.format(selection)
-		self._path_res = '{}/{}-res.gz'.format(self._path_dir, selection)
-		self._num_evals = 0
-		self._best_pt = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
+		self._path_res = '{}/{}-res.dat'.format(self._path_dir, selection)
+		self._eval_idx = 0
+		self._best_pt  = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
 		self._best_acc = None
 		self._test_obj = None
 
+		assert os.path.exists('hyperopt/') and os.path.exists(self._path_candidates),\
+			"Missing hyperopt dir with file hpo_candidates.json"
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
+
+		with open(self._path_candidates) as fd:
+			self._candidates = json.load(fd)
 
 		self._runner_cl = dict(
 			encoder  = EncoderRunner,
@@ -38,31 +50,24 @@ class HyperOptimizer(object):
 			nmn      = NMNRunner
 		)[self._sel]
 
-		self._res = None
-		self._x0  = None
-		self._y0  = None
-		self._random_starts = 20
-		self._n_calls = 50
+		self._res = ResultObject()
+		self._res.x_iters   = list()
+		self._res.func_vals = list()
+		self._res.best_acc  = 0
+		self._res.best_eval = -1
 
 		if os.path.exists(self._path_res):
-			print('Found previous skopt result. Resuming.')
-			self._res = skopt.load(self._path_res)
-			self._x0  = self._res.x_iters
-			self._y0  = self._res.func_vals
-			self._best_acc = self._res.fun
-			self._num_evals = len(self._y0)
-			self._random_starts = max(0, self._random_starts-len(self._x0))
-			self._n_calls = self._n_calls - len(self._x0)
-			assert self._n_calls > 0, "Can't resume. Max. calls already reached."
+			print('Found previous HPO file. Resuming optimization.')
+			self._res = read_pickle(self._path_res)
+			self._best_acc = self._res.best_acc
+			self._eval_idx = len(self._res.func_vals)
+			assert self._eval_idx < len(self._candidates),\
+				"Can't resume. Max. calls already reached."
 
 	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
 
-		self._num_evals += 1
-
-		batch_size = int(batch_size) # Numpy int is problematic
-
 		suffix = 'hpo({n:02d})-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
-			n   = self._num_evals-1,
+			n   = self._eval_idx,
 			bs  = batch_size,
 			lr  = learning_rate,
 			do  = dropout,
@@ -70,7 +75,7 @@ class HyperOptimizer(object):
 		)
 
 		test = self._runner_cl(
-			max_epochs    = 100,
+			max_epochs    = 50,
 			batch_size    = batch_size,
 			learning_rate = learning_rate,
 			dropout       = dropout,
@@ -88,7 +93,7 @@ class HyperOptimizer(object):
 
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
 
-		print('Eval({}): {:.1f}-{}'.format(self._num_evals, test.best_acc, res_suffix))
+		print('Eval({}): {:.1f}-{}'.format(self._eval_idx, test.best_acc, res_suffix))
 		print('Best HPO acc is', self._best_acc)
 
 		modname = self._sel if self._sel != 'find' else 'gauge-find'
@@ -97,41 +102,32 @@ class HyperOptimizer(object):
 		new_fn  = os.path.join(self._path_dir, new_fn)
 		os.rename(json_fn, new_fn)
 
-		return -test.best_acc
-
-	def _save(self, res):
-		args = res.specs['args']
-		if 'func' in args:
-			del args['func']
-		if 'callback' in args:
-			del args['callback']
-		skopt.dump(res, self._path_res)
-		if self._test_obj is not None:
-			self._test_obj.save_model(self._best_pt)
-			self._test_obj = None
+		return test.best_acc
 
 	def run(self):
 
-		@skopt.utils.use_named_args(SPACE)
-		def obj_func(**kwargs):
-			return self._eval(**kwargs)
+		for i in range(self._eval_idx, len(self._candidates)):
+			print('Evaluation', i)
+			self._eval_idx = i
 
-		def callback(res):
-			return self._save(res)
+			acc = self._eval(**self._candidates[i])
 
-		res = skopt.gp_minimize(obj_func, SPACE,
-			verbose = True,
-			x0 = self._x0,
-			y0 = self._y0,
-			callback = callback,
-			n_random_starts = self._random_starts,
-			n_calls = self._n_calls
-		)
+			self._res.x_iters.append(self._candidates[i])
+			self._res.func_vals.append(acc)
+			if acc > self._res.best_acc:
+				self._res.best_acc  = acc
+				self._res.best_eval = i
+
+			write_pickle(self._path_res, self._res)
+			if self._test_obj is not None:
+				self._test_obj.save_model(self._best_pt)
+				self._test_obj = None
 
 		print('Hyperparameter Optimization ended.')
-		print('Best result:', res.fun)
-		print('Found at eval. index:', res.x_iters.index(res.x))
-		print('x:', res.x)
+		print('Best result:', self._res.best_acc)
+		print('Found at eval. index:', self._res.best_eval)
+		print('Best hyperparameters:')
+		print(self._candidates[self._res.best_eval])
 
 if __name__ == '__main__':
 
