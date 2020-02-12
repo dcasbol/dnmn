@@ -6,11 +6,13 @@ from misc.constants import RAW_IMAGE_FILE
 
 class MapVisualizer(object):
 
-	def __init__(self, visualization_period):
+	def __init__(self, visualization_period, vmin=None, vmax=None):
 		self._period = visualization_period
 		assert self._period > 0
 		self._count = 0
 		self._cmap = 'hot'
+		self._vmin = vmin
+		self._vmax = vmax
 		plt.figure()
 		plt.ion()
 		plt.show()
@@ -25,7 +27,11 @@ class MapVisualizer(object):
 
 		plt.subplot(1,2,1)
 		img = to_numpy(hmaps[0,0])
-		im = plt.imshow(img, cmap=self._cmap, vmin=np.amin(img), vmax=np.amax(img))
+		im = plt.imshow(img,
+			cmap = self._cmap,
+			vmin = np.amin(img) if self._vmin is None else self._vmin,
+			vmax = np.amax(img) if self._vmax is None else self._vmax
+		)
 		plt.colorbar(im, orientation='horizontal', pad=0.05)
 		plt.axis('off')
 

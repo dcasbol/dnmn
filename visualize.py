@@ -30,7 +30,7 @@ find = Find(modular=args.modular)
 find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
 find.eval()
 
-vis = MapVisualizer(1)
+vis = MapVisualizer(1, vmin = 0, vmax = 1 if args.modular else None)
 
 for features, instance, instance_str, input_set, input_id in loader:
 
