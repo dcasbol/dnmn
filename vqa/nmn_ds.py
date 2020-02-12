@@ -1,5 +1,6 @@
 from .vqa_ds import VQADataset
 from misc.util import is_yesno
+from misc.indices import NULL_ID
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import default_collate

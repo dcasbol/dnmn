@@ -1,5 +1,6 @@
 from .base_module import BaseModule
 from .find import Find
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from misc.constants import *

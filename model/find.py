@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 from .instance_module import InstanceModule
 from misc.indices import FIND_INDEX
 from misc.constants import *

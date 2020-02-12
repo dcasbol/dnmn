@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from .instance_module import InstanceModule
 from misc.indices import ANSWER_INDEX, DESC_INDEX

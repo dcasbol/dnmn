@@ -57,12 +57,14 @@ class NMN(BaseModule):
 			other_ans  = self._describe[other_inst](other_hmaps, other_fts)
 			root_pred[other] = other_ans
 
+		root_pred = root_pred
+		enc_pred  = self._encoder(question, length)
+
 		if self._modular:
 			return (root_pred+enc_pred).softmax(1)
 
 		root_pred = root_pred.softmax(1)
-		enc_pred  = self._encoder(question, length).softmax(1)
-
+		enc_pred  = enc_pred.softmax(1)
 		return (root_pred*enc_pred + 1e-30).sqrt()
 
 	def load_module(self, module_name, filename):
