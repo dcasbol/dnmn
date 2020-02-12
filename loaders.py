@@ -48,7 +48,7 @@ class MeasureLoader(BaseLoader):
 
 class GaugeFindLoader(BaseLoader):
 	def __init__(self, prior=False, **kwargs):
-		super(GaugeFindLoader, self).__init__(**kwargs)
 		self._prior = prior
+		super(GaugeFindLoader, self).__init__(**kwargs)
 	def _dataset(self, **kwargs):
 		return VQAGaugeFindDataset(prior=self._prior, **kwargs)

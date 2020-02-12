@@ -1,10 +1,10 @@
-from .vqa_ds import VQADataset
+from .root_ds import VQARootModuleDataset
 from misc.util import is_yesno
 import numpy as np
 from misc.indices import FIND_INDEX
 
 
-class VQAGaugeFindDataset(VQADataset):
+class VQAGaugeFindDataset(VQARootModuleDataset):
 
 	def __init__(self, *args, metadata=False, prior=False, **kwargs):
 		super(VQAGaugeFindDataset, self).__init__(*args, **kwargs)

@@ -8,7 +8,6 @@ class FindRunner(Runner):
 
 	def __init__(self, visualize=0, modular=False, **kwargs):
 		self._modular = modular
-		self._prior   = prior
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
 		assert visualize == 0, 'Visualization not implemented yet.'

@@ -1,3 +1,4 @@
+import os
 from .vqa_ds import VQADataset
 from misc.constants import *
 from misc.util import is_yesno
