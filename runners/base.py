@@ -37,8 +37,7 @@ class Runner(object):
 		self._log_filename = full_name + '_log.json'
 		self._pt_new       = full_name + '-new.pt'
 
-		loader_class = self._loader_class()
-		self._loader = loader_class(
+		self._loader = self._get_loader(
 			batch_size  = batch_size,
 			shuffle     = True,
 			num_workers = 4
@@ -46,7 +45,7 @@ class Runner(object):
 
 		if validate:
 			#kwargs = dict(metadata=True) if modname == GaugeFind.NAME and validate else {}
-			self._val_loader = loader_class(
+			self._val_loader = self._get_loader(
 				set_names   = 'val2014',
 				stop        = 0.2,
 				batch_size  = VAL_BATCH_SIZE,

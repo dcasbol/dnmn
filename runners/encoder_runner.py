@@ -8,8 +8,8 @@ class EncoderRunner(Runner):
 	def _get_model(self):
 		return QuestionEncoder(dropout=self._dropout)
 
-	def _loader_class(self):
-		return EncoderLoader
+	def _get_loader(self, **kwargs):
+		return EncoderLoader(**kwargs)
 
 	def _forward(self, batch_data):
 		question, length, label = cudalize(*batch_data)

@@ -8,8 +8,8 @@ class MeasureRunner(Runner):
 	def _get_model(self):
 		return Measure(dropout=self._dropout)
 
-	def _loader_class(self):
-		return MeasureLoader
+	def _get_loader(self, **kwargs):
+		return MeasureLoader(**kwargs)
 
 	def _forward(self, batch_data):
 		hmap, instance, label = cudalize(*batch_data)

@@ -14,8 +14,8 @@ class UncachedRunner(Runner):
 		self._find.eval()
 		self._modular = modular
 
-	def _loader_class(self):
-		return NMNLoader
+	def _get_loader(self, **kwargs):
+		return NMNLoader(**kwargs)
 
 	def _forward(self, batch_data):
 		features  = cudalize(batch_data['features'])

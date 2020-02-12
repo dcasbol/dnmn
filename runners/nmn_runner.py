@@ -21,8 +21,8 @@ class NMNRunner(Runner):
 	def _get_model(self):
 		return NMN(dropout=self._dropout, modular=self._modular)
 
-	def _loader_class(self):
-		return NMNLoader
+	def _get_loader(self, **kwargs):
+		return NMNLoader(**kwargs)
 
 	def _get_nmn_data(self, batch_data):
 		return [ batch_data[k] for k in self._keys ]

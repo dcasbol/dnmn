@@ -6,7 +6,7 @@ from misc.visualization import MapVisualizer
 
 class FindRunner(Runner):
 
-	def __init__(self, visualize=0, modular=False, prior=False, **kwargs):
+	def __init__(self, visualize=0, modular=False, **kwargs):
 		self._modular = modular
 		self._prior   = prior
 		super(FindRunner, self).__init__(**kwargs)
@@ -17,14 +17,14 @@ class FindRunner(Runner):
 			self._vis = MapVisualizer(visualize)
 
 	def _get_model(self):
-		return GaugeFind(dropout=self._dropout, modular=self._modular, prior=self._prior)
+		return GaugeFind(dropout=self._dropout, modular=self._modular)
 
-	def _loader_class(self):
-		return GaugeFindLoader
+	def _get_loader(self, **kwargs):
+		return GaugeFindLoader(prior=self._modular, **kwargs)
 
 	def _forward(self, batch_data):
 		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
-		prior = cudalize(batch_data[-1]) if self._prior else None
+		prior = cudalize(batch_data[-1]) if self._modular else None
 		pred = self._model(features, inst_1, inst_2, yesno, prior)
 		result = dict(
 			output = pred,
