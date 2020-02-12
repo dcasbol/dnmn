@@ -1,5 +1,5 @@
 from .base import Runner
-from modules import Measure
+from model import Measure
 from loaders import MeasureLoader
 from misc.util import cudalize
 

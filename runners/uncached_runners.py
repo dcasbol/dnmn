@@ -1,6 +1,6 @@
 import torch
 from .base import Runner
-from modules import Find, Describe, Measure
+from model import Find, Describe, Measure
 from loaders import NMNLoader
 from misc.util import cudalize, generate_hmaps
 

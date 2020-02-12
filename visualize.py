@@ -3,7 +3,7 @@ import torch
 import time
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset
-from modules import Find
+from model import Find
 from misc.indices import FIND_INDEX
 from misc.constants import *
 from misc.visualization import MapVisualizer

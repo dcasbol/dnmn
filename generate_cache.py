@@ -5,7 +5,7 @@ import torch
 import argparse
 import numpy as np
 from vqa import CacheDataset, cache_collate_fn
-from modules import Find, QuestionEncoder
+from model import Find, QuestionEncoder
 from misc.constants import *
 from misc.util import cudalize, to_numpy
 from misc.util import Chronometer, attend_features, generate_hmaps

@@ -1,5 +1,5 @@
 from .base import Runner
-from modules import QuestionEncoder
+from model import QuestionEncoder
 from loaders import EncoderLoader
 from misc.util import cudalize
 

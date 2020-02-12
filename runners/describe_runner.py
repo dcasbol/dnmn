@@ -1,5 +1,5 @@
 from .base import Runner
-from modules import Describe
+from model import Describe
 from loaders import DescribeLoader
 from misc.util import cudalize
 

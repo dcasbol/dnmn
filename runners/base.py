@@ -7,7 +7,7 @@ from vqa import VQAEncoderDataset, encoder_collate_fn, nmn_collate_fn
 from misc.constants import *
 from misc.util import cudalize, USE_CUDA
 from misc.util import Logger, Chronometer, PercentageCounter, time_iter
-from modules import GaugeFind
+from model import GaugeFind
 
 
 class Runner(object):

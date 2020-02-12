@@ -1,5 +1,5 @@
 from .base import Runner
-from modules import GaugeFind
+from model import GaugeFind
 from loaders import GaugeFindLoader
 from misc.util import cudalize
 from misc.visualization import MapVisualizer
