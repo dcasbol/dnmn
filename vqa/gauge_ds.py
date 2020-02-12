@@ -6,9 +6,10 @@ from misc.indices import FIND_INDEX
 
 class VQAGaugeFindDataset(VQADataset):
 
-	def __init__(self, *args, metadata=False, **kwargs):
+	def __init__(self, *args, metadata=False, prior=False, **kwargs):
 		super(VQAGaugeFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
+		self._prior    = prior
 
 	def __getitem__(self, i):
 		datum    = self._get_datum(i)
@@ -30,6 +31,8 @@ class VQAGaugeFindDataset(VQADataset):
 		labels = np.array(datum['answers'])
 		
 		output = (features, target_1, target_2, yesno, labels)
+		if self._prior:
+			output += (self._get_prior(datum),)
 		if self._metadata:
 			target_str = FIND_INDEX.get(target_1)
 			if target_2 > 0:

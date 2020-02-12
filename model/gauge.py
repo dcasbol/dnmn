@@ -24,7 +24,7 @@ class GaugeFind(BaseModule):
 		self._forced_dropout = lambda x: F.dropout(x, p=0.3, training=True)
 		self._modular = modular
 
-	def forward(self, features, inst_1, inst_2, yesno):
+	def forward(self, features, inst_1, inst_2, yesno, prior=None):
 
 		features = self._dropout2d(features)
 
@@ -38,10 +38,15 @@ class GaugeFind(BaseModule):
 		x = torch.cat([attended, hmap_flat], 1)
 		if self.training:
 			pred = self._classifier(self._forced_dropout(x))
+			if prior is not None:
+				pred = pred + prior
 			return pred
 		else:
 			x = x.view(B,1,-1).expand(-1,20,-1)
-			preds = self._classifier(self._forced_dropout(x)).softmax(dim=2)
+			preds = self._classifier(self._forced_dropout(x))
+			if prior is not None:
+				preds = preds + prior.unsqueeze(1)
+			preds = preds.softmax(dim=2)
 			mean = preds.mean(1)
 			idx  = mean.argmax(1)
 			var  = preds[range(B),:,idx].var(1)
