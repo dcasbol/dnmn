@@ -5,6 +5,10 @@ from misc.util import cudalize
 
 class EncoderRunner(Runner):
 
+	def __init__(self, **kwargs):
+		assert 'modular' not in kwargs, "Encoder training doesn't accept modular flag"
+		super(EncoderRunner, self).__init__(**kwargs)
+
 	def _get_model(self):
 		return QuestionEncoder(dropout=self._dropout)
 

@@ -9,13 +9,13 @@ class DescribeRunner(Runner):
 		return Describe(dropout=self._dropout)
 
 	def _get_loader(self, **kwargs):
-		return DescribeLoader(**kwargs)
+		return DescribeLoader(prior=self._modular, **kwargs)
 
 	def _forward(self, batch_data):
-		attended, instance, label = cudalize(*batch_data)
-		output = self._model[instance](attended)
+		attended, instance, label = cudalize(*batch_data[:3])
+		prior = cudalize(batch_data[-1]) if self._modular else None
+		output = self._model[instance](attended, prior=prior)
 		return dict(
 			output = output,
 			label  = label
 		)
-		

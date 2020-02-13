@@ -6,10 +6,9 @@ from misc.indices import FIND_INDEX
 
 class VQAGaugeFindDataset(VQARootModuleDataset):
 
-	def __init__(self, *args, metadata=False, prior=False, **kwargs):
+	def __init__(self, *args, metadata=False, **kwargs):
 		super(VQAGaugeFindDataset, self).__init__(*args, **kwargs)
 		self._metadata = metadata
-		self._prior    = prior
 
 	def __getitem__(self, i):
 		datum    = self._get_datum(i)

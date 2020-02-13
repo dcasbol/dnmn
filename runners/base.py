@@ -15,7 +15,7 @@ class Runner(object):
 	def __init__(self, max_epochs=40, batch_size=128,
 		restore_pt=None, save=False, validate=True, suffix='',
 		learning_rate=1e-3, weight_decay=1e-5, dropout=0,
-		early_stopping=True):
+		early_stopping=True, modular=False):
 
 		# This seed makes weight initialization deterministic
 		self._seed()
@@ -25,6 +25,7 @@ class Runner(object):
 		self._validate   = validate
 		self._dropout    = dropout
 		self._earl_stop  = early_stopping
+		self._modular    = modular
 
 		self._best_acc   = None
 		self._n_worse    = 0

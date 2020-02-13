@@ -7,4 +7,6 @@ class VQADescribeDataset(VQARootModuleDataset):
 	def __getitem__(self, i):
 		instance, labels, datum = super(VQADescribeDataset, self).__getitem__(i)
 		att = self._get_attended(datum)
+		if self._prior:
+			return att, instance, labels, self._get_prior(datum)
 		return att, instance, labels

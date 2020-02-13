@@ -13,8 +13,9 @@ def _load_cache(pat, datum):
 
 class VQARootModuleDataset(VQADataset):
 
-	def __init__(self, *args, exclude=None, **kwargs):
+	def __init__(self, *args, exclude=None, prior=False, **kwargs):
 		super(VQARootModuleDataset, self).__init__(*args, **kwargs)
+		self._prior = prior
 		self._hmap_pat = os.path.join(self._root_dir, CACHE_HMAP_FILE)
 		self._att_pat  = os.path.join(self._root_dir, CACHE_ATT_FILE)
 		self._pri_pat  = os.path.join(self._root_dir, CACHE_QENC_FILE)

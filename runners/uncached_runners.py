@@ -8,6 +8,7 @@ class UncachedRunner(Runner):
 
 	def __init__(self, find_pt='find.pt', modular=False, **kwargs):
 		super(UncachedRunner, self).__init__(**kwargs)
+		assert not modular, "Pending changes for using prior"
 		self._find = Find(modular=modular)
 		self._find.load_state_dict(torch.load(find_pt, map_location='cpu'))
 		self._find = cudalize(self._find)

@@ -7,4 +7,6 @@ class VQAMeasureDataset(VQARootModuleDataset):
 	def __getitem__(self, i):
 		instance, labels, datum = super(VQAMeasureDataset, self).__getitem__(i)
 		hmap = self._get_hmap(datum)
+		if self._prior:
+			return hmap, instance, labels, self._get_prior(datum)
 		return hmap, instance, labels

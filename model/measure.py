@@ -22,7 +22,7 @@ class Measure(InstanceModule):
 			for _ in range(len(DESC_INDEX))
 		])
 
-	def forward(self, mask, *dummy_args):
+	def forward(self, mask, *features_dummy, prior=None):
 		B = mask.size(0)
 		mask = self._dropout(mask)
 		mask = mask.view(B, -1).unsqueeze(1).unbind(0)
@@ -30,4 +30,7 @@ class Measure(InstanceModule):
 		preds = list()
 		for m, inst in zip(mask, instance):
 			preds.append(self._measure[inst](m))
-		return torch.cat(preds)
+		preds = torch.cat(preds)
+		if prior is not None:
+			preds = preds + prior
+		return preds
