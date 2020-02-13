@@ -20,7 +20,7 @@ class BaseLoader(DataLoader):
 	@property
 	def dataset_len(self):
 		return self._dataset_len
-	
+
 
 class EncoderLoader(BaseLoader):
 	def __init__(self, **kwargs):
@@ -38,20 +38,20 @@ class FindLoader(BaseLoader):
 	def _dataset(self, **kwargs):
 		return VQAFindDataset(**kwargs)
 
-class DescribeLoader(BaseLoader):
-	def _dataset(self, **kwargs):
-		return VQADescribeDataset(**kwargs)
 
-class MeasureLoader(BaseLoader):
+class BiasedLoader(BaseLoader):
 	def __init__(self, prior=False, **kwargs):
+		super(BiasedLoader, self).__init__(**kwargs)
 		self._prior = prior
-		super(MeasureLoader, self).__init__(**kwargs)
+
+class DescribeLoader(BiasedLoader):
+	def _dataset(self, **kwargs):
+		return VQADescribeDataset(prior=self._prior, **kwargs)
+
+class MeasureLoader(BiasedLoader):
 	def _dataset(self, **kwargs):
 		return VQAMeasureDataset(prior=self._prior, **kwargs)
 
-class GaugeFindLoader(BaseLoader):
-	def __init__(self, prior=False, **kwargs):
-		self._prior = prior
-		super(GaugeFindLoader, self).__init__(**kwargs)
+class GaugeFindLoader(BiasedLoader):
 	def _dataset(self, **kwargs):
 		return VQAGaugeFindDataset(prior=self._prior, **kwargs)
