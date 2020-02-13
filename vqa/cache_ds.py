@@ -12,7 +12,7 @@ class CacheDataset(VQADataset):
 		self._features  = features
 		self._questions = questions
 
-	def __getitem(self, i):
+	def __getitem__(self, i):
 		datum  = self._get_datum(i)
 		sample = { 'question_id' : datum['question_id'] }
 
@@ -29,7 +29,7 @@ class CacheDataset(VQADataset):
 		if self._questions:
 			q = datum['question']
 			sample.update(dict(question = q, question_len = len(q)))
-		
+
 		return sample
 
 
