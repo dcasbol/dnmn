@@ -43,6 +43,9 @@ class DescribeLoader(BaseLoader):
 		return VQADescribeDataset(**kwargs)
 
 class MeasureLoader(BaseLoader):
+	def __init__(self, prior=False, **kwargs):
+		self._prior = prior
+		super(MeasureLoader, self).__init__(**kwargs)
 	def _dataset(self, **kwargs):
 		return VQAMeasureDataset(**kwargs)
 
