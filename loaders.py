@@ -41,8 +41,8 @@ class FindLoader(BaseLoader):
 
 class BiasedLoader(BaseLoader):
 	def __init__(self, prior=False, **kwargs):
-		super(BiasedLoader, self).__init__(**kwargs)
 		self._prior = prior
+		super(BiasedLoader, self).__init__(**kwargs)
 
 class DescribeLoader(BiasedLoader):
 	def _dataset(self, **kwargs):

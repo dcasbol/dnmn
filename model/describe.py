@@ -19,7 +19,7 @@ class Describe(InstanceModule):
 			for _ in range(len(DESC_INDEX))
 		])
 
-	def forward(self, hmap_or_attended, features=None):
+	def forward(self, hmap_or_attended, features=None, prior=None):
 		if features is None:
 			attended = hmap_or_attended
 		else:
@@ -31,5 +31,7 @@ class Describe(InstanceModule):
 		preds = list()
 		for att, inst in zip(attended, instance):
 			preds.append(self._descr[inst](att))
-
-		return torch.cat(preds)
+		preds = torch.cat(preds)
+		if prior is not None:
+			preds = preds + prior
+		return preds
