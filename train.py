@@ -5,8 +5,7 @@ def get_args():
 
 	parser = argparse.ArgumentParser(description='Train a Module')
 	parser.add_argument('selection',
-		choices=['find', 'describe', 'measure', 'encoder', 'nmn',
-			'describe_uncached', 'measure_uncached'])
+		choices=['find', 'describe', 'measure', 'encoder', 'nmn'])
 	parser.add_argument('--max-epochs', type=int,
 		help='Max. training epochs')
 	parser.add_argument('--batch-size', type=int)
@@ -14,9 +13,8 @@ def get_args():
 	parser.add_argument('--save', action='store_true',
 		help='Save the model regularly.')
 	parser.add_argument('--suffix',
-		help='Add suffix to saved files. Useful when training +1 simultaneously.')
-	parser.add_argument('--learning-rate', type=float,
-		help='Specify learning rate')
+		help='Add suffix to saved files.')
+	parser.add_argument('--learning-rate', type=float)
 	parser.add_argument('--weight-decay', type=float)
 	parser.add_argument('--dropout', type=float)
 	parser.add_argument('--visualize', type=int,
@@ -24,8 +22,7 @@ def get_args():
 	parser.add_argument('--validate', action='store_true',
 		help='Run validation after every epoch')
 	parser.add_argument('--modular', action='store_true',
-		help='Use modular adaptations')
-	parser.add_argument('--find-pt')
+		help='Follow modular methodology')
 	return parser.parse_args()
 
 
@@ -37,9 +34,6 @@ if __name__ == '__main__':
 		assert args.visualize is None,\
 			"Only find module is subject to visualization."
 
-	if args.selection[-8:] == 'uncached':
-		assert args.find_pt is not None, "You must specify find module for uncached training."
-
 	kwargs = { k: v for k, v in vars(args).items() if v is not None }
 	del kwargs['selection']
 	if args.selection == 'encoder':
@@ -50,9 +44,7 @@ if __name__ == '__main__':
 		find     = runners.FindRunner,
 		measure  = runners.MeasureRunner,
 		describe = runners.DescribeRunner,
-		nmn      = runners.NMNRunner,
-		describe_uncached = runners.DescribeRunnerUncached,
-		measure_uncached  = runners.MeasureRunnerUncached
+		nmn      = runners.NMNRunner
 	)[args.selection](**kwargs)
 
 	runner.run()
