@@ -8,6 +8,8 @@ from runners import NMNRunner
 def get_args():
 	parser = argparse.ArgumentParser(description='Hyperparameter optimization')
 	parser.add_argument('selection', choices=['find', 'describe', 'measure', 'encoder', 'nmn'])
+	parser.add_argument('--candidates', default='hyperopt/hpo_candidates.json')
+	parser.add_argument('--modular', action='store_true')
 	return parser.parse_args()
 
 def read_pickle(file_name):
@@ -24,18 +26,23 @@ class ResultObject:
 
 class HyperOptimizer(object):
 
-	def __init__(self, selection):
+	def __init__(self, selection, modular, path_candidates):
+
+		if modular and selection == 'encoder':
+			print("Modular flag doesn't affect training of Question Encoder.")
+			print("Flag ignored.")
+
 		self._sel = selection
-		self._path_candidates = 'hyperopt/hpo_candidates.json'
-		self._path_dir = 'hyperopt/{}'.format(selection)
+		self._modular = modular
+		self._path_candidates = path_candidates
+		self._base_dir = 'hyperopt/' + 'modular/'*int(modular)
+		self._path_dir = self._base_dir + selection
 		self._path_res = '{}/{}-res.dat'.format(self._path_dir, selection)
 		self._eval_idx = 0
 		self._best_pt  = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
 		self._best_acc = None
 		self._test_obj = None
 
-		assert os.path.exists('hyperopt/') and os.path.exists(self._path_candidates),\
-			"Missing hyperopt dir with file hpo_candidates.json"
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
 
@@ -74,6 +81,7 @@ class HyperOptimizer(object):
 			wd  = weight_decay
 		)
 
+		kwargs = {'modular':self._modular} if self._sel != 'encoder' else {}
 		test = self._runner_cl(
 			max_epochs    = 50,
 			batch_size    = batch_size,
@@ -81,7 +89,8 @@ class HyperOptimizer(object):
 			dropout       = dropout,
 			weight_decay  = weight_decay,
 			suffix        = suffix,
-			validate      = True
+			validate      = True,
+			**kwargs
 		)
 		test.run()
 
@@ -132,6 +141,6 @@ class HyperOptimizer(object):
 if __name__ == '__main__':
 
 	args = get_args()
-	opt = HyperOptimizer(args.selection)
+	opt = HyperOptimizer(args.selection, args.modular, args.candidates)
 	opt.run()
 	
