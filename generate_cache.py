@@ -103,7 +103,8 @@ if __name__ == '__main__':
 	for pt_file, module_class in [(args.find_module, Find), (args.qenc_module, QuestionEncoder)]:
 		m = None
 		if pt_file is not None:
-			m = module_class()
+			kwargs = {'modular':args.modular} if module_class == Find else {}
+			m = module_class(**kwargs)
 			m.load(pt_file)
 			m = cudalize(m)
 			m.eval()
