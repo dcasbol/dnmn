@@ -15,7 +15,7 @@ def get_args():
 	return parser.parse_args()
 
 def _get_acc(fn):
-	m = re.search('^[a-z]+-(\d{3}\.\d).+_log\.json$', fn)
+	m = re.search('^[a-z]+-(\d{3}\.\d).+_log\.json$', os.path.basename(fn))
 	return float(m.group(1))
 
 def _get_accs_dict(path, name=None):
@@ -25,6 +25,9 @@ def _get_accs_dict(path, name=None):
 	return [ { 'name':name, 'accuracy':_get_acc(fn) } for fn in glob.glob(pat) ]
 
 def main(args):
+
+	if args.nmn_hpo is None:
+		args.nmn_hpo = os.path.join(args.hpo_dir, 'nmn')
 
 	data = list()
 	for name in MODULE_NAMES:
