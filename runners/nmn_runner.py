@@ -6,8 +6,7 @@ from misc.util import cudalize, cudalize_dict
 
 class NMNRunner(Runner):
 
-	def __init__(self, find_pt=None, modular=False, **kwargs):
-		self._modular = modular
+	def __init__(self, find_pt=None, **kwargs):
 		super(NMNRunner, self).__init__(**kwargs)
 		self._keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
 		if find_pt is not None:

@@ -24,6 +24,7 @@ if __name__ == '__main__':
 	parser.add_argument('--measure')
 	parser.add_argument('--nmn')
 	parser.add_argument('--output', default='results.json')
+	parser.add_argument('--modular', action='store_true')
 	args = parser.parse_args()
 
 	modules = ['encoder', 'find', 'describe', 'measure']
@@ -38,7 +39,7 @@ if __name__ == '__main__':
 		shuffle    = False
 	)
 
-	nmn = NMN()
+	nmn = NMN(modular=args.modular)
 	if args.nmn is not None:
 		nmn.load(args.nmn)
 	else:
