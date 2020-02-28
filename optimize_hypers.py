@@ -8,6 +8,7 @@ from runners import NMNRunner
 def get_args():
 	parser = argparse.ArgumentParser(description='Hyperparameter optimization')
 	parser.add_argument('selection', choices=['find', 'describe', 'measure', 'encoder', 'nmn'])
+	parser.add_argument('--target-dir', default=None)
 	parser.add_argument('--candidates', default='hyperopt/hpo_candidates.json')
 	parser.add_argument('--modular', action='store_true')
 	return parser.parse_args()
@@ -26,7 +27,7 @@ class ResultObject:
 
 class HyperOptimizer(object):
 
-	def __init__(self, selection, modular, path_candidates):
+	def __init__(self, selection, modular, path_candidates, target_dir=None):
 
 		if modular and selection == 'encoder':
 			print("Modular flag doesn't affect training of Question Encoder.")
@@ -35,7 +36,9 @@ class HyperOptimizer(object):
 		self._sel = selection
 		self._modular = modular
 		self._path_candidates = path_candidates
-		self._base_dir = 'hyperopt/' + 'modular/'*int(modular)
+		self._base_dir = target_dir
+		if target_dir is None:
+			self._base_dir = 'hyperopt/' + 'modular/'*int(modular)
 		self._path_dir = self._base_dir + selection
 		self._path_res = '{}/{}-res.dat'.format(self._path_dir, selection)
 		self._eval_idx = 0
@@ -141,6 +144,7 @@ class HyperOptimizer(object):
 if __name__ == '__main__':
 
 	args = get_args()
-	opt = HyperOptimizer(args.selection, args.modular, args.candidates)
+	opt = HyperOptimizer(args.selection, args.modular, args.candidates,
+		target_dir=args.target_dir)
 	opt.run()
 	

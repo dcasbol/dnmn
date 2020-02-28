@@ -69,8 +69,8 @@ def generate_and_save(modules, set_name, batch_data, clock, modular):
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
-	parser.add_argument('--find_module', type=str)
-	parser.add_argument('--qenc_module', type=str)
+	parser.add_argument('--find-module', type=str)
+	parser.add_argument('--qenc-module', type=str)
 	parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='train2014')
 	parser.add_argument('--batch-size', type=int, default=256)
 	parser.add_argument('--overwrite', action='store_true')
@@ -79,6 +79,8 @@ if __name__ == '__main__':
 
 	assert args.find_module is not None or args.qenc_module is not None,\
 		"Missing find.pt or encoder.pt"
+	if args.qenc_module is not None and not args.modular:
+		raise ValueError("It's useless to generate cache for Encoder without modular flag.")
 
 	name_list = []
 	if args.find_module is not None:
