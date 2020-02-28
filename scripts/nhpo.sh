@@ -16,7 +16,7 @@ do
 	for m in {find,encoder,nmn}
 	do
 		python optimize_hypers.py $m \
-			--target-dir "${HPODIR}/$m" \
+			--target-dir $HPODIR \
 			--candidates $CANDIDATES
 	done
 

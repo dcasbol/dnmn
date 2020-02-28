@@ -39,7 +39,7 @@ class HyperOptimizer(object):
 		self._base_dir = target_dir
 		if target_dir is None:
 			self._base_dir = 'hyperopt/' + 'modular/'*int(modular)
-		self._path_dir = self._base_dir + selection
+		self._path_dir = os.path.join(self._base_dir, selection)
 		self._path_res = '{}/{}-res.dat'.format(self._path_dir, selection)
 		self._eval_idx = 0
 		self._best_pt  = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
