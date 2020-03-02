@@ -217,3 +217,10 @@ class Runner(object):
 	def best_epoch(self):
 		return self._best_epoch
 	
+	@property
+	def log_filename(self):
+		return self._log_filename
+
+	@property
+	def pt_filename(self):
+		return self._pt_new

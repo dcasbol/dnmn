@@ -44,7 +44,6 @@ class HyperOptimizer(object):
 		self._eval_idx = 0
 		self._best_pt  = '{}/{}-hpo-best.pt'.format(self._path_dir, selection)
 		self._best_acc = None
-		self._test_obj = None
 
 		if not os.path.exists(self._path_dir):
 			os.makedirs(self._path_dir)
@@ -76,6 +75,7 @@ class HyperOptimizer(object):
 
 	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
 
+		modname = self._sel if self._sel != 'find' else 'gauge-find'
 		suffix = 'hpo({n:02d})-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
 			n   = self._eval_idx,
 			bs  = batch_size,
@@ -93,26 +93,25 @@ class HyperOptimizer(object):
 			weight_decay  = weight_decay,
 			suffix        = suffix,
 			validate      = True,
+			save          = True,
 			**kwargs
 		)
 		test.run()
 
 		if self._best_acc is None or test.best_acc > self._best_acc:
-			self._test_obj = test
 			self._best_acc = test.best_acc
+			os.rename(test.pt_filename, self._best_pt)
 		else:
-			self._test_obj = None
+			os.remove(test.pt_filename)
 
 		res_suffix = '{}-bep{}'.format(suffix, test.best_epoch)
 
 		print('Eval({}): {:.1f}-{}'.format(self._eval_idx, test.best_acc, res_suffix))
 		print('Best HPO acc is', self._best_acc)
 
-		modname = self._sel if self._sel != 'find' else 'gauge-find'
-		json_fn = '{}-{}_log.json'.format(modname, suffix)
 		new_fn  = '{}-{:05.1f}-{}_log.json'.format(self._sel, test.best_acc, suffix)
 		new_fn  = os.path.join(self._path_dir, new_fn)
-		os.rename(json_fn, new_fn)
+		os.rename(test.log_filename, new_fn)
 
 		return test.best_acc
 
@@ -131,9 +130,6 @@ class HyperOptimizer(object):
 				self._res.best_eval = i
 
 			write_pickle(self._path_res, self._res)
-			if self._test_obj is not None:
-				self._test_obj.save_model(self._best_pt)
-				self._test_obj = None
 
 		print('Hyperparameter Optimization ended.')
 		print('Best result:', self._res.best_acc)
