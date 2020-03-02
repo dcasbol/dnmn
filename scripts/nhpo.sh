@@ -34,10 +34,10 @@ do
 	done
 
 	# Generate results JSON files
-	python generate_results.py \
+	python generate_results.py val2014 \
 		--nmn "${HPODIR}/nmn/nmn-hpo-best.pt" \
 		--output "${HPODIR}/nmn-results.json"
-	python generate_results.py \
+	python generate_results.py val2014 \
 		--encoder "${HPODIR}/encoder/encoder-hpo-best.pt" \
 		--find "${HPODIR}/find/find-hpo-best.pt" \
 		--describe "${HPODIR}/describe/describe-hpo-best.pt" \
