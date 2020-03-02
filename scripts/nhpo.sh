@@ -30,7 +30,7 @@ do
 
 	for m in {measure,describe}
 	do
-		python optimize_hypers.py $m --target-dir "${HPODIR}/$m" --candidates $CANDIDATES
+		python optimize_hypers.py $m --target-dir $HPODIR --candidates $CANDIDATES
 	done
 
 	# Generate results JSON files
