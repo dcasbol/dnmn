@@ -19,7 +19,8 @@ parser.add_argument('set_name', type=str, choices=['train2014', 'val2014'])
 parser.add_argument('result_file', type=str)
 parser.add_argument('--vqa-dir', type=str, default='~/VQA')
 parser.add_argument('--data-dir', type=str, default='~/DataSets/vqa')
-parser.add_argument('--result-dir', type=str, default='/tmp/vqaresults')
+parser.add_argument('--result-dir', type=str, default='/tmp')
+parser.add_argument('--show-plot', action='store_true')
 args = parser.parse_args()
 
 vqa_help_dir = os.path.join(os.path.expanduser(args.vqa_dir), 'PythonHelperTools/vqaTools')
@@ -61,12 +62,13 @@ for ansType in vqaEval.accuracy['perAnswerType']:
 	print "%s : %.02f" % (ansType, vqaEval.accuracy['perAnswerType'][ansType])
 print "\n"
 
-plt.bar(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].values(), align='center')
-plt.xticks(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].keys(), rotation='vertical',fontsize=10)
-plt.title('Per Question Type Accuracy', fontsize=10)
-plt.xlabel('Question Types', fontsize=10)
-plt.ylabel('Accuracy', fontsize=10)
-plt.show()
+if args.show_plot:
+	plt.bar(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].values(), align='center')
+	plt.xticks(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].keys(), rotation='vertical',fontsize=10)
+	plt.title('Per Question Type Accuracy', fontsize=10)
+	plt.xlabel('Question Types', fontsize=10)
+	plt.ylabel('Accuracy', fontsize=10)
+	plt.show()
 
 json.dump(vqaEval.accuracy,     open(accuracyFile,     'w'))
 json.dump(vqaEval.evalQA,       open(evalQAFile,       'w'))
