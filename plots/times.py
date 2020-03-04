@@ -11,7 +11,7 @@ def get_args():
 	parser = argparse.ArgumentParser(description=descr)
 	parser.add_argument('hpo_dir', default='hyperopt')
 	parser.add_argument('--cache-logs', nargs=2)
-	parser.add_argument('--raw_times', action='store_true')
+	parser.add_argument('--raw-times', action='store_true')
 	return parser.parse_args()
 
 def collect_time_data(args):
@@ -48,8 +48,8 @@ def plot_data(args, data):
 	plt.ylabel('Hours')
 
 	bottom = 0
-	width = 0.5
-	plots = list()
+	width  = 0.5
+	plots  = list()
 
 	time_key = 'raw_time' if args.raw_times else 'time'
 
