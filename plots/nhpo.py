@@ -23,7 +23,7 @@ def collate_accuracies(dir_list, version):
 	return accs
 
 def collate_times(dir_list, name):
-	basepat = '{0}/{0}-hpo*_log.json'.format(name)
+	basepat = '{0}/{0}-*-hpo*_log.json'.format(name)
 	times = list()
 	for d in dir_list:
 		t = 0
@@ -32,7 +32,7 @@ def collate_times(dir_list, name):
 			with open(fn) as fd:
 				t += json.load(fd)['raw_time'][-1]
 		times.append(t)
-	return t
+	return times
 
 def main(args):
 
