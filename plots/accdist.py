@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 MODULE_NAMES = ['find','measure','describe','encoder']
 
 def get_args():
-	parser = argparse.ArgumentParser(description='Modular robustness plot')
+	parser = argparse.ArgumentParser(description='Plots distribution of module accuracies')
 	parser.add_argument('hpo_dir')
 	parser.add_argument('--nmn-hpo')
 	return parser.parse_args()
