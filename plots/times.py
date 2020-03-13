@@ -3,7 +3,6 @@ import argparse
 import json
 from glob import glob
 from collections import defaultdict
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 def get_args():
@@ -43,9 +42,17 @@ def plot_data(args, data):
 
 	suf = '(raw)' if args.raw_times else '(forward-backward)'
 	plt.figure()
-	sns.set_palette(sns.color_palette("Dark2"))
 	plt.title('Training times '+suf)
 	plt.ylabel('Hours')
+
+	palette = {
+		'find'       : 'blue',
+		'measure'    : 'orange',
+		'describe'   : 'green',
+		'encoder'    : 'red',
+		'end-to-end' : 'purple',
+		'cache'      : 'black'
+	}
 
 	bottom = 0
 	width  = 0.5
@@ -56,16 +63,15 @@ def plot_data(args, data):
 	NAMES = ['encoder', 'find', 'cache', 'measure', 'describe']
 	for name in NAMES:
 		t = data[time_key][name]/3600
-		p = plt.bar(0, t, width, bottom=bottom)
+		p = plt.bar(0, t, width, bottom=bottom, color=palette[name])
 		plots.append(p)
 		bottom += t
 
 	t = data[time_key]['nmn']/3600
-	p = plt.bar(1, t, width)
-	plots.append(p)
+	plt.bar(1, t, width, color=palette['end-to-end'])
 
-	plt.xticks((0, 1), ('modular', 'end2end'))
-	plt.legend(plots, NAMES+['nmn'])
+	plt.xticks((0, 1), ('modular', 'end-to-end'))
+	plt.legend(plots, NAMES)
 
 	plt.show()
 
