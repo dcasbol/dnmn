@@ -6,20 +6,24 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 def get_args():
-	parser = argparse.ArgumentParser(description='Robustness modular vs. end-to-end training')
+	parser = argparse.ArgumentParser(
+		description='Robustness modular vs. end-to-end training')
 	parser.add_argument('base_dir')
 	parser.add_argument('--accuracies', action='store_true')
 	parser.add_argument('--times', action='store_true')
 	return parser.parse_args()
 
 def collate_accuracies(dir_list, version):
+	basename = '{}-results/OpenEnded_mscoco_val2014_accuracy.json'.format(version)
 	accs = list()
 	for d in dir_list:
-		basename = '{}-results/OpenEnded_mscoco_val2014_accuracy.json'.format(version)
 		fn = os.path.join(d, basename)
-		with open(fn) as fd:
-			a = json.load(fd)['overall']
-			accs.append(a)
+		try:
+			with open(fn) as fd:
+				a = json.load(fd)['overall']
+				accs.append(a)
+		except FileNotFoundError:
+			continue
 	return accs
 
 def collate_times(dir_list, name):
