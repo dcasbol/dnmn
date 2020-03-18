@@ -6,8 +6,6 @@ do
 	do
 		HPODIR="hyperopt/nhpo/run-$i"
 		RESDIR="$HPODIR/$n-results"
-		mkdir $RESDIR
-		mv "$HPODIR/$n-results.json" $RESDIR
 		python scripts/vqaCustomEval.py \
 			val2014 \
 			"$RESDIR/$n-results.json" \
