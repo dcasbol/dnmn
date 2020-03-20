@@ -35,7 +35,7 @@ def collate_times(dir_list, name):
 		for fn in glob.glob(pat):
 			with open(fn) as fd:
 				t += json.load(fd)['raw_time'][-1]
-		times.append(t)
+		times.append(t/3600)
 	return times
 
 def main(args):
@@ -49,10 +49,12 @@ def main(args):
 	if args.accuracies:
 		modular_accs = collate_accuracies(dir_list, 'modular')
 		end2end_accs = collate_accuracies(dir_list, 'nmn')
+		data  = [ {'modality':'modular',    'accuracy':a} for a in modular_accs ]
+		data += [ {'modality':'end-to-end', 'accuracy':a} for a in end2end_accs ]
+		data  = pd.DataFrame(data)
 
-		sns.distplot(modular_accs, label='modular')
-		sns.distplot(end2end_accs, label='end-to-end')
-		plt.legend()
+		sns.violinplot(x='accuracy', y='modality', data=data, inner=None)
+		sns.swarmplot(x='accuracy', y='modality', data=data, color='black')
 		plt.show()
 
 	if args.times:
@@ -60,10 +62,12 @@ def main(args):
 		modular_times = [ collate_times(dir_list, name) for name in MODULE_NAMES ]
 		modular_times = [ sum(times) for times in zip(*modular_times) ]
 		end2end_times = collate_times(dir_list, 'nmn')
+		data  = [ {'modality':'modular',    'hours':a} for a in modular_times ]
+		data += [ {'modality':'end-to-end', 'hours':a} for a in end2end_times ]
+		data  = pd.DataFrame(data)
 
-		sns.distplot(modular_times, label='modular')
-		sns.distplot(end2end_times, label='end-to-end')
-		plt.legend()
+		sns.violinplot(x='hours', y='modality', data=data, inner=None)
+		sns.swarmplot(x='hours', y='modality', data=data, color='black')
 		plt.show()
 
 if __name__ == '__main__':

@@ -43,4 +43,20 @@ do
 		--describe "${HPODIR}/describe/describe-hpo-best.pt" \
 		--measure "${HPODIR}/measure/measure-hpo-best.pt" \
 		--output "${HPODIR}/modular-results.json"
+
+	# Evaluate results
+	for n in {modular,nmn}
+	do
+		RESDIR="$HPODIR/$n-results"
+		if [ ! -d $RESDIR ]
+		then
+			mkdir -p $RESDIR
+		fi
+		mv "$HPODIR/$n-results.json" "$RESDIR/$n-results.json"
+		python scripts/vqaCustomEval.py \
+			val2014 \
+			"$RESDIR/$n-results.json" \
+			--result-dir $RESDIR
+	done
+
 done
