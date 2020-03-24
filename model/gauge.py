@@ -30,7 +30,6 @@ class GaugeFind(BaseModule):
 
 		instances = [inst_1, inst_2] if (inst_2>0).any() else [inst_1]
 		hmap = generate_hmaps(self._find, instances, features, self._modular)
-		self._hmap = hmap
 
 		B = hmap.size(0)
 		yesno = yesno.view(B,1).float()
@@ -58,8 +57,3 @@ class GaugeFind(BaseModule):
 
 	def load(self, filename):
 		self._find.load(filename)
-
-	@property
-	def hmap(self):
-		return self._hmap
-	
