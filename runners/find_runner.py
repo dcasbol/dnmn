@@ -9,7 +9,6 @@ class FindRunner(Runner):
 	def __init__(self, visualize=0, **kwargs):
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
-		assert visualize == 0, 'Visualization not implemented yet.'
 		if visualize > 0:
 			print('WARNING: Find training running with visualization ON')
 			self._vis = MapVisualizer(visualize)
@@ -30,6 +29,8 @@ class FindRunner(Runner):
 		)
 		if not self._model.training:
 			result['output'], result['var'] = pred
+		if self._visualize > 0:
+			self._result = result
 		return result
 
 	def _preview(self, mean_loss):
