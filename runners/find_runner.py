@@ -30,6 +30,7 @@ class FindRunner(Runner):
 		if not self._model.training:
 			result['output'], result['var'] = pred
 		if self._visualize > 0:
+			result['hmap'] = self._model.hmap
 			self._result = result
 		return result
 
