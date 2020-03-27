@@ -1,5 +1,9 @@
-import skopt
+import json
+import pickle
 import argparse
+
+class ResultObject:
+	pass
 
 def get_args():
 	descr = """Read a skopt result file and print the best configuration"""
@@ -13,10 +17,12 @@ def main(args):
 
 	print('Showing results in {!r}...'.format(args.result_file))
 
-	res = skopt.load(args.result_file)
-	print('Final accuracy: {}%'.format(-res.fun))
+	with open(args.result_file, 'rb') as fd:
+		res = pickle.load(fd)
+
+	print('Final accuracy: {}%'.format(res.best_acc))
 	print('Hyperparameters:')
-	for name, value in zip(PARAM_NAMES, res.x):
+	for name, value in res.x_iters[res.best_eval].items():
 		print(name, ' --> ', value)
 
 if __name__ == '__main__':
