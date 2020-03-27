@@ -122,11 +122,13 @@ def time_iter(iterable, chrono):
 		chrono.stop()
 		yield x
 
-def attend_features(features, hmap, flatten=True):
+def attend_features(features, hmap, flatten=True, softmax=False):
 	if flatten:
 		B,C,H,W  = features.size()
 		features = features.view(B,C,-1)
 		hmap     = hmap.view(B,1,-1)
+	if softmax:
+		return (hmap.softmax(2)*features).sum(2)
 	return (hmap*features).sum(2) / (hmap.sum(2) + 1e-10)
 
 def generate_hmaps(find, instances, features, modular=False):
