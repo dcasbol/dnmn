@@ -37,8 +37,9 @@ if __name__ == '__main__':
 	kwargs = { k: v for k, v in vars(args).items() if v is not None }
 	del kwargs['selection']
 	if args.selection == 'encoder':
-		print("Modular flag doesn't affect training of Question Encoder.")
-		print("Flag ignored.")
+		if kwargs['modular']:
+			print("Modular flag doesn't affect training of Question Encoder.")
+			print("Flag ignored.")
 		del kwargs['modular']
 
 	runner = dict(
