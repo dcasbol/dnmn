@@ -73,7 +73,7 @@ class HyperOptimizer(object):
 			assert self._eval_idx < len(self._candidates),\
 				"Can't resume. Max. calls already reached."
 
-	def _eval(self, batch_size, learning_rate, dropout, weight_decay):
+	def _eval(self, batch_size, learning_rate, dropout, weight_decay, **kwargs):
 
 		modname = self._sel if self._sel != 'find' else 'gauge-find'
 		suffix = 'hpo({n:02d})-bs{bs}-lr{lr:.2g}-{do:.1f}do-wd{wd:.2g}'.format(
@@ -84,7 +84,9 @@ class HyperOptimizer(object):
 			wd  = weight_decay
 		)
 
-		kwargs = {'modular':self._modular} if self._sel != 'encoder' else {}
+		kwargs = kwargs.copy()
+		if self._sel != 'encoder':
+			kwargs['modular'] = self._modular
 		test = self._runner_cl(
 			max_epochs    = 50,
 			batch_size    = batch_size,
