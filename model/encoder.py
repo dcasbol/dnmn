@@ -11,11 +11,11 @@ class QuestionEncoder(BaseModule):
 
 	NAME = 'encoder'
 
-	def __init__(self, dropout=0):
+	def __init__(self, dropout=0, embedding_size=EMBEDDING_SIZE, hidden_units=HIDDEN_UNITS):
 		super(QuestionEncoder, self).__init__(dropout=dropout)
-		self._wemb = nn.Embedding(len(QUESTION_INDEX), EMBEDDING_SIZE)
-		self._lstm = nn.LSTM(EMBEDDING_SIZE, HIDDEN_UNITS)
-		self._final = nn.Linear(HIDDEN_UNITS, len(ANSWER_INDEX))
+		self._wemb = nn.Embedding(len(QUESTION_INDEX), embedding_size)
+		self._lstm = nn.LSTM(embedding_size, hidden_units)
+		self._final = nn.Linear(hidden_units, len(ANSWER_INDEX))
 
 	def forward(self, question, length):
 		B = length.size(0)
