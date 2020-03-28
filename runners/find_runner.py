@@ -7,10 +7,10 @@ from misc.visualization import MapVisualizer
 class FindRunner(Runner):
 
 	def __init__(self, visualize=0, softmax_attn=False, bias=False, **kwargs):
-		super(FindRunner, self).__init__(**kwargs)
-		self._visualize    = visualize
 		self._softmax_attn = softmax_attn
 		self._bias         = bias
+		super(FindRunner, self).__init__(**kwargs)
+		self._visualize = visualize
 		assert visualize == 0, 'Visualization not implemented yet'
 		if visualize > 0:
 			print('WARNING: Find training running with visualization ON')

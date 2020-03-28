@@ -24,6 +24,9 @@ def gen_candidate(sel):
 	if sel == 'encoder':
 		c['embedding_size'] = random.randint(16, 1000)
 		c['hidden_units']   = random.randint(16, 1024)
+	elif sel == 'find':
+		c['softmax_attn'] = random.choice([True, False])
+		c['bias']         = random.choice([True, False])
 	return c
 
 def main(args):
