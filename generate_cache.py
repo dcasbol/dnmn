@@ -107,6 +107,7 @@ if __name__ == '__main__':
 	kwargs['questions'] = args.qenc_module is not None
 	dataset = CacheDataset(set_names=args.dataset, **kwargs)
 
+	ignored_params = ['learning_rate', 'batch_size', 'weight_decay', 'dropout']
 	modules = list()
 	for pt_file, module_class in [(args.find_module, Find), (args.qenc_module, QuestionEncoder)]:
 		m = None
@@ -116,7 +117,9 @@ if __name__ == '__main__':
 			if conf_file is not None:
 				with open(conf_file, 'rb') as fd:
 					res = pickle.load(fd)
-				kwargs.update(res.x_iters[res.best_eval])
+				c = res.x_iters[res.best_eval]
+				c = { k:v for k,v in c.items() if k not in ignored_params }
+				kwargs.update(c)
 			m = module_class(**kwargs)
 			m.load(pt_file)
 			m = cudalize(m)
