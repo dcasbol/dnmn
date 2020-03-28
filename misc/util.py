@@ -137,7 +137,9 @@ def generate_hmaps(find, instances, features, modular=False):
 	for inst in instances[1:]:
 		valid = inst>0
 		hmaps_inst = find[inst[valid]](features[valid])
-		hmaps[valid] = and_fn(hmaps[valid], hmaps_inst)
+		new_hmaps  = hmaps.clone()
+		new_hmaps[valid] = and_fn(hmaps[valid], hmaps_inst)
+		hmaps = new_hmaps
 	return hmaps
 
 class Logger(object):
