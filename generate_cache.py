@@ -10,6 +10,7 @@ from misc.constants import *
 from misc.util import cudalize, to_numpy
 from misc.util import Chronometer, attend_features, generate_hmaps
 from torch.utils.data import DataLoader
+import pickle
 
 def get_path(set_name, qid, dtype='hmap'):
 	return dict(
