@@ -44,8 +44,3 @@ class FindRunner(Runner):
 	@property
 	def last_var(self):
 		return self._logger.last('var')
-
-	@property
-	def last_agreement(self):
-		return self._logger.last('agreement')
-		

@@ -13,9 +13,9 @@ class Find(InstanceModule):
 
 	NAME = 'find'
 
-	def __init__(self, modular=False, **kwargs):
+	def __init__(self, modular=False, bias=False, **kwargs):
 		super(Find, self).__init__(dropout=0, **kwargs)
-		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=False)
+		self._conv = nn.Conv2d(IMG_DEPTH, len(FIND_INDEX), 1, bias=bias)
 		if modular:
 			self._act_fn = nn.Sigmoid()
 		else:

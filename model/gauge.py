@@ -14,15 +14,16 @@ class GaugeFind(BaseModule):
 
 	NAME = 'gauge-find'
 
-	def __init__(self, dropout=0, modular=False, **kwargs):
+	def __init__(self, dropout=0, modular=False, softmax_attn=False, **kwargs):
 		super(GaugeFind, self).__init__(dropout=dropout)
 		self._classifier = nn.Sequential(
 			nn.Linear(IMG_DEPTH + MASK_WIDTH**2, 64, bias=False),
 			nn.Linear(64, len(ANSWER_INDEX))
 		)
-		self._find = Find(**kwargs)
+		self._find = Find(modular=modular, **kwargs)
 		self._forced_dropout = lambda x: F.dropout(x, p=0.3, training=True)
 		self._modular = modular
+		self._softmax_attn = softmax_attn
 
 	def forward(self, features, inst_1, inst_2, yesno, prior=None):
 
@@ -33,9 +34,9 @@ class GaugeFind(BaseModule):
 
 		B = hmap.size(0)
 		yesno = yesno.view(B,1).float()
-		attended  = attend_features(features, hmap)*(1.-yesno)
-		hmap_flat = hmap.view(B,-1)*yesno
-		x = torch.cat([attended, hmap_flat], 1)
+		attended  = attend_features(features, hmap, softmax=self._softmax_attn)
+		hmap_flat = hmap.view(B,-1)
+		x = torch.cat([(1.-yesno)*attended, yesno*hmap_flat], 1)
 		if self.training:
 			pred = self._classifier(self._forced_dropout(x))
 			if prior is not None:
