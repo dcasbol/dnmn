@@ -6,16 +6,23 @@ from misc.visualization import MapVisualizer
 
 class FindRunner(Runner):
 
-	def __init__(self, visualize=0, **kwargs):
+	def __init__(self, visualize=0, softmax_attn=False, bias=False, **kwargs):
 		super(FindRunner, self).__init__(**kwargs)
-		self._visualize = visualize
+		self._visualize    = visualize
+		self._softmax_attn = softmax_attn
+		self._bias         = bias
 		assert visualize == 0, 'Visualization not implemented yet'
 		if visualize > 0:
 			print('WARNING: Find training running with visualization ON')
 			self._vis = MapVisualizer(visualize)
 
 	def _get_model(self):
-		return GaugeFind(dropout=self._dropout, modular=self._modular)
+		return GaugeFind(
+			dropout      = self._dropout,
+			modular      = self._modular,
+			softmax_attn = self._softmax_attn,
+			bias         = self._bias
+		)
 
 	def _get_loader(self, **kwargs):
 		return GaugeFindLoader(prior=self._modular, **kwargs)
