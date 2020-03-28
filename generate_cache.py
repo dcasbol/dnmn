@@ -66,6 +66,9 @@ def generate_and_save(modules, set_name, batch_data, clock, modular):
 
 	return len(question_ids)
 
+class ResultObject:
+	pass
+
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Generate cache for attention maps.')
@@ -75,6 +78,8 @@ if __name__ == '__main__':
 	parser.add_argument('--batch-size', type=int, default=256)
 	parser.add_argument('--overwrite', action='store_true')
 	parser.add_argument('--modular', action='store_true')
+	parser.add_argument('--find-config', type=str, help='Res. file for hyperparams.')
+	parser.add_argument('--qenc-config', type=str, help='Res. file for hyperparams.')
 	args = parser.parse_args()
 
 	assert args.find_module is not None or args.qenc_module is not None,\
@@ -106,6 +111,11 @@ if __name__ == '__main__':
 		m = None
 		if pt_file is not None:
 			kwargs = {'modular':args.modular} if module_class == Find else {}
+			conf_file = args.find_config if module_class == Find else args.qenc_config
+			if conf_file is not None:
+				with open(conf_file, 'rb') as fd:
+					res = pickle.load(fd)
+				kwargs.update(res.x_iters[res.best_eval])
 			m = module_class(**kwargs)
 			m.load(pt_file)
 			m = cudalize(m)
