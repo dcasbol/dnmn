@@ -11,13 +11,14 @@ class Measure(InstanceModule):
 
 	NAME = 'measure'
 
-	def __init__(self, **kwargs):
+	def __init__(self, hidden_size=HIDDEN_SIZE, hidden_dropout=0, **kwargs):
 		super(Measure, self).__init__(**kwargs)
 		self._measure = nn.ModuleList([
 			nn.Sequential(
-				nn.Linear(MASK_WIDTH**2, HIDDEN_SIZE),
+				nn.Linear(MASK_WIDTH**2, hidden_size),
 				nn.ReLU(),
-				nn.Linear(HIDDEN_SIZE, len(ANSWER_INDEX))
+				nn.Dropout(p=hidden_dropout),
+				nn.Linear(hidden_size, len(ANSWER_INDEX))
 			)
 			for _ in range(len(DESC_INDEX))
 		])
