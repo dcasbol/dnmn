@@ -19,12 +19,13 @@ def gen_candidate(sel):
 		learning_rate = 10**random.uniform(-5, -1),
 		weight_decay  = 10**random.uniform(-10, 0)
 	)
-	if sel != 'nmn':
+	if sel not in ['nmn','find']:
 		c['batch_size'] = random.randint(16, 2048)
 	if sel == 'encoder':
 		c['embedding_size'] = random.randint(16, 1000)
 		c['hidden_units']   = random.randint(16, 1024)
 	elif sel == 'find':
+		c['batch_size']   = random.randint(16, 1024)
 		c['softmax_attn'] = random.choice([True, False])
 		c['bias']         = random.choice([True, False])
 	return c
