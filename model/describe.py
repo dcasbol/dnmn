@@ -12,18 +12,20 @@ class Describe(InstanceModule):
 
 	NAME = 'describe'
 
-	def __init__(self, **kwargs):
+	def __init__(self, softmax_attn=False, **kwargs):
 		super(Describe, self).__init__(**kwargs)
 		self._descr = nn.ModuleList([
 			nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
 			for _ in range(len(DESC_INDEX))
 		])
+		self._softmax_attn = softmax_attn
 
 	def forward(self, hmap_or_attended, features=None, prior=None):
 		if features is None:
 			attended = hmap_or_attended
 		else:
-			attended = attend_features(features, hmap_or_attended)
+			attended = attend_features(features, hmap_or_attended,
+				softmax=self._softmax_attn)
 
 		attended = self._dropout(attended)
 		attended = attended.unsqueeze(1).unbind(0)
