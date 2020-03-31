@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from misc.util import cudalize, DEVICE, USE_CUDA, generate_hmaps
+from misc.util import cudalize, DEVICE, generate_hmaps
 from .base_module import BaseModule
 from model import Find, Describe, Measure, QuestionEncoder
 from misc.indices import ANSWER_INDEX, UNK_ID
