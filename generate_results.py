@@ -1,9 +1,10 @@
 import argparse
 import json
-from model import NMN
+from model import NMN, NMNPretrained
 from vqa import VQANMNDataset, nmn_collate_fn
 from misc.util import cudalize, cudalize_dict, max_divisor_batch_size, to_numpy
 from misc.indices import ANSWER_INDEX
+import torch
 from torch.utils.data import DataLoader
 
 
@@ -24,7 +25,7 @@ if __name__ == '__main__':
 	parser.add_argument('--measure')
 	parser.add_argument('--nmn')
 	parser.add_argument('--output', default='results.json')
-	parser.add_argument('--modular', action='store_true')
+	parser.add_argument('--modular-hpo-dir', type=str)
 	args = parser.parse_args()
 
 	modules = ['encoder', 'find', 'describe', 'measure']
@@ -39,35 +40,39 @@ if __name__ == '__main__':
 		shuffle    = False
 	)
 
-	nmn = NMN(modular=args.modular)
-	if args.nmn is not None:
-		nmn.load(args.nmn)
+	if args.modular_hpo_dir is not None:
+		nmn = NMNPretrained(args.modular_hpo_dir)
 	else:
-		for name, filename in zip(modules, modules_fn):
-			nmn.load_module(name, filename)
+		nmn = NMN()
+		if args.nmn is not None:
+			nmn.load(args.nmn)
+		else:
+			for name, filename in zip(modules, modules_fn):
+				nmn.load_module(name, filename)
 	nmn = cudalize(nmn)
 	nmn.eval()
 
 	result_list = list()
 
-	last_perc = -1
-	for i, batch_data in enumerate(loader):
+	with torch.no_grad():
+		last_perc = -1
+		for i, batch_data in enumerate(loader):
 
-		perc = (i*batch_size*100)//len(dataset)
-		if perc != last_perc:
-			last_perc = perc
-			print('\r{: 3d}%'.format(perc), end='')
+			perc = (i*batch_size*100)//len(dataset)
+			if perc != last_perc:
+				last_perc = perc
+				print('\r{: 3d}%'.format(perc), end='')
 
-		batch_data = cudalize_dict(batch_data, exclude=['question_id', 'find_inst'])
-		nmn_data = get_nmn_data(batch_data)
-		answers = to_numpy(nmn(*nmn_data).argmax(1))
+			batch_data = cudalize_dict(batch_data, exclude=['question_id', 'find_inst'])
+			nmn_data = get_nmn_data(batch_data)
+			answers = to_numpy(nmn(*nmn_data).argmax(1))
 
-		for qid, ans in zip(batch_data['question_id'], answers):
-			result = dict(
-				question_id = qid,
-				answer = ANSWER_INDEX.get(ans)
-			)
-			result_list.append(result)
+			for qid, ans in zip(batch_data['question_id'], answers):
+				result = dict(
+					question_id = qid,
+					answer = ANSWER_INDEX.get(ans)
+				)
+				result_list.append(result)
 
 	print('\nWriting results to {!r}'.format(args.output))
 	with open(args.output, 'w') as fd:

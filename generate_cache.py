@@ -29,41 +29,42 @@ show_progress.last = -1
 
 def generate_and_save(modules, set_name, batch_data, clock, modular):
 
-	find, qenc = modules
-	question_ids = batch_data['question_id']
+	with torch.no_grad():
+		find, qenc = modules
+		question_ids = batch_data['question_id']
 
-	if find is not None:
-		features = cudalize(batch_data['features'])
-		inst = cudalize(*batch_data['find_inst'])
-		inst = (inst,) if isinstance(inst, torch.Tensor) else inst
+		if find is not None:
+			features = cudalize(batch_data['features'])
+			inst = cudalize(*batch_data['find_inst'])
+			inst = (inst,) if isinstance(inst, torch.Tensor) else inst
 
-		clock.start()
-		hmap     = generate_hmaps(find, inst, features, modular)
-		attended = attend_features(features, hmap)
-		clock.stop()
+			clock.start()
+			hmap     = generate_hmaps(find, inst, features, modular)
+			attended = attend_features(features, hmap)
+			clock.stop()
 
-		hmap     = to_numpy(hmap)
-		attended = to_numpy(attended)
+			hmap     = to_numpy(hmap)
+			attended = to_numpy(attended)
 
-		for m, a, qid in zip(hmap, attended, question_ids):
-			fn = get_path(set_name, qid)
-			np.save(fn, m)
-			fn = get_path(set_name, qid, 'att')
-			np.save(fn, a)
+			for m, a, qid in zip(hmap, attended, question_ids):
+				fn = get_path(set_name, qid)
+				np.save(fn, m)
+				fn = get_path(set_name, qid, 'att')
+				np.save(fn, a)
 
-	if qenc is not None:
-		question = cudalize(batch_data['question'])
-		length   = cudalize(batch_data['length'])
+		if qenc is not None:
+			question = cudalize(batch_data['question'])
+			length   = cudalize(batch_data['length'])
 
-		clock.start()
-		pred = qenc(question, length)
-		clock.stop()
+			clock.start()
+			pred = qenc(question, length)
+			clock.stop()
 
-		pred = to_numpy(pred)
+			pred = to_numpy(pred)
 
-		for p, qid in zip(pred, question_ids):
-			fn = get_path(set_name, qid, 'qenc')
-			np.save(fn, p)
+			for p, qid in zip(pred, question_ids):
+				fn = get_path(set_name, qid, 'qenc')
+				np.save(fn, p)
 
 	return len(question_ids)
 
