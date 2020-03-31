@@ -107,7 +107,7 @@ if __name__ == '__main__':
 	kwargs['questions'] = args.qenc_module is not None
 	dataset = CacheDataset(set_names=args.dataset, **kwargs)
 
-	ignored_params = ['learning_rate', 'batch_size', 'weight_decay', 'dropout']
+	ignored_params = ['learning_rate','batch_size','weight_decay','dropout','softmax_attn']
 	modules = list()
 	for pt_file, module_class in [(args.find_module, Find), (args.qenc_module, QuestionEncoder)]:
 		m = None
