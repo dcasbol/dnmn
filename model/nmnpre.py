@@ -20,8 +20,8 @@ class NMNPretrained(BaseModule):
 		softmax_attn = False
 		ignored_params = ['learning_rate', 'batch_size', 'weight_decay', 'dropout']
 		for name in ['encoder','find','describe','measure']:
-			pt_file  = os.path.join(hpo_dir, '{}-hpo-best.pt'.format(name))
-			res_file = os.path.join(hpo_dir, '{}-res.dat'.format(name))
+			pt_file  = os.path.join(hpo_dir, '{0}/{0}-hpo-best.pt'.format(name))
+			res_file = os.path.join(hpo_dir, '{0}/{0}-res.dat'.format(name))
 
 			with open(res_file, 'rb') as fd:
 				res = pickle.load(fd)
