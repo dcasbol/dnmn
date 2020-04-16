@@ -12,13 +12,24 @@ class Describe(InstanceModule):
 
 	NAME = 'describe'
 
-	def __init__(self, softmax_attn=False, **kwargs):
+	def __init__(self, softmax_attn=False, hidden_size=None, 
+		hidden_dropout=0, **kwargs):
 		super(Describe, self).__init__(**kwargs)
 		self._descr = nn.ModuleList([
-			nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+			self._make_inst(hidden_size, hidden_dropout)
 			for _ in range(len(DESC_INDEX))
 		])
 		self._softmax_attn = softmax_attn
+
+	def _make_inst(self, hidden_size, hidden_dropout):
+		if hidden_size is None:
+			return nn.Linear(IMG_DEPTH, len(ANSWER_INDEX))
+		return nn.Sequential(
+			nn.Linear(IMG_DEPTH, hidden_size),
+			nn.ReLU(),
+			nn.Dropout(p=hidden_dropout),
+			nn.Linear(hidden_size, len(ANSWER_INDEX))
+		)
 
 	def forward(self, hmap_or_attended, features=None, prior=None):
 		if features is None:
