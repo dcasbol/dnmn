@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run this with python2 environment
-for i in {1..10}
+for i in {1..20}
 do
 	HPODIR=hyperopt/nhpo/run-$i
 	
@@ -17,6 +17,7 @@ do
 		python scripts/vqaCustomEval.py \
 			val2014 \
 			"$RESDIR/$n-results.json" \
+			--data-dir "/DataSets/vqa" \
 			--result-dir $RESDIR
 	done
 done
