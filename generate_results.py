@@ -12,6 +12,10 @@ def get_nmn_data(batch_dict):
 	keys = ['features', 'question', 'length', 'yesno', 'root_inst', 'find_inst']
 	return [ batch_dict[k] for k in keys ]
 
+# TO DO: this is cheap. Put object anywhere else or rely on dict.
+class ResultObject:
+	pass
+
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description="""
@@ -30,7 +34,12 @@ if __name__ == '__main__':
 
 	modules = ['encoder', 'find', 'describe', 'measure']
 	modules_fn = [ getattr(args, name) for name in modules ]
-	assert args.nmn is not None or None not in modules_fn, 'Load whole NMN or all its modules.'
+	if args.modular_hpo_dir is None:
+		assert args.nmn is not None or None not in modules_fn,\
+			'Load NMN checkpoint or all its modules.'
+	else:
+		assert args.nmn is None and all([m is None for m in modules_fn]),\
+			"Conflict loading modules from hpo-dir and NMN checkpoint."
 
 	dataset = VQANMNDataset(set_names=args.set_name, answers=False)
 	batch_size = max_divisor_batch_size(len(dataset), 256)
