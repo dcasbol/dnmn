@@ -11,7 +11,8 @@ class ResultObject:
 
 class NMNPretrained(BaseModule):
 	"""Collect all results from modular hyperparameter optimization and
-	put it all together for the final evaluation on the held-out set."""
+	put it all together for the final evaluation on the held-out set.
+	This is intended to work for modular=True."""
 
 	NAME = 'nmn'
 
@@ -27,7 +28,7 @@ class NMNPretrained(BaseModule):
 				res = pickle.load(fd)
 			kwargs = res.x_iters[res.best_eval]
 			kwargs = { k:v for k,v in kwargs.items() if k not in ignored_params }
-			if name != 'encoder':
+			if name == 'find':
 				kwargs['modular'] = True
 			if name == 'find' and 'softmax_attn' in kwargs:
 				softmax_attn = kwargs['softmax_attn']
