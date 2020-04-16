@@ -10,9 +10,10 @@ def get_args():
 	parser.add_argument('--selection',
 		choices=['find', 'describe', 'measure', 'encoder', 'nmn'],
 		default='nmn')
+	parser.add_argument('--plus', action='store_true')
 	return parser.parse_args()
 
-def gen_candidate(sel):
+def gen_candidate(sel, plus):
 	c = dict(
 		batch_size    = random.randint(16, 512),
 		dropout       = random.uniform(0, 0.9),
@@ -29,6 +30,9 @@ def gen_candidate(sel):
 		c['bias']         = random.choice([True, False])
 	elif sel == 'describe':
 		c['batch_size'] = random.randint(16, 2048)
+		if plus:
+			c['hidden_size']    = random.randint(16, 1024)
+			c['hidden_dropout'] = random.uniform(0, 0.9)
 	elif sel == 'measure':
 		c['batch_size']     = random.randint(16, 1024)
 		c['hidden_size']    = random.randint(16, 1024)
@@ -41,7 +45,7 @@ def main(args):
 
 	random.seed(args.seed)
 
-	candidates = [ gen_candidate(args.selection) for _ in range(args.N) ]
+	candidates = [ gen_candidate(args.selection, args.plus) for _ in range(args.N) ]
 
 	with open(args.output,'w') as fd:
 		json.dump(candidates, fd)
