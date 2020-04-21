@@ -1,6 +1,6 @@
 import torch
 from .base import Runner
-from model import NMN
+from model import NMN, Find
 from loaders import NMNLoader
 from misc.util import cudalize, cudalize_dict
 
