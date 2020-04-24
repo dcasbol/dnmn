@@ -41,5 +41,7 @@ if __name__ == '__main__':
 
 		kwargs['top_1'] = runner.last_acc
 		kwargs['var']   = runner.last_var
+		kwargs['val_loss'] = runner._logger.last('val_loss')
+		kwargs['rel_acc']  = runner._logger.last('rel_acc')
 		with open(base_name+'.json', 'w') as fd:
 			json.dump(kwargs, fd)
