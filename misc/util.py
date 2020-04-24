@@ -90,10 +90,17 @@ def top1_accuracy(pred, label):
 	hits = torch.min(hits, torch.ones([], device=DEVICE))
 	return hits.mean().item()
 
-def inset_accuracy(pred, label_dist):
-	idx = torch.arange(pred.size(0))
-	hit = label_dist[idx, pred.argmax(1)] > 0
-	return hit.float().mean().item()
+def inset_accuracy(pred, label):
+	y = pred.argmax(1).view(-1,1)
+	hits = (y == label) & (y != UNK_ID)
+	hits = hits.any(1).float()
+	return hits.mean().item()
+
+def rel_accuracy(pred, label):
+	y = pred.argmax(1).view(-1,1)
+	hits = (y == label) & (y != UNK_ID)
+	hits = hits.float().sum(1) / 10.0
+	return hits.mean().item()
 
 def weighted_accuracy(pred, label_dist):
 	idx = torch.arange(pred.size(0))
