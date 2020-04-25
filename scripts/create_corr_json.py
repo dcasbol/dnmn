@@ -69,10 +69,17 @@ def main(args):
 	plt.show()
 
 	# Show all discarded and selected
+	xlabel = dict(
+		top_1    = 'Accuracy',
+		rel_acc  = 'Relative Accuracy',
+		val_loss = 'Validation Loss'
+	)[args.select_by]
 	plt.figure()
 	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'), c='red', alpha=0.5)
 	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'), c='grey', alpha=0.5)
 	plt.scatter(extract(final, args.select_by), extract(final, 'var'), c='blue')
+	plt.ylabel('Predictive Variance')
+	plt.xlabel(xlabel)
 	plt.show()
 
 	if input('Write to JSON file? ').lower() in {'y','yes'}:
