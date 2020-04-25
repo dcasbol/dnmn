@@ -77,9 +77,12 @@ def main(args):
 	)[args.select_by]
 	selected = [ s for s in selected if s not in final ]
 	plt.figure()
-	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'), c='red', alpha=0.5)
-	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'), c='grey', alpha=0.5)
-	plt.scatter(extract(final, args.select_by), extract(final, 'var'), c='blue', alpha=0.5)
+	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'),
+		c='red', alpha=0.25)
+	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'),
+		c='grey', alpha=0.5)
+	plt.scatter(extract(final, args.select_by), extract(final, 'var'),
+		c='blue', alpha=0.5)
 	plt.ylabel('Predictive Variance')
 	plt.xlabel(xlabel)
 	plt.show()
