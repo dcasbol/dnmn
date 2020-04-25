@@ -57,9 +57,10 @@ def main(args):
 	final = list()
 	while len(final) < N_VALUES:
 		for sl in slots:
-			if i < len(final):
+			if i < len(sl):
 				final.append(sl[i])
 		i += 1
+		assert i < 10000, 'Ran out of iterations, maybe not enough points to work with.'
 
 	print('{} selected from {}'.format(len(final), len(selected)))
 
@@ -74,10 +75,11 @@ def main(args):
 		rel_acc  = 'Relative Accuracy',
 		val_loss = 'Validation Loss'
 	)[args.select_by]
+	selected = [ s for s in selected if s not in final ]
 	plt.figure()
 	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'), c='red', alpha=0.5)
 	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'), c='grey', alpha=0.5)
-	plt.scatter(extract(final, args.select_by), extract(final, 'var'), c='blue')
+	plt.scatter(extract(final, args.select_by), extract(final, 'var'), c='blue', alpha=0.5)
 	plt.ylabel('Predictive Variance')
 	plt.xlabel(xlabel)
 	plt.show()
