@@ -43,7 +43,7 @@ def main(args):
 	conf = res.x_iters[res.best_eval]
 
 	runner = NMNRunner(
-		max_epochs    = 100,
+		max_epochs    = 50,
 		validate      = True,
 		batch_size    = int(conf['batch_size']),
 		learning_rate = conf['learning_rate'],
@@ -54,7 +54,9 @@ def main(args):
 	runner.run()
 
 	d = read()
-	d['nmn_accs'][idx] = runner.best_acc
+	d['nmn_accs'][idx]     = runner.best_acc
+	d['nmn_rel_accs'][idx] = max(runner._logger['rel_acc'])
+	d['nmn_loss'][idx]     = min(runner._logger['val_loss'])
 	write(d)
 
 	print('Best validation accuracy:', runner.best_acc)
