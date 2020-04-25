@@ -9,7 +9,7 @@ def get_args():
 	parser = argparse.ArgumentParser(description='Show gauge-nmn correlation plot')
 	parser.add_argument('--data-json', default='gauge_corr_data.json')
 	parser.add_argument('--criterion',
-		choice=['accs','rel_accs','loss'], default='loss')
+		choices=['accs','rel_accs','loss'], default='loss')
 	return parser.parse_args()
 
 def main(args):
@@ -24,7 +24,7 @@ def main(args):
 	nmn_values, gauge_values = zip(*values)
 	if 'accs' in args.criterion:
 		gauge_values = [ v*100 for v in gauge_values ]
-	print('Showing {} points'.format(len(gauge_accs)))
+	print('Showing {} points'.format(len(gauge_values)))
 
 	r, p = pearsonr(gauge_values, nmn_values)
 	print('coeff: ', r)
