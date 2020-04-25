@@ -4,16 +4,19 @@ import argparse
 import matplotlib.pyplot as plt
 from glob import glob
 
-MIN_VALUE  = 0.01
 N_SLOTS    = 20
 
 def get_args():
 	descr = """Create JSON with selected Find modules for correlation plot"""
 	parser = argparse.ArgumentParser(description=descr)
-	parser.add_argument('--input-pattern', default='find-rnd/find-rnd*.json')
-	parser.add_argument('--max-std', type=float, default=0.07)
+	parser.add_argument('--input-pattern', default='find-rnd/find-rnd-*.json')
+	parser.add_argument('--max-std', type=float, default=0.05)
 	parser.add_argument('--n-values', type=int, default=30)
+	parser.add_argument('--select-by', choices=['top_1','rel_acc','val_loss'], default='val_loss')
 	return parser.parse_args()
+
+def extract(dict_list, key):
+	return [ d[key] for d in dict_list ]
 
 def main(args):
 
@@ -21,42 +24,25 @@ def main(args):
 
 	max_variance = args.max_std**2
 
-	var_list   = list()
-	value_list = list()
-	fn_list    = list()
-	agr_list   = list()
-	skipped_acc = skipped_var = 0
+	selected = list()
+	discarded = list()
 	for fn in glob_list:
 		with open(fn) as fd:
 			d = json.load(fd)
+		d['fn'] = fn
+		if d['var'] > max_variance:
+			discarded.append(d)
+		else:
+			selected.append(d)
 
-		skip_acc = d['top_1'] < MIN_VALUE
-		skip_var = d['var'] > max_variance
-		if skip_acc or skip_var:
-			skipped_acc += int(skip_acc)
-			skipped_var += int(skip_var)
-			continue
-
-		value_list.append(d['top_1'])
-		var_list.append(d['var'])
-		fn_list.append(fn)
-		agr_list.append(d.get('agreement',0))
-
-	for n, reason in [(skipped_acc, 'accuracy'), (skipped_var, 'variance')]:
-		if n == 0: continue
-		print('{} values violated {} constraints'.format(n, reason))
-	if skipped_acc + skipped_var > 0:
-		print('{} skipped values in total'.format(len(glob_list)-len(value_list)))
+	if len(discarded) > 0:
+		print('{} values violated variance constraints'.format(len(discarded)))
 
 	# Sort by variance
-	select = lambda l, idcs: [ l[i] for i in idcs ]
-	indices = sorted(range(len(value_list)), key=lambda i: var_list[i])
-	value_list = select(value_list, indices)
-	fn_list    = select(fn_list, indices)
-	var_list   = select(var_list, indices)
-	agr_list   = select(agr_list, indices)
+	selected = sorted(selected, key=lambda s: s['var'])
 
 	N_VALUES = args.n_values
+	value_list = extract(selected, args.select_by)
 	min_v = min(value_list)
 	max_v = max(value_list)
 	displ = -min_v
@@ -64,56 +50,47 @@ def main(args):
 	get_slot = lambda v: int(N_SLOTS*(v+displ)*scale)
 
 	slots = [ list() for i in range(N_SLOTS) ]
-	for idx, v in enumerate(value_list):
-		slots[get_slot(v)].append(idx)
+	for s in selected:
+		slots[get_slot(s[args.select_by])].append(s)
 
 	i = 0
-	sel_indices = list()
-	while len(sel_indices) < N_VALUES:
-		for idcs in slots:
-			if i < len(idcs):
-				sel_indices.append(idcs[i])
+	final = list()
+	while len(final) < N_VALUES:
+		for sl in slots:
+			if i < len(final):
+				final.append(sl[i])
 		i += 1
-	sel_values  = [ value_list[i] for i in sel_indices ]
-	sel_filenames = [ fn_list[i] for i in sel_indices ]
 
-	print('{} selected from {}'.format(len(sel_values), len(value_list)))
+	print('{} selected from {}'.format(len(final), len(selected)))
 
+	# Selection distribution
 	plt.figure()
-	plt.hist(sel_values)
+	plt.hist([ s[args.select_by] for s in final ])
 	plt.show()
 
+	# Show all discarded and selected
 	plt.figure()
-	if len(var_list) == 0:
-		plt.scatter(value_list, [0.5]*len(value_list), c='grey', alpha=0.5)
-		plt.scatter(sel_values, [1]*len(sel_values), alpha=0.5)
-	else:
-		excl_indices = [ i for i in range(len(value_list)) if i not in sel_indices ]
-		excl_values = [ value_list[i] for i in excl_indices ]
-		excl_vars   = [ var_list[i] for i in excl_indices ]
-		plt.scatter(excl_values, excl_vars, c='grey', alpha=0.5)
-
-		sel_vars = select(var_list, sel_indices)
-		plt.scatter(sel_values, sel_vars, alpha=0.5)
-		plt.show()
-
-		plt.figure()
-		sel_agrs = select(agr_list, sel_indices)
-		plt.scatter(sel_values, sel_agrs, alpha=0.5)
+	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'), c='red', alpha=0.5)
+	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'), c='grey', alpha=0.5)
+	plt.scatter(extract(final, args.select_by), extract(final, 'var'), c='blue')
 	plt.show()
 
 	if input('Write to JSON file? ').lower() in {'y','yes'}:
 		l = len('json')
-		pt_filenames = [ os.path.basename(fn[:-l]+'pt') for fn in sel_filenames ]
+		pt_filenames = [ os.path.basename(fn[:-l]+'pt') for fn in extract(final, 'fn') ]
 		data = dict(
-			pt_files   = pt_filenames,
-			gauge_accs = sel_values,
-			nmn_accs   = [-1]*len(sel_values)
+			pt_files       = pt_filenames,
+			gauge_accs     = extract(final, 'top_1'),
+			gauge_rel_accs = extract(final, 'rel_acc'),
+			gauge_loss     = extract(final, 'val_loss'),
+			gauge_vars     = extract(final, 'var')
 		)
-		if len(var_list) > 0:
-			data['gauge_vars'] = sel_vars
+		for k in ['nmn_accs','nmn_rel_accs','nmn_loss']:
+			data[k] = [-1]*len(final)
 		with open('gauge_corr_data.json', 'w') as fd:
 			json.dump(data, fd)
+	else:
+		print('JSON discarded')
 
 if __name__ == '__main__':
 	main(get_args())
