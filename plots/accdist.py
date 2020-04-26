@@ -26,13 +26,11 @@ def _get_accs_dict(path, name=None):
 
 def main(args):
 
-	if args.nmn_hpo is None:
-		args.nmn_hpo = os.path.join(args.hpo_dir, 'nmn')
-
 	data = list()
 	for name in MODULE_NAMES:
 		data.extend(_get_accs_dict(args.hpo_dir, name))
-	data.extend(_get_accs_dict(args.nmn_hpo))
+	if args.nmn_hpo is not None:
+		data.extend(_get_accs_dict(args.nmn_hpo))
 
 	data = pd.DataFrame(data)
 	sns.swarmplot(x='name', y='accuracy', data=data)
