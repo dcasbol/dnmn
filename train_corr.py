@@ -55,8 +55,8 @@ def main(args):
 
 	d = read()
 	d['nmn_accs'][idx]     = runner.best_acc
-	d['nmn_rel_accs'][idx] = max(runner._logger['rel_acc'])
-	d['nmn_loss'][idx]     = min(runner._logger['val_loss'])
+	d['nmn_rel_accs'][idx] = max(runner._logger._log['rel_acc'])
+	d['nmn_loss'][idx]     = min(runner._logger._log['val_loss'])
 	write(d)
 
 	print('Best validation accuracy:', runner.best_acc)
