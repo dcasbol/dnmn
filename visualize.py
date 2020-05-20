@@ -3,7 +3,7 @@ import torch
 import time
 from torch.utils.data import DataLoader
 from vqa import VQAFindDataset
-from model import Find
+from model import Find, NMN
 from misc.indices import FIND_INDEX
 from misc.constants import *
 from misc.visualization import MapVisualizer
@@ -17,6 +17,7 @@ parser.add_argument('--wait', type=float, default=1.)
 parser.add_argument('--shuffle', action='store_true')
 parser.add_argument('--dataset', choices=['train2014', 'val2014'], default='val2014')
 parser.add_argument('--modular', action='store_true')
+parser.add_argument('--from-nmn', action='store_true')
 args = parser.parse_args()
 
 cond = -1
@@ -26,8 +27,13 @@ if len(args.condition) > 0:
 findset = VQAFindDataset(metadata=True)
 loader = DataLoader(findset, batch_size=1, shuffle=args.shuffle)
 
-find = Find(modular=args.modular)
-find.load_state_dict(torch.load(args.ptfile, map_location='cpu'))
+if args.from_nmn:
+	nmn = NMN(modular=args.modular)
+	nmn.load(args.ptfile)
+	find = nmn._find
+else:
+	find = Find(modular=args.modular)
+	find.load(args.ptfile)
 find.eval()
 
 vis = MapVisualizer(1, vmin = 0, vmax = 1 if args.modular else None)
