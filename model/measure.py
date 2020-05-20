@@ -16,8 +16,8 @@ class Measure(InstanceModule):
 		self._measure = nn.ModuleList([
 			nn.Sequential(
 				nn.Linear(MASK_WIDTH**2, hidden_size),
-				nn.ReLU(),
-				nn.Dropout(p=hidden_dropout),
+				# Keep it as single-layer to preserve state_dict naming
+				nn.Sequential(nn.ReLU(), nn.Dropout(p=hidden_dropout)),
 				nn.Linear(hidden_size, len(ANSWER_INDEX))
 			)
 			for _ in range(len(DESC_INDEX))
