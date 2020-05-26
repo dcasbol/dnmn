@@ -20,6 +20,7 @@ parser.add_argument('--modular', action='store_true')
 parser.add_argument('--from-nmn', action='store_true')
 parser.add_argument('--save-instances', nargs='*')
 parser.add_argument('--save-imgs', action='store_true')
+parser.add_argument('--save-ext', default='.tiff')
 args = parser.parse_args()
 
 cond = -1
@@ -57,7 +58,8 @@ for features, instance, instance_str, input_set, input_id in loader:
 	hmap = find[instance](features)
 	vis.update(hmap, instance_str, input_set, input_id,
 		save_img = save and args.save_imgs,
-		save_map = save
+		save_map = save,
+		ext      = args.save_ext
 	)
 	
 	time.sleep(args.wait)

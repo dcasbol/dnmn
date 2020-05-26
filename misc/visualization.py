@@ -39,7 +39,7 @@ class MapVisualizer(object):
 
 		if save_map:
 			cmap = plt.get_cmap(self._cmap)
-			simg = (cmap(im)[:,:,:3]*255).astype(np.uint8)
+			simg = (cmap(img)[:,:,:3]*255).astype(np.uint8)
 			Image.fromarray(simg).save('map-'+labels_str[0]+ext)
 
 		plt.subplot(1,2,2)
