@@ -27,6 +27,8 @@ cond = -1
 if len(args.condition) > 0:
 	cond = FIND_INDEX[args.condition]
 save_instances = { FIND_INDEX[inst] for inst in args.save_instances }
+if args.save_ext[0] != '.':
+	args.save_ext = '-' + args.save_ext
 
 findset = VQAFindDataset(metadata=True)
 loader = DataLoader(findset, batch_size=1, shuffle=args.shuffle)
