@@ -17,7 +17,9 @@ class MapVisualizer(object):
 		plt.ion()
 		plt.show()
 
-	def update(self, hmaps, labels_str, input_sets, input_ids):
+	def update(self, hmaps, labels_str, input_sets, input_ids,
+		save_img = False, save_map = False, ext='.tiff'):
+
 		self._count += 1
 		if self._count % self._period != 0:
 			return
@@ -35,11 +37,19 @@ class MapVisualizer(object):
 		plt.colorbar(im, orientation='horizontal', pad=0.05)
 		plt.axis('off')
 
+		if save_map:
+			cmap = plt.get_cmap(self._cmap)
+			simg = (cmap(im)[:,:,:3]*255).astype(np.uint8)
+			Image.fromarray(simg).save('map-'+labels_str[0]+ext)
+
 		plt.subplot(1,2,2)
 		fn = RAW_IMAGE_FILE % (input_sets[0], input_sets[0], input_ids[0])
-		img = np.array(Image.open(fn).resize((300,300)))
-		plt.imshow(img)
+		img = Image.open(fn).resize((300,300))
+		plt.imshow(np.array(img))
 		plt.axis('off')
+
+		if save_img:
+			img.save('img-'+labels_str[0]+ext)
 
 		plt.draw()
 		plt.pause(0.001)
