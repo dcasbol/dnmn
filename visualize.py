@@ -43,12 +43,15 @@ vis = MapVisualizer(1, vmin = 0, vmax = 1 if args.modular else None)
 
 for features, instance, instance_str, input_set, input_id in loader:
 
-	if cond > 0 and instance[0].item() != cond:
+	inst = instance[0].item()
+	if cond > 0 and inst != cond:
+		continue
+	if len(save_instances) > 0 and inst not in save_instances:
 		continue
 
 	save = False
-	if instance in save_instances:
-		save_instances.remove(instance)
+	if inst in save_instances:
+		save_instances.remove(inst)
 		save = True
 
 	hmap = find[instance](features)
