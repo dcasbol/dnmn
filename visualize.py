@@ -26,7 +26,11 @@ args = parser.parse_args()
 cond = -1
 if len(args.condition) > 0:
 	cond = FIND_INDEX[args.condition]
-save_instances = { FIND_INDEX[inst] for inst in args.save_instances }
+
+save_instances = set()
+if args.save_instances is not None:
+	save_instances = { FIND_INDEX[inst] for inst in args.save_instances }
+
 if args.save_ext[0] != '.':
 	args.save_ext = '-' + args.save_ext
 
@@ -66,5 +70,5 @@ for features, instance, instance_str, input_set, input_id in loader:
 	
 	time.sleep(args.wait)
 
-	if len(save_instances) == 0 and len(args.save_instances) > 0:
+	if len(save_instances) == 0 and args.save_instances is not None:
 		break
