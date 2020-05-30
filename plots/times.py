@@ -61,7 +61,8 @@ def plot_data(args, data):
 	plt.bar(1, t, width, color=palette['end-to-end'])
 
 	plt.xticks((0, 1), ('modular', 'end-to-end'))
-	plt.legend(plots, [ name.capitalize() for name in NAMES ])
+	plots.reverse()
+	plt.legend(plots, [ name.capitalize() for name in reversed(NAMES) ])
 
 	plt.show()
 
