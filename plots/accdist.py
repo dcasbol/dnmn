@@ -21,8 +21,8 @@ def _get_acc(fn):
 def _get_accs_dict(path, name=None):
 	pat = path if name is None else os.path.join(path, name)
 	pat = os.path.join(pat, '*_log.json')
-	name = 'nmn' if name is None else name
-	return [ { 'name':name, 'accuracy':_get_acc(fn) } for fn in glob.glob(pat) ]
+	name = 'NMN' if name is None else name.capitalize()
+	return [ { 'name':name, 'Accuracy (%)':_get_acc(fn) } for fn in glob.glob(pat) ]
 
 def main(args):
 
@@ -33,8 +33,7 @@ def main(args):
 		data.extend(_get_accs_dict(args.nmn_hpo))
 
 	data = pd.DataFrame(data)
-	data.rename(columns={'nmn':'NMN', 'accuracy':'Accuracy (%)'})
-	sns.swarmplot(x='name', y='accuracy', data=data)
+	sns.swarmplot(x='name', y='Accuracy (%)', data=data)
 	plt.xlabel('')
 	plt.show()
 
