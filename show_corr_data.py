@@ -35,7 +35,7 @@ def main(args):
 		k = 'relative ' + k
 
 	plt.figure()
-	gk = 'Gauge ' + k
+	gk = 'Sparring ' + k
 	nk = 'NMN ' + k
 	df = pd.DataFrame(zip(gauge_values, nmn_values),
 		columns=[gk,nk])
