@@ -33,7 +33,9 @@ def main(args):
 		data.extend(_get_accs_dict(args.nmn_hpo))
 
 	data = pd.DataFrame(data)
+	data.rename(columns={'nmn':'NMN', 'accuracy':'Accuracy (%)'})
 	sns.swarmplot(x='name', y='accuracy', data=data)
+	plt.xlabel('')
 	plt.show()
 
 if __name__ == '__main__':
