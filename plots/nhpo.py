@@ -56,6 +56,7 @@ def main(args):
 
 		sns.violinplot(x='accuracy', y='modality', data=data, inner=None)
 		sns.swarmplot(x='accuracy', y='modality', data=data, color='black')
+		plt.xlabel('Accuracy (%)')
 		plt.show()
 
 	if args.times:
