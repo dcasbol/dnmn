@@ -38,9 +38,18 @@ def main(args):
 		print('No more jobs left')
 		quit()
 
-	with open(args.hpo_res, 'rb') as fd:
-		res = pickle.load(fd)
-	conf = res.x_iters[res.best_eval]
+	if os.path.exists(args.hpo_res):
+		with open(args.hpo_res, 'rb') as fd:
+			res = pickle.load(fd)
+		conf = res.x_iters[res.best_eval]
+	else:
+		print('No hpo-res file. Using default configuration.')
+		conf = dict(
+			batch_size    = 356,
+			learning_rate = 0.0007700193882725058,
+			dropout       = 0.15733753600629702,
+			weight_decay  = 1.2561860220574558e-06
+		)
 
 	runner = NMNRunner(
 		max_epochs    = 50,
