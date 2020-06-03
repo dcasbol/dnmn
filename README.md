@@ -8,8 +8,8 @@ These experiments work on the VQA v1.0 dataset, which should be placed under the
 
 Working with Python 3.5 or higher.
 
-![ULPGC](https://www.siani.es/files/multimedia/imagenes/web/logo_ulpgc.png "ULPGC") ![SIANI](https://www.siani.es/files/multimedia/imagenes/web/logo_header.png "SIANI")
-
+[![ULPGC](https://www.siani.es/files/multimedia/imagenes/web/logo_ulpgc.png "ULPGC")](https://www.ulpgc.es/)          [![SIANI](https://www.siani.es/files/multimedia/imagenes/web/logo_header.png "SIANI")](https://www.siani.es/)
+ 
 ## Execution of experiments
 
 All experiments listed here can be replicated just by running the corresponding script under the folder `experiments`. Please be sure to run all scripts from the repository's root folder. Before being able to run any experiment, follow these steps:
