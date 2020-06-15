@@ -13,6 +13,8 @@ def get_args():
 	parser.add_argument('--max-std', type=float, default=0.05)
 	parser.add_argument('--n-values', type=int, default=30)
 	parser.add_argument('--select-by', choices=['top_1','rel_acc','val_loss'], default='val_loss')
+	parser.add_argument('--silent', action='store_true')
+	parser.add_argument('--force-save', action='store_true')
 	return parser.parse_args()
 
 def extract(dict_list, key):
@@ -65,29 +67,31 @@ def main(args):
 	print('{} selected from {}'.format(len(final), len(selected)))
 
 	# Selection distribution
-	plt.figure()
-	plt.hist([ s[args.select_by] for s in final ])
-	plt.show()
+	if not args.silent:
+		plt.figure()
+		plt.hist([ s[args.select_by] for s in final ])
+		plt.show()
 
 	# Show all discarded and selected
-	xlabel = dict(
-		top_1    = 'Accuracy',
-		rel_acc  = 'Relative Accuracy',
-		val_loss = 'Validation Loss'
-	)[args.select_by]
-	selected = [ s for s in selected if s not in final ]
-	plt.figure()
-	plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'),
-		c='red', alpha=0.25)
-	plt.scatter(extract(selected, args.select_by), extract(selected, 'var'),
-		c='grey', alpha=0.5)
-	plt.scatter(extract(final, args.select_by), extract(final, 'var'),
-		c='blue', alpha=0.5)
-	plt.ylabel('Predictive Variance')
-	plt.xlabel(xlabel)
-	plt.show()
+	if not args.silent:
+		xlabel = dict(
+			top_1    = 'Accuracy',
+			rel_acc  = 'Relative Accuracy',
+			val_loss = 'Validation Loss'
+		)[args.select_by]
+		selected = [ s for s in selected if s not in final ]
+		plt.figure()
+		plt.scatter(extract(discarded, args.select_by), extract(discarded, 'var'),
+			c='red', alpha=0.25)
+		plt.scatter(extract(selected, args.select_by), extract(selected, 'var'),
+			c='grey', alpha=0.5)
+		plt.scatter(extract(final, args.select_by), extract(final, 'var'),
+			c='blue', alpha=0.5)
+		plt.ylabel('Predictive Variance')
+		plt.xlabel(xlabel)
+		plt.show()
 
-	if input('Write to JSON file? ').lower() in {'y','yes'}:
+	if args.force_save or input('Write to JSON file? ').lower() in {'y','yes'}:
 		l = len('json')
 		pt_filenames = [ os.path.basename(fn[:-l]+'pt') for fn in extract(final, 'fn') ]
 		data = dict(
