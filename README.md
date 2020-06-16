@@ -34,3 +34,7 @@ This script runs the hyperparameter search, optimization and evaluation of the e
 
 Runs modular training of the NMN architecture without making any further adjustments. This script runs the hyperparameter search and optimization of modules independently and tests the final configuration over our held-out test set.
 
+### 04-adjusted_modular.sh
+
+Runs adjusted modular training, where we make subtle but very important changes to the original NMN architecture that improve compositionality of modules and therefore generalisation of the full neural network.
+
