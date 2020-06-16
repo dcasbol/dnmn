@@ -60,7 +60,7 @@ def plot_data(args, data):
 	t = data[time_key]['nmn']/3600
 	plt.bar(1, t, width, color=palette['end-to-end'])
 
-	plt.xticks((0, 1), ('modular', 'end-to-end'))
+	plt.xticks((0, 1), ('modular\n(aggregated cost)', 'end-to-end'))
 	plots.reverse()
 	plt.legend(plots, [ name.capitalize() for name in reversed(NAMES) ])
 

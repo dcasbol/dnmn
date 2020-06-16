@@ -44,8 +44,8 @@ def main(args):
 		conf = res.x_iters[res.best_eval]
 	else:
 		print('No hpo-res file. Using default configuration.')
-		# These are the best hyperparameters that should be found.
-		# Hardcoded for convenience.
+		# These are the best hyperparameters that we found.
+		# Hardcoded for convenience if replicating.
 		conf = dict(
 			batch_size    = 356,
 			learning_rate = 0.0007700193882725058,
