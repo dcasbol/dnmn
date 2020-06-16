@@ -11,3 +11,4 @@ pip install requirements.txt
 
 python scripts/img_to_feat.py
 python scripts/compute_normalizers.py
+deactivate
