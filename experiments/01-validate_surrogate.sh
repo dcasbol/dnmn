@@ -11,3 +11,5 @@ while [ "$i" -le "$N" ]; do
 done
 
 python show_corr_data.py --data-json "gauge_corr_data.json" --criterion "loss"
+
+deactivate
