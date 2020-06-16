@@ -38,3 +38,18 @@ Runs modular training of the NMN architecture without making any further adjustm
 
 Runs adjusted modular training, where we make subtle but very important changes to the original NMN architecture that improve compositionality of modules and therefore generalisation of the full neural network.
 
+## Generating additional plots
+
+If you have already run `02-end-to-end_baseline.sh` and `03-direct_modular.sh`, you can generate **Figure 9** and **Figure 10** by running:
+
+```bash
+python plots/times.py "hyperopt/" --raw-times
+python plots/accdist.py "hyperopt/" --nmn-hpo "hyperopt/nmn"
+```
+
+**Figure 12** can be generated after having run `04-adjusted_modular.sh` by running:
+
+```bash
+python plots/accdist.py "hyperopt/modular"
+```
+
