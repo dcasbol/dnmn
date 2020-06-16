@@ -1,0 +1,4 @@
+# Requirements for Python2.7 environment
+matplotlib
+python dev-tools
+python tkinter
