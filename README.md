@@ -6,9 +6,8 @@ The neural network used in the experiments is based on the Neural Module Network
 
 These experiments work on the VQA v1.0 dataset, which should be placed under the `data/vqa` directory. Image folders must be divided into `raw` and `conv` e.g. `Images/train2014/raw` containing the raw image files (they are usually placed under `Images/train2014`) and the `Images/train2014/conv` is where the 14x14x512 features from the VGG16 will be stored. SPS2 files are already provided in this repository, so that it isn't necessary to install and run the Stanford parser.
 
-Working with Python 3.5 or higher.
-
-[![ULPGC](https://www.siani.es/files/multimedia/imagenes/web/logo_ulpgc.png "ULPGC")](https://www.ulpgc.es/)          [![SIANI](https://www.siani.es/files/multimedia/imagenes/web/logo_header.png "SIANI")](https://www.siani.es/)
+[![ULPGC](https://www.siani.es/files/multimedia/imagenes/web/logo_ulpgc.png "ULPGC")](https://www.ulpgc.es/) | [![SIANI](https://www.siani.es/files/multimedia/imagenes/web/logo_header.png "SIANI")](https://www.siani.es/)
+| --- | --- |
  
 ## Execution of experiments
 
@@ -18,13 +17,20 @@ All experiments listed here can be replicated just by running the corresponding 
 2. Ensure that you have virtualenv installed.
 3. Run `00-setup.sh`. This will create a pair of virtual environments and preprocess input images.
 
-### 01-validate_sparring.sh
+### 01-validate_surrogate.sh
 
-Validation of the sparring module. Executes following steps:
+Validation of the surrogate gradient module, testing the correlation of its loss with the final NMN loss. Executes following steps:
 
 1. Training of N=100 Find modules, using the sparring module for indirect supervision.
 2. Filtering of trained Find modules, acording to uncertainty criteria, and selection of subset for correlation plot.
 3. Test utility of each module by transferring to full NMN and training the rest.
 4. Plot correlation found.
 
+### 02-end-to-end_baseline.sh
+
+This script runs the hyperparameter search, optimization and evaluation of the end-to-end NMN baseline.
+
+### 03-direct_modular.sh
+
+Runs modular training of the NMN architecture without making any further adjustments. This script runs the hyperparameter search and optimization of modules independently and tests the final configuration over our held-out test set.
 
