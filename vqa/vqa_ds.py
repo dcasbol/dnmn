@@ -1,6 +1,7 @@
 import os
 import json
 import pickle
+import random
 import numpy as np
 from torch.utils.data import Dataset
 from misc.constants import *
@@ -28,6 +29,7 @@ class VQADataset(Dataset):
 		self._load_from_cache(set_names)
 		self._id_list = list(self._by_id.keys())
 		self._id_list.sort() # Ensure same order in all systems
+		random.Random(0).shuffle(self._id_list)
 
 		if start is not None:
 			start = int(start*len(self._id_list))
