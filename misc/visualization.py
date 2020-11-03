@@ -40,7 +40,7 @@ class MapVisualizer(object):
 		if save_map:
 			cmap = plt.get_cmap(self._cmap)
 			simg = (cmap(img)[:,:,:3]*255).astype(np.uint8)
-			Image.fromarray(simg).save('map-'+labels_str[0]+ext)
+			Image.fromarray(simg).resize((300,300)).save('map-'+labels_str[0]+ext)
 
 		plt.subplot(1,2,2)
 		fn = RAW_IMAGE_FILE % (input_sets[0], input_sets[0], input_ids[0])
@@ -49,7 +49,7 @@ class MapVisualizer(object):
 		plt.axis('off')
 
 		if save_img:
-			img.save('img-'+labels_str[0]+ext)
+			img.save(labels_str[0]+ext)
 
 		plt.draw()
 		plt.pause(0.001)
