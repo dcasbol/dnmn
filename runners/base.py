@@ -15,19 +15,21 @@ class Runner(object):
 	def __init__(self, max_epochs=40, batch_size=128,
 		restore_pt=None, save=False, validate=True, suffix='',
 		learning_rate=1e-3, weight_decay=1e-5, dropout=0,
-		early_stopping=True, modular=False):
+		early_stopping=True, modular=False, k=None):
 
 		# This seed makes weight initialization deterministic
 		self._seed()
 
 		self._max_epochs = max_epochs
-		self._save       = save
+		self._save       = save or k is not None
 		self._validate   = validate
 		self._dropout    = dropout
 		self._earl_stop  = early_stopping
 		self._modular    = modular
+		self._k          = k
 
 		self._best_acc   = None
+		self._test_acc   = None
 		self._n_worse    = 0
 		self._best_epoch = -1
 		self._model      = self._get_model()
@@ -44,15 +46,23 @@ class Runner(object):
 			num_workers = 4
 		)
 
-		if validate:
-			#kwargs = dict(metadata=True) if modname == GaugeFind.NAME and validate else {}
+		if validate or k is not None:
+			if k is None:
+				kwargs = {
+					'set_names' : 'val2014',
+					'stop'      : 0.2
+				}
+			else:
+				kwargs = {
+					'set_names' : ['train2014','val2014'],
+					'k'         : k,
+					'partition' : 'val'
+				}
 			self._val_loader = self._get_loader(
-				set_names   = 'val2014',
-				stop        = 0.2,
 				batch_size  = VAL_BATCH_SIZE,
 				shuffle     = False,
 				num_workers = 4,
-				#**kwargs
+				**kwargs
 			)
 
 		self._logger   = Logger()
@@ -135,6 +145,9 @@ class Runner(object):
 		print('End of training. It took {} training seconds'.format(self._clock['time'].read()))
 		print('{} seconds in total'.format(self._clock['raw_time'].read()))
 
+		# Test here if k-folding
+		self._test()
+
 	def _preview(self, mean_loss):
 		print('Ep. {}; {}; loss {}'.format(self._epoch, self._perc_cnt, mean_loss))
 
@@ -203,6 +216,38 @@ class Runner(object):
 
 		return self._earl_stop and self._n_worse >= max(5, (self._epoch+1)//3)
 
+	def _test(self):
+		if self._k is None: return
+		if self._test_acc is not None:
+			return self._test_acc
+
+		self._model.load(self._pt_new)
+
+		test_loader = self._get_loader(
+			set_names   = ['train2014','val2014'],
+			k           = self._k,
+			partition   = 'test',
+			batch_size  = VAL_BATCH_SIZE,
+			shuffle     = False,
+			num_workers = 4
+		)
+
+		N = top1 = 0
+
+		self._model.eval()
+		with torch.no_grad():
+			for batch_data in test_loader:
+				result = self._forward(batch_data)
+				output = result['output']
+				label  = result['label']
+				B = label.size(0)
+				N += B
+				top1 += util.top1_accuracy(output, label) * B
+		self._model.train()
+
+		self._test_acc = top1/N
+		return self._test_acc
+
 	def save_model(self, filename):
 		self._model.save(filename)
 
@@ -216,6 +261,13 @@ class Runner(object):
 			print('WARNING: best_acc is not set')
 			return 0.0
 		return self._best_acc*100
+
+	@property
+	def test_acc(self):
+		if self._test_acc is None:
+			print('WARNING: test_acc is not set')
+			return 0.0
+		return self._test_acc*100
 	
 	@property
 	def best_epoch(self):

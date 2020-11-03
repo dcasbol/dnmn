@@ -23,6 +23,8 @@ def get_args():
 		help='Run validation after every epoch')
 	parser.add_argument('--modular', action='store_true',
 		help='Follow modular methodology')
+	parser.add_argument('--k', type=int,
+		help='Index for 5-fold cross-validation')
 	return parser.parse_args()
 
 
@@ -53,3 +55,6 @@ if __name__ == '__main__':
 	runner.run()
 	print('Best validation accuracy:', runner.best_acc)
 	print('Achieved at epoch', runner.best_epoch)
+
+	if args.k is not None:
+		print('Test accuracy (fold {}): {}'.format(args.k, runner.test_acc))

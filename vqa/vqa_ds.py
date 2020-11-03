@@ -5,9 +5,10 @@ import random
 import numpy as np
 from torch.utils.data import Dataset
 from misc.constants import *
-from misc.indices import QUESTION_INDEX, ANSWER_INDEX
+from misc.indices import QUESTION_INDEX, ANSWER_INDEX, UNK_ID
 from misc.util import flatten, ziplist
 from misc.parse import parse_tree, process_question, parse_to_layout
+from collections import defaultdict
 
 class VQADataset(Dataset):
 	"""
@@ -17,7 +18,7 @@ class VQADataset(Dataset):
 	"""
 
 	def __init__(self, root_dir='./', set_names='train2014',
-		start=None, stop=None):
+		start=None, stop=None, k=None, partition=None):
 		super(VQADataset, self).__init__()
 		self._root_dir = os.path.expanduser(root_dir)
 		if type(set_names) == str:
@@ -31,6 +32,9 @@ class VQADataset(Dataset):
 		self._id_list.sort() # Ensure same order in all systems
 		random.Random(0).shuffle(self._id_list)
 
+		if k is not None:
+			assert start is None and stop is None
+			self._kfoldselection(k, partition)
 		if start is not None:
 			start = int(start*len(self._id_list))
 		if stop is not None:
@@ -67,6 +71,40 @@ class VQADataset(Dataset):
 
 	def __getitem__(self, i):
 		return self._get_datum(i)
+
+	def _kfoldselection(self, k, partition):
+		assert k in range(5)
+		assert partition in ['train','val','test']
+		assert set(self._set_names) == {'train2014','val2014'}
+
+		# Group by input_id (image). Every image has 3 questions.
+		by_input_id = defaultdict(list)
+		for i, qid in enumerate(self._id_list):
+			datum = self._get_datum(i)
+			by_input_id[datum['input_id']].append(qid)
+
+		input_id_list = list(by_input_id.keys())
+		input_id_list.sort()
+		random.Random(0).shuffle(input_id_list)
+
+		fold_size = len(input_id_list) / 5
+		limits = [0] + [ int((i+1)*fold_size) for i in range(5) ]
+		folds  = [ input_id_list[limits[i]:limits[i+1]] for i in range(5) ]
+		print([ len(f) for f in folds ])
+		if partition == 'test':
+			input_id_list = folds[(k-1)%5]
+		else:
+			input_id_list = list()
+			for i in range(4):
+				input_id_list.extend(folds[(k+i)%5])
+			val_size = int(0.1*len(input_id_list))
+			if partition == 'train':
+				input_id_list = input_id_list[:-val_size]
+			else:
+				input_id_list = input_id_list[-val_size:]
+
+		input_id_list = set(input_id_list)
+		self._id_list = [ k for k, d in self._by_id.items() if d['input_id'] in input_id_list ]
 
 	def _load_from_cache(self, set_names):
 		import os

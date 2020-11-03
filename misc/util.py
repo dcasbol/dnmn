@@ -87,7 +87,7 @@ def top1_accuracy(pred, label):
 	y = pred.argmax(1).view(-1,1)
 	hits = (y == label) & (y != UNK_ID)
 	hits = hits.float().sum(1)/3.0
-	hits = torch.min(hits, torch.ones([], device=DEVICE))
+	hits = torch.min(hits, torch.ones_like(hits))
 	return hits.mean().item()
 
 def inset_accuracy(pred, label):
