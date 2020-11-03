@@ -7,7 +7,7 @@ from vqa import encoder_collate_fn, nmn_collate_fn
 class BaseLoader(DataLoader):
 
 	def __init__(self, **kwargs):
-		ds_keys = {'root_dir', 'set_names', 'start', 'stop', 'k', 'metadata'}
+		ds_keys = {'root_dir', 'set_names', 'start', 'stop', 'k', 'partition', 'metadata'}
 		ds_kwargs = { k:v for k,v in kwargs.items() if k in ds_keys }
 		dl_kwargs = { k:v for k,v in kwargs.items() if k not in ds_keys }
 		dataset = self._dataset(**ds_kwargs)

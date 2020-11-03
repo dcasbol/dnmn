@@ -42,6 +42,7 @@ class Runner(object):
 
 		self._loader = self._get_loader(
 			set_names   = 'train2014' if k is None else ['train2014','val2014'],
+			partition   = None if k is None else 'train',
 			batch_size  = batch_size,
 			shuffle     = True,
 			num_workers = 4
