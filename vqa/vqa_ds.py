@@ -90,21 +90,24 @@ class VQADataset(Dataset):
 		fold_size = len(input_id_list) / 5
 		limits = [0] + [ int((i+1)*fold_size) for i in range(5) ]
 		folds  = [ input_id_list[limits[i]:limits[i+1]] for i in range(5) ]
-		print([ len(f) for f in folds ])
-		if partition == 'test':
-			input_id_list = folds[(k-1)%5]
-		else:
-			input_id_list = list()
-			for i in range(4):
-				input_id_list.extend(folds[(k+i)%5])
-			val_size = int(0.1*len(input_id_list))
-			if partition == 'train':
-				input_id_list = input_id_list[:-val_size]
-			else:
-				input_id_list = input_id_list[-val_size:]
 
-		input_id_list = set(input_id_list)
-		self._id_list = [ k for k, d in self._by_id.items() if d['input_id'] in input_id_list ]
+		if partition == 'test':
+			sel_inputs = folds[(k-1)%5]
+		else:
+			sel_inputs = list()
+			for i in range(4):
+				sel_inputs.extend(folds[(k+i)%5])
+			sel_inputs.sort()
+			random.Random(0).shuffle(sel_inputs)
+			val_size = int(0.1*len(sel_inputs))
+			if partition == 'train':
+				sel_inputs = sel_inputs[:-val_size]
+			else:
+				sel_inputs = sel_inputs[-val_size:]
+
+		self._id_list = list()
+		for input_id in sel_inputs:
+			self._id_list.extend(by_input_id[input_id])
 
 	def _load_from_cache(self, set_names):
 		import os
