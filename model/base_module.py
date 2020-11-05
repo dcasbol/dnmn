@@ -25,12 +25,12 @@ class BaseModule(nn.Module):
 		for y in labels.t():
 			mask = y != UNK_ID
 			if not mask.any():
-				break
+				continue
 			loss = self._loss_fn(pred[mask], y[mask])
 			loss_list.append(loss)
 		if loss_list == []:
 			return torch.zeros([], device=DEVICE, requires_grad=True)
-		return sum(loss_list) / batch_size
+		return sum(loss_list)
 
 	def save(self, filename):
 		torch.save(self.state_dict(), filename)
