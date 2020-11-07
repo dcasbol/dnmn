@@ -25,6 +25,8 @@ def get_args():
 		help='Follow modular methodology')
 	parser.add_argument('--k', type=int,
 		help='Index for 5-fold cross-validation')
+	parser.add_argument('--hq-gauge', action='store_true',
+		help='Enable HQ surrogate gradient module')
 	return parser.parse_args()
 
 
@@ -43,6 +45,8 @@ if __name__ == '__main__':
 			print("Modular flag doesn't affect training of Question Encoder.")
 			print("Flag ignored.")
 		del kwargs['modular']
+	if args.selection != 'find':
+		del kwargs['hq-gauge']
 
 	runner = dict(
 		encoder  = runners.EncoderRunner,

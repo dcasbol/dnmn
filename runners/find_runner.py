@@ -6,9 +6,10 @@ from misc.visualization import MapVisualizer
 
 class FindRunner(Runner):
 
-	def __init__(self, visualize=0, softmax_attn=False, bias=False, **kwargs):
+	def __init__(self, visualize=0, softmax_attn=False, bias=False, hq_gauge=False, **kwargs):
 		self._softmax_attn = softmax_attn
 		self._bias         = bias
+		self._hq_gauge     = hq_gauge
 		super(FindRunner, self).__init__(**kwargs)
 		self._visualize = visualize
 		assert visualize == 0, 'Visualization not implemented yet'
@@ -21,16 +22,18 @@ class FindRunner(Runner):
 			dropout      = self._dropout,
 			modular      = self._modular,
 			softmax_attn = self._softmax_attn,
-			bias         = self._bias
+			bias         = self._bias,
+			hq           = self._hq
 		)
 
 	def _get_loader(self, **kwargs):
-		return GaugeFindLoader(prior=self._modular, **kwargs)
+		return GaugeFindLoader(prior=self._modular, inst=self._hq_gauge, **kwargs)
 
 	def _forward(self, batch_data):
 		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
+		qinst = cudalize(batch_data[-2]) if self._hq else None
 		prior = cudalize(batch_data[-1]) if self._modular else None
-		pred = self._model(features, inst_1, inst_2, yesno, prior)
+		pred = self._model(features, inst_1, inst_2, yesno, qinst, prior)
 		result = dict(
 			output = pred,
 			label = label

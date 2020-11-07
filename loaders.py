@@ -53,5 +53,8 @@ class MeasureLoader(BiasedLoader):
 		return VQAMeasureDataset(prior=self._prior, **kwargs)
 
 class GaugeFindLoader(BiasedLoader):
+	def __init__(self, inst=False, **kwargs):
+		super().__init__(**kwargs)
+		self._inst = inst
 	def _dataset(self, **kwargs):
-		return VQAGaugeFindDataset(prior=self._prior, **kwargs)
+		return VQAGaugeFindDataset(prior=self._prior, inst=self._inst, **kwargs)
