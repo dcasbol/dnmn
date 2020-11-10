@@ -32,7 +32,7 @@ class VQAGaugeFindDataset(VQARootModuleDataset):
 		
 		output = (features, target_1, target_2, yesno, labels)
 		if self._inst:
-			output += (datum['layouts_indices'][0])
+			output += (datum['layouts_indices'][0],)
 		if self._prior:
 			output += (self._get_prior(datum),)
 		if self._metadata:

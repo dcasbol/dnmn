@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from misc.constants import *
 from misc.indices import ANSWER_INDEX, DESC_INDEX
-from misc.util import generate_hmaps, attend_features
+from misc.util import generate_hmaps, attend_features, DEVICE
 
 
 class ForcedDropout(nn.Module):

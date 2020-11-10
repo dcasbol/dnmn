@@ -46,7 +46,7 @@ if __name__ == '__main__':
 			print("Flag ignored.")
 		del kwargs['modular']
 	if args.selection != 'find':
-		del kwargs['hq-gauge']
+		del kwargs['hq_gauge']
 
 	runner = dict(
 		encoder  = runners.EncoderRunner,

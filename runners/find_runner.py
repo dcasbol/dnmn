@@ -23,7 +23,7 @@ class FindRunner(Runner):
 			modular      = self._modular,
 			softmax_attn = self._softmax_attn,
 			bias         = self._bias,
-			hq           = self._hq
+			hq           = self._hq_gauge
 		)
 
 	def _get_loader(self, **kwargs):
@@ -31,7 +31,7 @@ class FindRunner(Runner):
 
 	def _forward(self, batch_data):
 		features, inst_1, inst_2, yesno, label = cudalize(*batch_data[:5])
-		qinst = cudalize(batch_data[-2]) if self._hq else None
+		qinst = cudalize(batch_data[-2]) if self._hq_gauge else None
 		prior = cudalize(batch_data[-1]) if self._modular else None
 		pred = self._model(features, inst_1, inst_2, yesno, qinst, prior)
 		result = dict(

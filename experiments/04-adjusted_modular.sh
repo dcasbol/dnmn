@@ -20,15 +20,6 @@ do
 		--output "hyperopt/modular/hpo_candidates-$m.json"
 done
 
-for m in {find,encoder}
-do
-	python optimize_hypers.py $m \
-		--modular \
-		--candidates "hyperopt/modular/hpo_candidates-$m.json"
-
-
-done
-
 # 1st Encoder --> cache
 python optimize_hypers.py "encoder" \
 	--modular \
