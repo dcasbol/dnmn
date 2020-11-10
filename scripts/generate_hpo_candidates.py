@@ -4,7 +4,7 @@ import argparse
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Generate N random configurations')
-	parser.add_argument('N', type=int, default=50)
+	parser.add_argument('--N', type=int, default=50)
 	parser.add_argument('--output', type=str, default='hpo_candidates.json')
 	parser.add_argument('--seed', type=int, default=0)
 	parser.add_argument('--selection',
