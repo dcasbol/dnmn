@@ -38,7 +38,12 @@ done
 # Now optimize root modules
 for m in {measure,describe}
 do
+	python scripts/generate_hpo_candidates.py \
+		--selection "$m" \
+		--output "hyperopt/hq-modular/hpo_candidates-$m.json" \
+		50
 	python optimize_hypers.py $m \
+		--target-dir "hyperopt/hq-modular/" \
 		--modular \
 		--candidates "hyperopt/hq-modular/hpo_candidates-$m.json"
 done
