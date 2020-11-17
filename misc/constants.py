@@ -8,7 +8,7 @@ CACHE_HMAP_FILE  = "cache/{set}/hmaps/{set}-hmaps-{qid}.npy"
 CACHE_ATT_FILE   = "cache/{set}/attended/{set}-attended-{qid}.npy"
 CACHE_QENC_FILE  = "cache/{set}/qenc/{set}-qenc-{qid}.npy"
 
-MAX_ANSWERS    = 2000
+MAX_ANSWERS    = 1000
 IMG_DEPTH      = 512
 HIDDEN_UNITS   = 1024
 MASK_WIDTH     = 14
