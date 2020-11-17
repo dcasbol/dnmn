@@ -149,6 +149,15 @@ def generate_hmaps(find, instances, features, modular=False):
 		hmaps = new_hmaps
 	return hmaps
 
+def program_depth(program):
+	depths = list()
+	for inst in program:
+		d = 0
+		if len(inst['inputs']) > 0:
+			d = max([ depths[i] for i in inst['inputs'] ]) + 1
+		depths.append(d)
+	return depths[-1]
+
 class Logger(object):
 
 	def __init__(self):

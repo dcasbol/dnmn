@@ -6,12 +6,12 @@ import numpy as np
 import os
 
 MAX_BATCH_SIZE = 256
-WIDTH = 448 # Sizes from 2nd article. They aren't in the NMN article.
+TARGET_SIZE = (320,480) # From "Learning to Reason" 2017
 
 def get_generator(datagen, batch_size):
 	return datagen.flow_from_directory(
 		'CLEVR_v1.0/images', # This will go through dirs (it thinks they're classes)
-		target_size=(WIDTH, WIDTH),
+		target_size=TARGET_SIZE,
 		batch_size=batch_size,
 		shuffle=False,
 		class_mode=None
@@ -27,16 +27,16 @@ def get_tgt_fn(fn):
 	dirname, base = os.path.split(fn)
 	split_dir = dirname.split('/')
 	i = split_dir.index('CLEVR_v1.0')
-	tgt_dir = split_dir[:i+1] + ['conv'] + split_dir[i+2]
+	tgt_dir = split_dir[:i+1] + ['conv'] + [split_dir[i+2]]
 	tgt_dir = '/'.join(tgt_dir)
 	tgt_fn = tgt_dir+'/'+base[:-4]+'.csr'
 	if not os.path.exists(tgt_dir):
-		os.mkdir(tgt_dir)
+		os.makedirs(tgt_dir)
 	return dirname, tgt_fn
 
 def main():
 	model = VGG16(include_top=False, weights='imagenet',
-		input_shape=(WIDTH, WIDTH, 3))
+		input_shape=TARGET_SIZE + (3,))
 
 	datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 	n_images = get_generator(datagen, 1).samples
