@@ -75,9 +75,13 @@ class CLEVRDataset(Dataset):
 				desc_counts[attr] += 1
 
 		def rel_rule(rel_counts, instr):
-			funattr = instr['function'].split('_')
-			if funattr[0] in ['same', 'relate']:
-				rel_counts[funattr[1]] += 1
+			function = instr['function']
+			if function == 'relate':
+				rel_counts[instr['value_inputs'][0]] += 1
+			else:
+				funattr = function.split('_')
+				if funattr[0] == 'same':
+					rel_counts[funattr[1]] += 1
 
 		indices = list()
 		for name, (index, rule) in {
