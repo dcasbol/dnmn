@@ -19,9 +19,9 @@ class CLEVRDataset(Dataset):
 		if json_path is None:
 			json_path = os.path.join(clevr_dir, 'questions/CLEVR_train_questions.json')
 
-		spatial = np.mgrid[0:15,0:10].astype(np.float32)
-		spatial[0] /= 15
-		spatial[1] /= 10
+		spatial = np.mgrid[0:10,0:15].astype(np.float32)
+		spatial[0] /= 10
+		spatial[1] /= 15
 		self._spatial = spatial
 		with open('misc/clevr_normalizers.dat','rb') as fd:
 			normalizers = pickle.load(fd)
@@ -40,13 +40,13 @@ class CLEVRDataset(Dataset):
 			prog_range = '[{}:{}]'.format(min_idx, max_idx)
 			print('Filtering by program depth in', prog_range)
 
-			min_idx = min_prog_depth or 0
-			max_idx = max_prog_depth or 100
+			min_depth = min_prog_depth or 0
+			max_depth = max_prog_depth or 100
 			self._questions = list()
 			for q in data:
 				prog  = q['program']
 				depth = program_depth(prog)
-				if depth >= min_prog_depth and depth <= max_prog_depth:
+				if depth >= min_depth and depth <= max_depth:
 					self._questions.append(q)
 
 		if answer_index is None:
@@ -124,7 +124,7 @@ class CLEVRDataset(Dataset):
 		program = list()
 		for instruction in q['program']:
 			function = instruction['function']
-			f, attr = function.split('_') if '_' in function else function, None
+			f, attr = function.split('_') if '_' in function else (function, None)
 
 			if f == 'scene':
 				instr = dict(
@@ -168,7 +168,7 @@ class CLEVRDataset(Dataset):
 			elif f == 'union':
 				instr = dict(module = 'or')
 			elif f == 'unique':
-				instr = dict(module = 'attention')
+				instr = dict(module = 'attend')
 			else:
 				raise ValueError('Unknown CLEVR function {}'.format(function))
 
@@ -199,3 +199,19 @@ class CLEVRDataset(Dataset):
 			features = features,
 			answer   = answer
 		)
+
+	@property
+	def answer_index(self):
+		return self._answer_index
+
+	@property
+	def find_index(self):
+		return self._find_index
+	
+	@property
+	def desc_index(self):
+		return self._desc_index
+	
+	@property
+	def rel_index(self):
+		return self._rel_index
