@@ -25,7 +25,8 @@ class CLEVRBaseModule(nn.Module):
 		return inst
 
 	def save(self, filename=None):
-		filename = filename or self._name
+		alt_filename = self._name + '.pt'
+		filename = filename or alt_filename
 		assert filename is not None
 		path = os.path.join(self._saving_dir, filename)
 		torch.save(self.state_dict(), path)
