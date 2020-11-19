@@ -17,6 +17,22 @@ class CLEVRNMN(nn.Module):
 		self._measure = modules.CLEVRMeasure(len(answer_index), neural_dtypes=neural_dtypes)
 		self._compare = modules.CLEVRCompare(len(answer_index), neural_dtypes=neural_dtypes)
 
+		self._trainable_modules = [self._find, self._describe, self._relate,
+			self._measure, self._compare]
+
+	def save(self):
+		for m in self._trainable_modules:
+			m.save()
+
+	def load(self):
+		for m in self._trainable_modules:
+			m.load()
+		self._find = cudalize(self._find)
+		self._describe = cudalize(self._describe)
+		self._relate = cudalize(self._relate)
+		self._measure = cudalize(self._measure)
+		self._compare = cudalize(self._compare)
+
 	def _and(self, mask_A, mask_B):
 		if self._ndtypes:
 			return torch.min(mask_A, mask_B)

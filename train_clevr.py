@@ -1,6 +1,7 @@
+import time
 import torch
 from torch.utils.data import DataLoader
-from model import CLEVRNMN
+from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import cudalize
 
@@ -53,7 +54,10 @@ model = cudalize(model)
 
 opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
-for epoch in range(10):
+MAX_N_WORSE = 10
+n_worse = 0
+best_error = 1.0
+for epoch in range(500):
 
 	print('Epoch', epoch)
 
@@ -74,6 +78,7 @@ for epoch in range(10):
 	# Validation
 	N = 0
 	val_error = 0
+	model.eval()
 	with torch.no_grad():
 		for batch_data in val_loader:
 			output = model(batch_data)
@@ -81,8 +86,23 @@ for epoch in range(10):
 			targets = cudalize(batch_data['answer'])
 			err = (ans != targets).float().sum()
 			
-			B = len(batch_data)
+			B = ans.size(0)
 			N += B
 			val_error += err.item()
-	print('Val error:', val_error/N)
+	model.train()
+	val_error /= N
+	print('Val error:', val_error)
+	if val_error < best_error:
+		print('Saving checkpoint')
+		model.save()
+		best_error = val_error
+		n_worse = 0
+	else:
+		n_worse += 1
+
+	if n_worse == MAX_N_WORSE:
+		print(n_worse, 'epochs without improving. Stop training')
+		break
+
+print('Training finished')
 
