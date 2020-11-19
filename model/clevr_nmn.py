@@ -31,10 +31,10 @@ class CLEVRNMN(nn.Module):
 
 		answer_list = list()
 
-		for datum in batch_data:
+		for datum in batch_data['samples']:
 
 			features = cudalize(datum['features'].unsqueeze(0))
-			in_mask  = self._find[datum['program'][0]['instance']](in_feats)
+			in_mask  = self._find[datum['program'][0]['instance']](features)
 			first_result = dict(mask = in_mask)
 			results = list()
 
@@ -67,11 +67,11 @@ class CLEVRNMN(nn.Module):
 					assert len(inputs) == 1
 					descriptor = attend_features(features, inputs[0]['mask'])
 					res = dict(descriptor = descriptor)
-				elif module == 'intersect':
+				elif module == 'and':
 					assert len(inputs) == 2
 					mask = self._and(inputs[0]['mask'], inputs[1]['mask'])
 					res = dict(mask = mask)
-				elif module == 'union':
+				elif module == 'or':
 					assert len(inputs) == 2
 					mask = self._or(inputs[0]['mask'], inputs[1]['mask'])
 					res = dict(mask = mask)
@@ -90,6 +90,7 @@ class CLEVRNMN(nn.Module):
 
 		output = dict(answer = torch.cat(answer_list, dim=0))
 		if self.training:
-			output['loss'] = self._loss_fn(output['answer'], batch_data['answer'])
+			targets = cudalize(batch_data['answer'])
+			output['loss'] = self._loss_fn(output['answer'], targets)
 
 		return output
