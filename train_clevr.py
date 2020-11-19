@@ -17,7 +17,7 @@ def collate_fn(data):
 		answer  = torch.tensor(targets, dtype=torch.long)
 	)
 
-batch_size = 512
+batch_size = 64
 
 dataset = CLEVRDataset(max_prog_depth=5)
 loader  = DataLoader(
@@ -105,4 +105,5 @@ for epoch in range(500):
 		break
 
 print('Training finished')
+print('Best error:', best_error)
 
