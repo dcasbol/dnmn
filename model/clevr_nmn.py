@@ -6,9 +6,10 @@ import clevr.clevr_modules as modules
 class CLEVRNMN(nn.Module):
 
 	def __init__(self, answer_index, find_index, desc_index, rel_index,
-		neural_dtypes=False):
+		neural_dtypes=False, force_andor=False):
 		super().__init__()
 		self._ndtypes = neural_dtypes
+		self._force_andor = force_andor
 		self._loss_fn = nn.CrossEntropyLoss(reduction='mean')
 		self._find = modules.CLEVRFind(len(find_index), neural_dtypes=neural_dtypes)
 		self._describe = modules.CLEVRDescribe(len(desc_index), len(answer_index),
@@ -21,11 +22,17 @@ class CLEVRNMN(nn.Module):
 			self._measure, self._compare]
 
 	def save(self):
+		filename = None
 		for m in self._trainable_modules:
-			m.save()
+			if not self._ndtypes and self._force_andor:
+				filename = m._name + '_andor.pt'
+			m.save(filename=filename)
 
 	def load(self):
+		filename = None
 		for m in self._trainable_modules:
+			if not self._ndtypes and self._force_andor:
+				filename = m._name + '_andor.pt'
 			m.load()
 		self._find = cudalize(self._find)
 		self._describe = cudalize(self._describe)
@@ -34,12 +41,12 @@ class CLEVRNMN(nn.Module):
 		self._compare = cudalize(self._compare)
 
 	def _and(self, mask_A, mask_B):
-		if self._ndtypes:
+		if self._ndtypes or force_andor:
 			return torch.min(mask_A, mask_B)
 		return mask_A * mask_B
 
 	def _or(self, mask_A, mask_B):
-		if self._ndtypes:
+		if self._ndtypes or force_andor:
 			return torch.max(mask_A, mask_B)
 		return mask_A + mask_B
 
