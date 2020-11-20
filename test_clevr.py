@@ -57,6 +57,7 @@ N = 0
 test_error = 0
 model.eval()
 with torch.no_grad():
+	t0 = time.time()
 	for i, batch_data in enumerate(loader):
 		output = model(batch_data)
 		ans = output['answer'].max(1).indices
@@ -65,7 +66,8 @@ with torch.no_grad():
 
 		N += ans.size(0)
 		test_error += err.item()
-		if i%100 == 0:
+		if time.time()-t0 > 10:
+			t0 = time.time()
 			print('\r{:3d}%'.format(int(100*i/len(loader))), end='')
 test_error /= N
 
