@@ -53,7 +53,7 @@ N = 0
 test_error = 0
 model.eval()
 with torch.no_grad():
-	for batch_data in loader:
+	for i, batch_data in enumerate(loader):
 		output = model(batch_data)
 		ans = output['answer'].max(1).indices
 		targets = cudalize(batch_data['answer'])
@@ -61,6 +61,8 @@ with torch.no_grad():
 
 		N += ans.size(0)
 		test_error += err.item()
+		if i%100 == 0:
+			print('\r{:3d}%'.format(int(100*i/len(loader))), end='')
 test_error /= N
 
 results_path = 'clevr_results.json'
