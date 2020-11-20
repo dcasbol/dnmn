@@ -41,12 +41,12 @@ class CLEVRNMN(nn.Module):
 		self._compare = cudalize(self._compare)
 
 	def _and(self, mask_A, mask_B):
-		if self._ndtypes or force_andor:
+		if self._ndtypes or self._force_andor:
 			return torch.min(mask_A, mask_B)
 		return mask_A * mask_B
 
 	def _or(self, mask_A, mask_B):
-		if self._ndtypes or force_andor:
+		if self._ndtypes or self._force_andor:
 			return torch.max(mask_A, mask_B)
 		return mask_A + mask_B
 
