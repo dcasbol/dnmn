@@ -36,8 +36,8 @@ class CLEVRDataset(Dataset):
 		if min_prog_depth is not None or max_prog_depth is not None:
 
 			min_idx = '' if min_prog_depth is None else min_prog_depth
-			max_idx = '' if max_prog_depth is None else max_prog_depth+1
-			prog_range = '[{}:{}]'.format(min_idx, max_idx)
+			max_idx = '' if max_prog_depth is None else max_prog_depth
+			prog_range = '[{},{}]'.format(min_idx, max_idx)
 			print('Filtering by program depth in', prog_range)
 
 			min_depth = min_prog_depth or 0
