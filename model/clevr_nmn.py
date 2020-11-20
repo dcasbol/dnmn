@@ -33,7 +33,7 @@ class CLEVRNMN(nn.Module):
 		for m in self._trainable_modules:
 			if not self._ndtypes and self._force_andor:
 				filename = m._name + '_andor.pt'
-			m.load()
+			m.load(filename=filename)
 		self._find = cudalize(self._find)
 		self._describe = cudalize(self._describe)
 		self._relate = cudalize(self._relate)
