@@ -33,6 +33,10 @@ test_dataset = CLEVRDataset(
 	desc_index   = dataset.desc_index,
 	rel_index    = dataset.rel_index
 )
+if len(test_dataset) == 0:
+	print('No programs found with depth', prog_depth)
+	quit()
+
 loader  = DataLoader(
 	test_dataset,
 	batch_size  = batch_size,
