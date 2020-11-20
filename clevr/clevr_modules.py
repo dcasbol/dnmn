@@ -32,7 +32,8 @@ class CLEVRBaseModule(nn.Module):
 		torch.save(self.state_dict(), path)
 
 	def load(self, filename=None):
-		filename = filename or self._name
+		alt_filename = self._name + '.pt'
+		filename = filename or alt_filename
 		assert filename is not None
 		path = os.path.join(self._saving_dir, filename)
 		self.load_state_dict(torch.load(path, map_location='cpu'))
