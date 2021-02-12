@@ -14,6 +14,7 @@ def get_args():
 	parser.add_argument('depth', type=int)
 	parser.add_argument('suffix', choices=['modular','classic','classic_andor'])
 	parser.add_argument('filename', help='json output path')
+	parser.add_argument('--clevr-json')
 	args = parser.parse_args()
 	assert args.filename.split('.')[-1] == 'json'
 	return args
@@ -38,6 +39,7 @@ suffix     = args.suffix
 
 dataset = CLEVRDataset(max_prog_depth=5)
 test_dataset = CLEVRDataset(
+	json_path = args.clevr_json,
 	min_prog_depth=prog_depth,
 	max_prog_depth=prog_depth,
 	answer_index = dataset.answer_index,
