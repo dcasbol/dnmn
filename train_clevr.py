@@ -58,7 +58,8 @@ model = CLEVRNMN(
 	find_index   = dataset.find_index,
 	desc_index   = dataset.desc_index,
 	rel_index    = dataset.rel_index,
-	neural_dtypes = True
+	neural_dtypes = args.mode == 'modular',
+	force_andor   = args.mode == 'classic_andor'
 )
 model = cudalize(model)
 
