@@ -11,6 +11,7 @@ import argparse
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Test on CLEVR and program length')
+	parser.add_argument('traindepth', type=int)
 	parser.add_argument('depth', type=int)
 	parser.add_argument('suffix', choices=['modular','classic','classic_andor'])
 	parser.add_argument('filename', help='json output path')
@@ -37,7 +38,7 @@ args = get_args()
 prog_depth = args.depth
 suffix     = args.suffix
 
-dataset = CLEVRDataset(max_prog_depth=5)
+dataset = CLEVRDataset(max_prog_depth=args.traindepth)
 test_dataset = CLEVRDataset(
 	json_path = args.clevr_json,
 	min_prog_depth=prog_depth,
