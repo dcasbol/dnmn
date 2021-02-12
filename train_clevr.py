@@ -4,6 +4,14 @@ from torch.utils.data import DataLoader
 from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import cudalize
+import argparse
+
+def get_args():
+	parser = argparse.ArgumentParser(description='Train CLEVR')
+	parser.add_argument('mode', choices=['modular','classic','classic_andor'])
+	parser.add_argument('--depth', type=int)
+	args = parser.parse_args()
+	return args
 
 def collate_fn(data):
 	tensor_data = list()
@@ -19,7 +27,9 @@ def collate_fn(data):
 
 batch_size = 64
 
-dataset = CLEVRDataset(max_prog_depth=5)
+args = get_args()
+
+dataset = CLEVRDataset(max_prog_depth=args.depth)
 loader  = DataLoader(
 	dataset,
 	batch_size  = batch_size,
@@ -30,7 +40,7 @@ loader  = DataLoader(
 
 valset = CLEVRDataset(
 	json_path='/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json',
-	max_prog_depth = 5,
+	max_prog_depth = args.depth,
 	answer_index = dataset.answer_index,
 	find_index   = dataset.find_index,
 	desc_index   = dataset.desc_index,

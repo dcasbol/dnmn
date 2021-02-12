@@ -7,6 +7,16 @@ from torch.utils.data import DataLoader
 from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import cudalize
+import argparse
+
+def get_args():
+	parser = argparse.ArgumentParser(description='Test on CLEVR and program length')
+	parser.add_argument('depth', type=int)
+	parser.add_argument('suffix', choices=['modular','classic','classic_andor'])
+	parser.add_argument('filename', help='json output path')
+	args = parser.parse_args()
+	assert args.filename.split('.')[-1] == 'json'
+	return args
 
 def collate_fn(data):
 	tensor_data = list()
@@ -21,8 +31,10 @@ def collate_fn(data):
 	)
 
 batch_size = 64
-prog_depth = int(sys.argv[1])
-suffix     = sys.argv[2]
+
+args = get_args()
+prog_depth = args.depth
+suffix     = args.suffix
 
 dataset = CLEVRDataset(max_prog_depth=5)
 test_dataset = CLEVRDataset(
@@ -71,7 +83,7 @@ with torch.no_grad():
 			print('\r{:3d}%'.format(int(100*i/len(loader))), end='')
 test_error /= N
 
-results_path = 'clevr_results.json'
+results_path = args.filename
 res = dict()
 if os.path.exists(results_path):
 	with open(results_path) as fd:
