@@ -7,11 +7,13 @@ from misc.util import program_depth
 from misc.indices import Index, UNK, _index_words
 from collections import defaultdict
 from misc.constants import *
+from multiprocessing import Value
 
 class CLEVRDataset(Dataset):
 
 	def __init__(self, json_path=None, min_prog_depth=None, max_prog_depth=None,
 		answer_index=None, find_index=None, desc_index=None, rel_index=None,
+		cv_learning=False,
 		clevr_dir='/DataSets/CLEVR_v1.0/'):
 
 		self._clevr_dir = clevr_dir
@@ -32,6 +34,9 @@ class CLEVRDataset(Dataset):
 		with open(json_path) as fd:
 			data = json.load(fd)['questions']
 
+		self.cv_learning = cv_learning
+		self.prog_dict = defaultdict(lambda: list())
+
 		self._questions = data
 		if min_prog_depth is not None or max_prog_depth is not None:
 
@@ -48,6 +53,12 @@ class CLEVRDataset(Dataset):
 				depth = program_depth(prog)
 				if depth >= min_depth and depth <= max_depth:
 					self._questions.append(q)
+					self.prog_dict[depth].append(q)
+
+		self.depths_available = list(sorted(self.prog_dict.keys()))
+		self.current_depth = self.depths_available[0]
+		self.n_fetched = 0
+		self.qs_available = self.prog_dict[self.current_depth].copy()
 
 		if answer_index is None:
 			print('Building answer index')
@@ -115,11 +126,21 @@ class CLEVRDataset(Dataset):
 		print('Dataset ready')
 
 	def __len__(self):
+		if self.cv_learning:
+			return len(self.qs_available)
 		return len(self._questions)
 
 	def __getitem__(self, i):
 
-		q = self._questions[i]
+		if self.cv_learning:
+			q = self.qs_available[i]
+			self.n_fetched += 1
+			if self.n_fetched == 2*len(self.qs_available):
+				self.n_fetched = 0
+				self.current_depth += 1
+				self.qs_available.extend(self.prog_dict[self.current_depth])
+		else:
+			q = self._questions[i]
 
 		program = list()
 		for instruction in q['program']:
