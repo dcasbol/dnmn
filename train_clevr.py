@@ -79,7 +79,7 @@ for epoch in range(500):
 
 	print('Epoch', epoch)
 
-	if args.cv_learning and epoch%3 == 0:
+	if args.cv_learning and epoch%3 == 0 and len(depths_available) > 0:
 		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
 		if len(depths_available) > 0:
 			depths_available = depths_available[1:]
