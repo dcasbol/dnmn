@@ -7,7 +7,7 @@ from misc.util import program_depth
 from misc.indices import Index, UNK, _index_words
 from collections import defaultdict
 from misc.constants import *
-from multiprocessing import Value
+from multiprocessing import Lock, Value
 
 class CLEVRDataset(Dataset):
 
@@ -60,9 +60,10 @@ class CLEVRDataset(Dataset):
 				self.prog_dict[depth].append(q)
 
 		if cv_learning:
+			self.lock = Lock()
 			self.depths_available = list(sorted(self.prog_dict.keys()))
-			self.current_depth = self.depths_available[0]
-			self.n_fetched = 0
+			self.current_depth = Value('i', self.depths_available[0])
+			self.n_fetched = Value('i', 0)
 			self.qs_available = self.prog_dict[self.current_depth].copy()
 
 		if answer_index is None:
@@ -138,12 +139,17 @@ class CLEVRDataset(Dataset):
 	def __getitem__(self, i):
 
 		if self.cv_learning:
+			self.lock.acquire()
 			q = self.qs_available[i]
 			self.n_fetched += 1
 			if self.n_fetched == 2*len(self.qs_available):
 				self.n_fetched = 0
 				self.current_depth += 1
-				self.qs_available.extend(self.prog_dict[self.current_depth])
+				self.qs_available = []
+				for depth, questions in self.prog_dict.items():
+					if depth <= self.current_depth:
+						self.qs_available.extend(questions)
+			self.lock.release()
 		else:
 			q = self._questions[i]
 
