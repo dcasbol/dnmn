@@ -3,13 +3,14 @@ import torch
 from torch.utils.data import DataLoader
 from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
-from misc.util import cudalize
+from misc.util import cudalize, program_depth
 import argparse
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Train CLEVR')
 	parser.add_argument('mode', choices=['modular','classic','classic_andor'])
 	parser.add_argument('--depth', type=int)
+	parser.add_argument('--cv-learning', action='store_true')
 	args = parser.parse_args()
 	return args
 
@@ -68,9 +69,34 @@ opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 MAX_N_WORSE = 10
 n_worse = 0
 best_error = 1.0
+cv_prog_depth = None
+depths_available = None
+if args.cv_learning:
+	depths_available = { program_depth(q['program']) for q in dataset._questions }
+	depths_available = list(sorted(depths_available))
+
 for epoch in range(500):
 
 	print('Epoch', epoch)
+
+	if args.cv_learning and epoch%3 == 0:
+		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
+		if len(depths_available) > 0:
+			depths_available = depths_available[1:]
+		trainset = CLEVRDataset(
+			max_prog_depth=cv_prog_depth,
+			answer_index = dataset.answer_index,
+			find_index   = dataset.find_index,
+			desc_index   = dataset.desc_index,
+			rel_index    = dataset.rel_index
+		)
+		loader  = DataLoader(
+			trainset,
+			batch_size  = batch_size,
+			shuffle     = True,
+			num_workers = 4,
+			collate_fn  = collate_fn
+		)
 
 	t0 = time.time()
 	for i, batch_data in enumerate(loader):
