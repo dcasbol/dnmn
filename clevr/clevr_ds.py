@@ -54,6 +54,10 @@ class CLEVRDataset(Dataset):
 				if depth >= min_depth and depth <= max_depth:
 					self._questions.append(q)
 					self.prog_dict[depth].append(q)
+		elif self.cv_learning:
+			for q in data:
+				depth = program_depth(q['program'])
+				self.prog_dict[depth].append(q)
 
 		self.depths_available = list(sorted(self.prog_dict.keys()))
 		self.current_depth = self.depths_available[0]
