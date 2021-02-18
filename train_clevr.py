@@ -76,7 +76,9 @@ if args.cv_learning:
 	depths_available = { program_depth(q['program']) for q in dataset._questions }
 	depths_available = list(sorted(depths_available))
 
-for epoch in range(500):
+epoch = -1
+while True:
+	epoch += 1
 
 	print('Epoch', epoch)
 
