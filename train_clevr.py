@@ -71,6 +71,7 @@ n_worse = 0
 best_error = 1.0
 cv_prog_depth = None
 depths_available = None
+initialize_sets  = True
 if args.cv_learning:
 	depths_available = { program_depth(q['program']) for q in dataset._questions }
 	depths_available = list(sorted(depths_available))
@@ -79,7 +80,8 @@ for epoch in range(500):
 
 	print('Epoch', epoch)
 
-	if args.cv_learning and epoch%3 == 0 and len(depths_available) > 0:
+	if args.cv_learning and initialize_sets and len(depths_available) > 0:
+		initialize_sets = False
 		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
 		if len(depths_available) > 0:
 			depths_available = depths_available[1:]
@@ -138,8 +140,11 @@ for epoch in range(500):
 		n_worse += 1
 
 	if n_worse == MAX_N_WORSE:
-		print(n_worse, 'epochs without improving. Stop training')
-		break
+		if args.cv_learning:
+			initialize_sets = True
+		else:
+			print(n_worse, 'epochs without improving. Stop training')
+			break
 
 print('Training finished')
 print('Best error:', best_error)
