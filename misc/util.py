@@ -5,12 +5,20 @@ import numpy as np
 import time
 import pickle
 import subprocess
+import random
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from misc.indices import YESNO_QWORDS, OR_QWORD, UNK_ID
 from misc.constants import *
 from ilock import ILock
 
+def seed(seed_value=0, fully_deterministic=True):
+	random.seed(seed_value)
+	np.random.seed(seed_value)
+	torch.manual_seed(seed_value)
+	if fully_deterministic:
+		torch.backends.cudnn.deterministic = True
+		torch.backends.cudnn.benchmark     = False
 
 USE_CUDA = torch.cuda.is_available()
 DEVICE = 'cuda' if USE_CUDA else 'cpu'

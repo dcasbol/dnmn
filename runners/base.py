@@ -17,8 +17,7 @@ class Runner(object):
 		learning_rate=1e-3, weight_decay=1e-5, dropout=0,
 		early_stopping=True, modular=False, k=None):
 
-		# This seed makes weight initialization deterministic
-		self._seed()
+		util.seed()
 
 		self._max_epochs = max_epochs
 		self._save       = save or k is not None

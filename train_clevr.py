@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
-from misc.util import cudalize, program_depth
+from misc.util import seed, cudalize, program_depth
 import argparse
 import random
 import numpy as np
@@ -28,11 +28,7 @@ def collate_fn(data):
 		answer  = torch.tensor(targets, dtype=torch.long)
 	)
 
-random.seed(0)
-torch.manual_seed(0)
-np.random.seed(0)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark     = False
+seed()
 
 batch_size = 64
 
