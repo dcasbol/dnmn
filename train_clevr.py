@@ -5,8 +5,6 @@ from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import seed, cudalize, program_depth
 import argparse
-import random
-import numpy as np
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Train CLEVR')
@@ -31,40 +29,28 @@ def collate_fn(data):
 seed()
 
 batch_size = 64
-
 args = get_args()
 
 dataset = CLEVRDataset(max_prog_depth=args.depth)
-loader  = DataLoader(
-	dataset,
-	batch_size  = batch_size,
-	shuffle     = True,
-	num_workers = 4,
-	collate_fn  = collate_fn
-)
+index_names = ['answer','find','desc','rel']
+index_names = [ n+'_index' for n in index_names ]
+indices = { name : getattr(dataset, name) for name in index_names }
 
-valset = CLEVRDataset(
-	json_path='/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json',
-	max_prog_depth = args.depth,
-	answer_index = dataset.answer_index,
-	find_index   = dataset.find_index,
-	desc_index   = dataset.desc_index,
-	rel_index    = dataset.rel_index
-)
-val_loader = DataLoader(
-	valset,
-	batch_size = batch_size,
-	num_workers = 4,
-	collate_fn = collate_fn
-)
+def get_loader(val=False, max_depth=None):
+	path = None
+	if val:
+		path = '/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json'
+	ds = CLEVRDataset(json_path=path, max_prog_depth = max_depth, **indices)
+	return DataLoader(ds, batch_size=batch_size, num_workers=4, collate_fn=collate_fn)
+
+if not args.cv_learning:
+	loader = get_loader(max_depth=args.depth)
+	val_loader = get_loader(val=True, max_depth=args.depth)
 
 model = CLEVRNMN(
-	answer_index = dataset.answer_index,
-	find_index   = dataset.find_index,
-	desc_index   = dataset.desc_index,
-	rel_index    = dataset.rel_index,
 	neural_dtypes = args.mode == 'modular',
-	force_andor   = args.mode == 'classic_andor'
+	force_andor   = args.mode == 'classic_andor',
+	**indices
 )
 model = cudalize(model)
 
@@ -91,34 +77,8 @@ while True:
 		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
 		if len(depths_available) > 0:
 			depths_available = depths_available[1:]
-		trainset = CLEVRDataset(
-			max_prog_depth=cv_prog_depth,
-			answer_index = dataset.answer_index,
-			find_index   = dataset.find_index,
-			desc_index   = dataset.desc_index,
-			rel_index    = dataset.rel_index
-		)
-		loader  = DataLoader(
-			trainset,
-			batch_size  = batch_size,
-			shuffle     = True,
-			num_workers = 4,
-			collate_fn  = collate_fn
-		)
-		valset = CLEVRDataset(
-			json_path='/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json',
-			max_prog_depth = cv_prog_depth,
-			answer_index = dataset.answer_index,
-			find_index   = dataset.find_index,
-			desc_index   = dataset.desc_index,
-			rel_index    = dataset.rel_index
-		)
-		val_loader = DataLoader(
-			valset,
-			batch_size = batch_size,
-			num_workers = 4,
-			collate_fn = collate_fn
-		)
+		loader = get_loader(max_depth=cv_prog_depth)
+		val_loader = get_loader(val=True, max_depth=cv_prog_depth)
 
 	t0 = time.time()
 	for i, batch_data in enumerate(loader):
