@@ -5,6 +5,8 @@ from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import cudalize, program_depth
 import argparse
+import random
+import numpy as np
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Train CLEVR')
@@ -25,6 +27,12 @@ def collate_fn(data):
 		samples = tensor_data,
 		answer  = torch.tensor(targets, dtype=torch.long)
 	)
+
+random.seed(0)
+torch.manual_seed(0)
+np.random.seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark     = False
 
 batch_size = 64
 
