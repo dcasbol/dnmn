@@ -99,6 +99,20 @@ for epoch in range(500):
 			num_workers = 4,
 			collate_fn  = collate_fn
 		)
+		valset = CLEVRDataset(
+			json_path='/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json',
+			max_prog_depth = cv_prog_depth,
+			answer_index = dataset.answer_index,
+			find_index   = dataset.find_index,
+			desc_index   = dataset.desc_index,
+			rel_index    = dataset.rel_index
+		)
+		val_loader = DataLoader(
+			valset,
+			batch_size = batch_size,
+			num_workers = 4,
+			collate_fn = collate_fn
+		)
 
 	t0 = time.time()
 	for i, batch_data in enumerate(loader):
@@ -140,7 +154,7 @@ for epoch in range(500):
 		n_worse += 1
 
 	if n_worse == MAX_N_WORSE:
-		if args.cv_learning:
+		if args.cv_learning and len(depths_available) > 0:
 			initialize_sets = True
 		else:
 			print(n_worse, 'epochs without improving. Stop training')
