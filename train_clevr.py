@@ -36,16 +36,17 @@ index_names = ['answer','find','desc','rel']
 index_names = [ n+'_index' for n in index_names ]
 indices = { name : getattr(dataset, name) for name in index_names }
 
-def get_loader(val=False, max_depth=None):
+def get_loader(val=False, depth=None):
 	path = None
 	if val:
 		path = '/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json'
-	ds = CLEVRDataset(json_path=path, max_prog_depth = max_depth, **indices)
+	ds = CLEVRDataset(json_path=path,
+		min_prog_depth=depth, max_prog_depth=depth, **indices)
 	return DataLoader(ds, batch_size=batch_size, num_workers=4, collate_fn=collate_fn)
 
 if not args.cv_learning:
-	loader = get_loader(max_depth=args.depth)
-	val_loader = get_loader(val=True, max_depth=args.depth)
+	loader = get_loader(depth=args.depth)
+	val_loader = get_loader(val=True, depth=args.depth)
 
 model = CLEVRNMN(
 	neural_dtypes = args.mode == 'modular',
@@ -77,8 +78,8 @@ while True:
 		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
 		if len(depths_available) > 0:
 			depths_available = depths_available[1:]
-		loader = get_loader(max_depth=cv_prog_depth)
-		val_loader = get_loader(val=True, max_depth=cv_prog_depth)
+		loader = get_loader(depth=cv_prog_depth)
+		val_loader = get_loader(val=True, depth=cv_prog_depth)
 
 	t0 = time.time()
 	for i, batch_data in enumerate(loader):
@@ -120,7 +121,7 @@ while True:
 		n_worse += 1
 
 	if n_worse == MAX_N_WORSE:
-		if args.cv_learning and len(depths_available) > 0:
+		if args.cv_learning and cv_prog_depth is not None:
 			initialize_sets = True
 		else:
 			print(n_worse, 'epochs without improving. Stop training')
