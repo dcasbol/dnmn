@@ -123,6 +123,8 @@ while True:
 	if n_worse == MAX_N_WORSE:
 		if args.cv_learning and cv_prog_depth is not None:
 			initialize_sets = True
+			model.load()
+			best_error = 1.0
 		else:
 			print(n_worse, 'epochs without improving. Stop training')
 			break
