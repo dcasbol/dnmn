@@ -72,7 +72,7 @@ while True:
 
 	print('Epoch', epoch)
 
-	if args.cv_learning and initialize_sets and len(depths_available) > 0:
+	if args.cv_learning and initialize_sets:
 		initialize_sets = False
 		cv_prog_depth = None if len(depths_available) == 0 else depths_available[0]
 		if len(depths_available) > 0:
