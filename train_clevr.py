@@ -64,8 +64,11 @@ cv_prog_depth = None
 depths_available = None
 initialize_sets  = True
 if args.cv_learning:
-	depths_available = { program_depth(q['program']) for q in dataset._questions }
-	depths_available = list(sorted(depths_available))
+	valset = CLEVRDataset(json_path='/DataSets/CLEVR_v1.0/questions/CLEVR_val_questions.json', **indices)
+	depths_val = { program_depth(q['program']) for q in valset._questions }
+	depths_train = { program_depth(q['program']) for q in dataset._questions }
+	depths_available = list(sorted(depths_train))
+	depths_available = [ d for d in depths_available if d in depths_val ]
 
 epoch = -1
 while True:
