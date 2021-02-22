@@ -5,6 +5,7 @@ from model.clevr_nmn import CLEVRNMN
 from clevr import CLEVRDataset
 from misc.util import seed, cudalize, program_depth
 import argparse
+import gc
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Train CLEVR')
@@ -73,6 +74,7 @@ if args.cv_learning:
 epoch = -1
 while True:
 	epoch += 1
+	gc.collect()
 
 	print('Epoch', epoch)
 
