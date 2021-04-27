@@ -16,12 +16,12 @@ def main(args):
 
 	if args.modular_errors_json is not None:
 		depths, errors = get_modular_errors(args.modular_errors_json, 'modular')
-		ax1.plot(depths, errors, marker='^', color='#1f77b4', label='Modular network with data types')
+		ax1.plot(depths, errors, marker='^', color='#ff7f0e', label='Modular network with data types')
 		insert_legend = True
 
 	if args.classic_errors_json is not None:
 		depths, errors = get_modular_errors(args.classic_errors_json, 'classic')
-		ax1.plot(depths, errors, marker='o', color='#ff7f0e', label='Modular baseline')
+		ax1.plot(depths, errors, marker='o', color='#1f77b4', label='Modular baseline')
 		insert_legend = True
 
 	depths, errors = get_film_errors(args.film_errors_json)
@@ -29,7 +29,7 @@ def main(args):
 
 	# Line marking max depth seen during train
 	ax1.plot([5.5,5.5], [min(errors), max(errors)], linestyle='dashed', color='black')
-	plt.xticks(list(range(min(depths),max(depths)+1)))
+	plt.xticks(list(range(min(depths), 18+1)))
 
 	ax1.set_xlabel('Program depth')
 	ax1.set_ylabel('Mean error (%)')
@@ -45,7 +45,7 @@ def get_film_errors(path):
 	data = read_json(path)
 	depths = [ int(k) for k in data.keys() ]
 	depths.sort()
-	errors = [ 100*(1-data[str(d)]) for d in depths ]
+	errors = [ 100*(1-data[str(d)]) for d in depths if d <= 18 ]
 	return depths, errors
 
 def get_modular_errors(path, modality):
@@ -55,8 +55,8 @@ def get_modular_errors(path, modality):
 	error, N = zip(*error_data)
 	depth = [ int(d) for d in depth ]
 	error = [ 100*e for e in error ]
-	error = [ e for e,d in zip(error, depth) if d >= 3 and d <= 19 ]
-	depth = [ d for d in depth if d >= 3 and d <= 19 ]
+	error = [ e for e,d in zip(error, depth) if d >= 3 and d <= 18 ]
+	depth = [ d for d in depth if d >= 3 and d <= 18 ]
 	return depth, error
 
 if __name__ == '__main__':
