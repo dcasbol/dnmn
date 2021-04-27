@@ -5,7 +5,6 @@ data
 cache/*.dat
 cache/*/
 *.npz
-results
 temp/
 hyperopt/
 run-queue/
