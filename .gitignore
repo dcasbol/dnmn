@@ -15,4 +15,5 @@ run-queue/
 
 # Virtual Environments
 env*/
-
+*.code-workspace
+.vscode
